@@ -25,7 +25,7 @@ except:
 
 def list_picker(
         stdscr: curses.window, 
-        items: list = [[]],
+        items: list = [],
         cursor_pos: int = 0,
         colours: dict = {},
         max_selected: int = -1,
@@ -40,6 +40,8 @@ def list_picker(
         get_new_data: bool =False,
         refresh_function: Optional[Callable] =None,
         get_data_startup: bool =False,
+        track_entries_upon_refresh: bool = True,
+        id_column: int = 0,
 
         unselectable_indices: list =[],
         highlights: list =[],
@@ -61,8 +63,8 @@ def list_picker(
         search_count : int = 0,
         search_index : int = 0,
         filter_query : str = "",
-        hidden_columns: set = set(),
-        indexed_items: list[list[str]] = [[]],
+        hidden_columns: list = [],
+        indexed_items: list[Tuple[int, list[str]]] = [],
         scroll_bar : int = True,
 
         selections: dict = {},
@@ -240,12 +242,13 @@ def list_picker(
                 top_gap=0,
                 key_remappings = notification_remap_keys,
                 display_only = True,
+                hidden_columns=[],
             )
             if o != "refresh": break
 
         return submenu_win
 
-    def draw_screen(indexed_items: list[list[str]], highlights: list[dict] = [{}], clear: bool = True) -> None:
+    def draw_screen(indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw the list_picker screen. """
         nonlocal items, header
         nonlocal filter_query, search_query, search_count, search_index 
@@ -467,8 +470,24 @@ def list_picker(
         nonlocal start_selection, is_deselecting, is_selecting
         nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, number_columns, max_column_width
 
+        tracking, ids, cursor_pos_id = False, [], 0
+
         if get_data and refresh_function != None:
+            if track_entries_upon_refresh and len(items) > 0:
+                tracking = True
+                selected_indices = get_selected_indices(selections)
+                ids = [item[id_column] for i, item in enumerate(items) if i in selected_indices]
+
+                if len(indexed_items) > 0:
+                    cursor_pos_id = indexed_items[cursor_pos][1][id_column]
+
             items, header = refresh_function()
+
+                    
+
+
+
+
 
         if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
@@ -536,6 +555,22 @@ def list_picker(
 
         assert new_pos < len(items)
         cursor_pos = new_pos
+
+
+        if tracking:
+            selected_indices = []
+            all_ids = [item[id_column] for item in items]
+            selections = {i: False for i in range(len(items))}
+            for id in ids:
+                if id in all_ids:
+                    selected_indices.append(all_ids.index(id))
+                    selections[all_ids.index(id)] = True
+
+            if cursor_pos_id in all_ids:
+                cursor_pos_x = all_ids.index(cursor_pos_id)
+                if cursor_pos_x in [i[0] for i in indexed_items]:
+                    cursor_pos = [i[0] for i in indexed_items].index(cursor_pos_x)
+                    os.system(f"notify-send {cursor_pos}")
         return SORT_METHODS, h, w, items_per_page
 
     SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
@@ -599,6 +634,8 @@ def list_picker(
             "centre_in_cols":       centre_in_cols,
             "highlight_full_row":   highlight_full_row,
             "column_widths":        column_widths,
+            "track_entries_upon_refresh": track_entries_upon_refresh,
+            "id_column":            id_column,
             
         }
         return function_data
@@ -673,7 +710,7 @@ def list_picker(
             show_footer=False,
             header=header,
             # scroll_bar=False,
-            hidden_columns=set(),
+            hidden_columns=[],
             require_option=require_option,
         )
         if s:
@@ -713,7 +750,7 @@ def list_picker(
                 centre_in_terminal_vertical=True,
                 centre_in_terminal=True,
                 centre_in_cols=True,
-                hidden_columns=set()
+                hidden_columns=[],
             )
             if o != "refresh": break
             submenu_win.clear()
@@ -730,7 +767,7 @@ def list_picker(
             if col_index in hidden_columns:
                 hidden_columns.remove(col_index)
             else:
-                hidden_columns.add(col_index)
+                hidden_columns.append(col_index)
 
     def apply_settings() -> None:
         """ The users settings will be stored in the user_settings variable. This function applies those settings. """
@@ -816,8 +853,8 @@ def list_picker(
             # end_selection = indexed_items[current_page * items_per_page + current_row][0]
             end_selection = cursor_pos
             if start_selection != -1:
-                start = min(start_selection, end_selection)
-                end = max(start_selection, end_selection)
+                start = max(min(start_selection, end_selection), 0)
+                end = min(max(start_selection, end_selection), len(indexed_items)-1)
                 for i in range(start, end + 1):
                     if indexed_items[i][0] not in unselectable_indices:
                         selections[indexed_items[i][0]] = True
@@ -963,7 +1000,7 @@ def list_picker(
                 # kwargs = refresh_function[2]
                 # items = f(*args, **kwargs)
 
-                items, header = refresh_function()
+                # items, header = refresh_function()
                 SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
 
                 initial_time = time.time()
@@ -986,6 +1023,7 @@ def list_picker(
                 disabled_keys=[ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')],
                 colours_start=100,
                 paginate=paginate,
+                hidden_columns=[],
             )
 
         elif check_key("exit", key, keys_dict):

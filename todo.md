@@ -35,6 +35,7 @@
 >   - [ ] some capture groups don't work [^0]
 >   - [ ] should general search be cell-wise?
 >   - [ ] option to search visible columns only
+> - [ ] Visual selection: start visual selection on row 100. List_picker refreshes and there are only 10 rows with the applied filter. End visual selection on row 2. Crash
 
 
 > [!Important] Improvements
