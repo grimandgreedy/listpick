@@ -1,21 +1,21 @@
 # list_picker.py
 
 > [!error] Errors
->- [ ] place cursor on last row and hold +.
->- [ ] why does curses crash when writing to the final char on the final line?
+> - [ ] place cursor on last row and hold +.
+> - [ ] why does curses crash when writing to the final char on the final line?
 >   - [ ] is there a way to colour it?
->- [ ] errors thrown when length(header) != length(items[0])
->- [ ] Error handling needed
+> - [ ] errors thrown when length(header) != length(items[0])
+> - [ ] Error handling needed
 >   - [ ] apply_settings("sjjj") 
->- [ ] Error when drawing highlights. Have to put them in a try-except block
->- [ ] Add error-checking for:
+> - [ ] Error when drawing highlights. Have to put them in a try-except block
+> - [ ] Add error-checking for:
 >   - [ ] display of modes... 
 
 
 
 > [!Bug] Bugs
-> - [ ] sometimes the cursor shows, sometimes it doesn't
->    - cursor shows after opening nvim and returning to listpicker
+> - [ ] blinking cursor shows after opening nvim and returning to listpicker
+>    - 
 > - [ ] fix resizing when input field active
 > - [ ] Visual selection
 >   - [ ] when visually selecting sometimes single rows above are highlighted (though not selected)
@@ -39,14 +39,14 @@
 
 
 > [!Important] Improvements
->- [ ] (!!!) Need to remove nonlocal args and pass all variables as arguments
->- [ ] change hidden_columns from set() to list()
->- [ ] make unselectable_indices work with filtering
->- [ ] look at adjustment for cursor position and hidden unselectable indices
->- [ ] each time we pass options it will resort and refilter; add an option to simply load the items that are passed
->- [ ] require_option should skip the prompt if an option has already been given
->- [ ] force option type; show notification to user if option not appropriate
->- [ ] add the ability to disable options for:
+> - [ ] (!!!) Need to remove nonlocal args and pass all variables as arguments
+> - [ ] change hidden_columns from set() to list()
+> - [ ] make unselectable_indices work with filtering
+> - [ ] look at adjustment for cursor position and hidden unselectable indices
+> - [ ] each time we pass options it will resort and refilter; add an option to simply load the items that are passed
+> - [ ] require_option should skip the prompt if an option has already been given
+> - [ ] force option type; show notification to user if option not appropriate
+> - [ ] add the ability to disable options for:
 >   - [x] show footer
 >   - [x] auto-refresh
 >   - [x] edit cell
@@ -55,7 +55,7 @@
 >   - [ ] disable visual selection when # is greater than max_selected
 >   - [ ] NOTIFICATIONS
 >   - [ ] OPTIONS
->- [ ] Colours
+> - [ ] Colours
 >   - [ ] Redo colours
 >   - [ ] pass colours to list_picker in a more intuitive way
 >   - [ ] complete get_colours loop
@@ -66,73 +66,55 @@
 >      - [ ] implement readline keybinds
 >          - [x] ctrl-f, ctrl-b
 >      - [ ] add variable max display length
->- [ ] Highlights
+> - [ ] Highlights
 >   - [ ] (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
 >      - [?] allow visual matches with searches?
 >      - [?] hide highlights across fields?
 >      - [?] e.g., mkv$ shows no highlights but does match
 >   - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
->- [ ] Pipe
+> - [ ] Pipe
 >   - [ ] if no items are selected pipe cursor to command
->- [ ] Redo keybinds
+> - [ ] Redo keybinds
 >   - [ ]  n/N search next/prev
 >   - [ ] (!!!) allow key remappings; have a dictionary to remap
 >      - [ ] escape should close option selections and notifications
 >   - [ ] Add keybind to focus on next (visible) column
->- [?] adjust default column width based on current page?
+> - [ ] (?) adjust default column width based on current page?
 
 
 > [!IMPORTANT] Features
->- [x] Create notification system
+> - [x] Create notification system
 >    - [ ] add transient non-blocking notifications
->- [x] add different selection styles
+> - [x] add different selection styles
 >   - [x] row highlighted   
 >   - [x] selection indicator (selection char at end of line)
->- [ ] add key-chain support. Can use the timeout to clear the key.
+> - [ ] add key-chain support. Can use the timeout to clear the key.
 >   - [ ] gg
 >   - [ ] count
->- [ ] add return value; e.g., refreshing
->- [ ] add indexed columns
+> - [ ] add return value; e.g., refreshing
+> - [ ] add indexed columns
 >   - [ ] will fix highlighting when column order is switched
->- [x] Copy
+> - [x] Redo copy
 >   - [x] Add copy selection box with options
->- [ ] Modes
+> - [ ] Modes
 >   - [x] Allow filtering in mode
 >   - [x] Display modes
 >   - [ ] Search
 >   - [ ] ...
->- [ ] adjust width of particular columns
->- [ ] merge columns
->- [ ] show/hide col based on name; have tab auto complete
->- [ ] add option for padding/border
+> - [ ] adjust width of particular columns
+> - [ ] merge columns
+> - [ ] show/hide col based on name; have tab auto complete
+> - [ ] add option for padding/border
 >   - [ ] stdscr.box??
->- [ ] add option to go to next dissimilar value in column
+> - [ ] add option to go to next dissimilar value in column
 >   - [ ] e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
->- [ ] when column is selected try best guess search method
+> - [ ] when column is selected try best guess search method
 
 
---------------
-
->[!warning] COPY:
->   copy IDs of selected rows (currently 'y')
->   copy selected rows, visible values of visible cols (currently 'Y')
->   copy selected rows, full values of visible cols (currently 'c') (NEW 'y')
->   copy full python table (currently/NEW 'C')
->   copy selected rows, full values of all cols (NEW 'Y')
->   copy selected rows as python table
->   copy selected rows as python table without hidden cols (NEW 'c')
->   m + c: copies all visible rows
->   Y = toggle_cols() + y
->   C = toggle_cols() + c
->   hidden cols, selected rows, 
->       selections = [False] * len(items)
->       selections = {i: False for i in range(len(items))}
---------------
-
->- [!IMPORTANT] Done
->- [x] Make escape work with : (as it does with | and f)
->- [x] make filter work with regular expressions
->- [x] adjust page after resize
+> - [!IMPORTANT] Done
+> - [x] Make escape work with : (as it does with | and f)
+> - [x] make filter work with regular expressions
+> - [x] adjust page after resize
 > - [x] fix not resizing properly
 > - [x] fix header columns not being aligned (fixed by replacing tabs with spaces so char count clipped properly)
 > - [x] rows not aligned with chinese characters (need to trim display rows based on wcswidth)
@@ -206,7 +188,7 @@
 > - [x] add cursor when inputing filter, opts, etc.
 > - [x] remain on same row when resizing with +/-
 
-># [!WARNING] Add docstrings
+> # [!WARNING] Add docstrings
 > - [x] aria2_detailing
 > - [x] aria2c_utils
 > - [x] aria2c_wrapper

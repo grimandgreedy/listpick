@@ -53,7 +53,7 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
         return True
 
     def tokenize(query:str) -> dict:
-        """ Convert query into dict consisting of filters. """
+        """ Convert query into dict consisting of filters. '--1  """
         filters = {}
 
         # tokens = re.split(r'(\s+--\d+|\s+--i)', query)
@@ -73,27 +73,34 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
                         i += 1
                     else:
                         if i+1 >= len(tokens):
-                            print("Not enough args")
                             break
                         col = int(flag[2:])
                         arg = tokens[i+1].strip()
-                        filters[col] = arg
-                        i+=2
+                        try:
+                            i+=2
+                            re.compile(arg)
+                            filters[col] = arg
+                            highlights.append({
+                                "match": arg,
+                                "field": col,
+                                "color": 10,
+                                "type": "search",
+                            })
+                        except:
+                            pass
+                else:
+                    try:
+                        i += 1
+                        re.compile(token)
+                        filters[-1] = token
                         highlights.append({
-                            "match": arg,
-                            "field": col,
+                            "match": token,
+                            "field": "all",
                             "color": 10,
                             "type": "search",
                         })
-                else:
-                    filters[-1] = token
-                    highlights.append({
-                        "match": token,
-                        "field": "all",
-                        "color": 10,
-                        "type": "search",
-                    })
-                    i += 1
+                    except:
+                        pass
             else:
                 i += 1
         return filters
@@ -109,6 +116,7 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
     case_sensitive = False
     filters = tokenize(query)
 
+    if not filters: return False, cursor_pos, 0,0,highlights
     found = False
     search_count = 0
     search_list = []

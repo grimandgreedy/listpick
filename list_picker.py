@@ -262,7 +262,7 @@ def list_picker(
         ## Terminal too small to display list_picker
         h, w = stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
-        if show_footer and (h<20 or w<40) or (h<12 and w<10):
+        if show_footer and (h<12 or w<40) or (h<12 and w<10):
             stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
             stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
             stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
@@ -438,12 +438,6 @@ def list_picker(
             sort_order_info = "Desc." if sort_reverse[sort_column] else "Asc."
             stdscr.addstr(h - 2, w-35, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(colours_start+20) | curses.A_BOLD)
 
-            # Display selection count
-            selected_count = sum(selections.values())
-            if paginate:
-                stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(colours_start+20) | curses.A_BOLD)
-            else:
-                stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ", curses.color_pair(colours_start+20) | curses.A_BOLD)
 
             # Display cursor mode
             select_mode = "Cursor"
@@ -453,6 +447,13 @@ def list_picker(
             # Show auto-refresh
             if auto_refresh:
                 stdscr.addstr(h - 3, w-35+len(select_mode)+2, f"Auto-refresh", curses.color_pair(colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
+
+            # Display selection count
+            selected_count = sum(selections.values())
+            if paginate:
+                stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  Page {cursor_pos//items_per_page + 1}/{(len(indexed_items) + items_per_page - 1) // items_per_page}  Selected {selected_count} ", curses.color_pair(colours_start+20) | curses.A_BOLD)
+            else:
+                stdscr.addstr(h - 1, w-35, f" {cursor_pos+1}/{len(indexed_items)}  |  Selected {selected_count} ".ljust(34), curses.color_pair(colours_start+20) | curses.A_BOLD)
 
             stdscr.refresh()
         
@@ -570,7 +571,6 @@ def list_picker(
                 cursor_pos_x = all_ids.index(cursor_pos_id)
                 if cursor_pos_x in [i[0] for i in indexed_items]:
                     cursor_pos = [i[0] for i in indexed_items].index(cursor_pos_x)
-                    os.system(f"notify-send {cursor_pos}")
         return SORT_METHODS, h, w, items_per_page
 
     SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
@@ -692,7 +692,7 @@ def list_picker(
         h, w = stdscr.getmaxyx()
 
         choose_opts_widths = get_column_widths(options)
-        window_width = min(max(sum(choose_opts_widths) + 6, 35) + 6, w)
+        window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
         window_height = min(h//2, max(6, len(options)+2))
 
         submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
@@ -774,6 +774,7 @@ def list_picker(
         
         nonlocal user_settings, highlights, sort_column, columns_sort_method
         nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide, centre_in_terminal_vertical, show_footer
+        nonlocal h,w,SORT_METHODS,items_per_page
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -819,6 +820,7 @@ def list_picker(
                     cols = setting[1:].split(",")
                 elif setting == "footer":
                     show_footer = not show_footer
+                    SORT_METHODS, h, w, items_per_page = initialise_variables()
 
             user_settings = ""
 
@@ -866,8 +868,8 @@ def list_picker(
             end_selection = indexed_items[cursor_pos][0]
             end_selection = cursor_pos
             if start_selection != -1:
-                start = min(start_selection, end_selection)
-                end = max(start_selection, end_selection)
+                start = max(min(start_selection, end_selection), 0)
+                end = min(max(start_selection, end_selection), len(indexed_items)-1)
                 for i in range(start, end + 1):
                     # selections[i] = False
                     selections[indexed_items[i][0]] = False
@@ -1033,12 +1035,14 @@ def list_picker(
             return [], "", function_data
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
+            field_end = w-38 if show_footer else w-3
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Settings",
                 x=2,
                 y=h-1,
+                max_length=field_end,
             )
             if return_val:
                 user_settings = usrtxt
@@ -1051,6 +1055,7 @@ def list_picker(
                 options += [["cv", "Centre rows vertically"]]
                 options += [["ct", "Centre column-set in terminal"]]
                 options += [["cc", "Centre values in cells"]]
+                options += [["!r", "Toggle auto-refresh"]]
                 options += [["footer", "Toggle footer"]]
                 options += [[f"s{i}", f"Select col. {i}"] for i in range(len(items[0]))]
                 options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(items[0]))]
@@ -1138,6 +1143,7 @@ def list_picker(
                 selected_indices = [indexed_items[cursor_pos][0]]
             
             for index in selected_indices:
+                field_end = w-38 if show_footer else w-3
                 if require_option[index]:
                     # notification(stdscr, message=f"opt required for {index}")
                     usrtxt = f"{user_opts} " if user_opts else ""
@@ -1147,6 +1153,7 @@ def list_picker(
                         field_name="Opts",
                         x=2,
                         y=h-1,
+                    max_length=field_end,
                     )
                     if return_val:
                         user_opts = usrtxt
@@ -1203,12 +1210,12 @@ def list_picker(
 
         elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
-        elif check_key("increase_lines_per_page", key, keys_dict):
-            items_per_page += 1
-            draw_screen(indexed_items, highlights)
-        elif check_key("decrease_lines_per_page", key, keys_dict):
-            if items_per_page > 1:
-                items_per_page -= 1
+        # elif check_key("increase_lines_per_page", key, keys_dict):
+        #     items_per_page += 1
+        #     draw_screen(indexed_items, highlights)
+        # elif check_key("decrease_lines_per_page", key, keys_dict):
+        #     if items_per_page > 1:
+        #         items_per_page -= 1
             draw_screen(indexed_items, highlights)
         elif check_key("decrease_column_width", key, keys_dict):
             if max_column_width > 10:
@@ -1252,12 +1259,14 @@ def list_picker(
             draw_screen(indexed_items, highlights)
             usrtxt = f" {filter_query}" if filter_query else ""
             h, w = stdscr.getmaxyx()
+            field_end = w-38 if show_footer else w-3
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Filter",
                 x=2,
                 y=h-2,
+                max_length=field_end,
             )
             if return_val:
                 filter_query = usrtxt
@@ -1281,12 +1290,14 @@ def list_picker(
         elif check_key("search_input", key, keys_dict):
             draw_screen(indexed_items, highlights)
             usrtxt = f"{search_query} " if search_query else ""
+            field_end = w-38 if show_footer else w-3
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Search",
                 x=2,
                 y=h-3,
+                max_length=field_end,
             )
             if return_val:
                 search_query = usrtxt
@@ -1363,12 +1374,14 @@ def list_picker(
             draw_screen(indexed_items, highlights)
         elif check_key("opts_input", key, keys_dict):
             usrtxt = f"{user_opts} " if user_opts else ""
+            field_end = w-38 if show_footer else w-3
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Opts",
                 x=2,
                 y=h-1,
+                max_length=field_end,
             )
             if return_val:
                 user_opts = usrtxt
@@ -1417,6 +1430,7 @@ def list_picker(
                         sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         elif check_key("pipe_input", key, keys_dict):
             usrtxt = "xargs -d '\n' -I{}  "
+            field_end = w-38 if show_footer else w-3
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1424,6 +1438,7 @@ def list_picker(
                 x=2,
                 y=h-2,
                 literal=True,
+                max_length=field_end,
             )
             if return_val:
                 selected_indices = get_selected_indices(selections)
@@ -1441,12 +1456,14 @@ def list_picker(
             if len(indexed_items) > 0 and sort_column >=0 and editable_columns[sort_column]:
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
+                field_end = w-38 if show_footer else w-3
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
                     field_name="Edit value",
                     x=2,
                     y=h-2,
+                    max_length=field_end,
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt
@@ -1455,12 +1472,14 @@ def list_picker(
             if len(indexed_items) > 0 and sort_column >=0 and editable_columns[sort_column]:
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
+                field_end = w-38 if show_footer else w-3
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
                     field_name="Edit value",
                     x=2,
                     y=h-2,
+                    max_length=field_end,
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt

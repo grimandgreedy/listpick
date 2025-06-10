@@ -65,11 +65,18 @@ def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str
                             break
                         col = int(flag[2:])
                         arg = tokens[i+1].strip()
-                        filters[col] = arg
-                        i+=2
+                        try:
+                            i+=2
+                            re.compile(arg)
+                            filters[col] = arg
+
+                        except: pass
                 else:
-                    filters[-1] = token
-                    i += 1
+                    try:
+                        i += 1
+                        re.compile(token)
+                        filters[-1] = token
+                    except: pass
             else:
                 i += 1
         return filters

@@ -1,7 +1,7 @@
 import curses
 from typing import Tuple
 
-def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False) -> Tuple[str, bool]:
+def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False, max_length:int = 10000) -> Tuple[str, bool]:
     """
     Display input field at x,y for the user to enter text.
 
@@ -13,6 +13,7 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
         y (int): prompt begins at (x,y) in the screen given
         colours_start (int): where to start when initialising the colour pairs with curses.
         literal: whether to display the repr() of the string; e.g., if we want to display escape sequences literally
+        max_length (int): length of input field
 
 
     ---Returns
@@ -26,16 +27,18 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
     h, w = stdscr.getmaxyx()
     while True:
 
-        # Clear background to end of row
-        stdscr.addstr(y, x, " "*((w-x)-35), curses.color_pair(colours_start+20))
 
+        field_end = min(w-3, max_length)
+        # Clear background to end of row
+        stdscr.addstr(y, x, " "*(field_end-x), curses.color_pair(colours_start+20))
+        stdscr.refresh()
         # Display the field name and current text
         field_length = 0
         if literal:
-            stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}   "[:w-3], curses.color_pair(colours_start+13) | curses.A_BOLD)
+            stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
             field_length=len(f"{field_name}: {repr(usrtxt)}   ")
         else:
-            stdscr.addstr(y, x, f" {field_name}: {usrtxt}   "[:w-3], curses.color_pair(colours_start+13) | curses.A_BOLD)
+            stdscr.addstr(y, x, f" {field_name}: {usrtxt}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
             field_length=len(f" {field_name}: {usrtxt}   ")
 
         visible_cursor_x = x+len(usrtxt)-cursor+len(f" {field_name}: ")
@@ -44,7 +47,7 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
 
 
         # Display cursor if the field fits onto the screen
-        if field_length + 1 < w:
+        if field_length + 1 < field_end:
             if not literal:
                 if usrtxt and cursor != 0:
                     stdscr.addstr(y, visible_cursor_x, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
