@@ -1,0 +1,19 @@
+[environment]
+cwd="~/Videos"
+
+[data]
+files_command = "eza -1 --no-quotes | grep mp4"
+
+commands = [
+  """eza -1 --no-quotes | grep mp4""",
+]
+
+header = [
+  "file",
+  "format",
+  "height",
+  "width",
+  "duration",
+  "bitrate",
+  "framerate",
+]

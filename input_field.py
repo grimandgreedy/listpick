@@ -1,5 +1,6 @@
 import curses
 from typing import Tuple
+import os
 
 def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False, max_length:int = 10000) -> Tuple[str, bool]:
     """
@@ -57,6 +58,7 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
                 stdscr.addstr(y, visible_cursor_x, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
 
         key = stdscr.getch()
+
         if key == 27:                                                           # ESC key
             return "", False
         elif key == 10:                                                         # Enter/return key
@@ -71,7 +73,8 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
             #     process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             #     process.communicate(input='\n'.join(full_values).encode('utf-8'))
             # break
-        elif key in [curses.KEY_BACKSPACE, "KEY_BACKSPACE", key == 263]:
+        elif key in [curses.KEY_BACKSPACE, "KEY_BACKSPACE", 263, 127]:
+
             if cursor == 0:
                 usrtxt = usrtxt[:-1]
             else:

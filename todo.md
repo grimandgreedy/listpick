@@ -1,33 +1,48 @@
 # TODO for list_picker.py
 
 > [!IMPORTANT] Features
+> - [x] Generate data based on commands in input file
+> - [x] Add ability to list_picker current state to file.
+>     - [x]  selected column, sort method, etc.
+> - [x] Add ability to dump current view to file.
+>   - [x] pickle
+>   - [ ] add other formats
+>     - [ ] csv, tsv
+>     - [ ] json
 > - [x] Create notification system
 >    - [ ] add transient non-blocking notifications
+> - [x] Copy selected frows to clipboard
+>   - [x] Add copy selection box with options
+>   - [x] Copy rows with different representations
+>     - [x] python representation
+>     - [x] csv and tsv representation
+>     - [x] value_sv representation with value passed as opt
+>     - [x] include/exclude hidden columns
+>     - [ ] copy what is visible in selected rows
+> - [ ] Modes
+>   - [x] Allow filtering in mode
+>   - [x] Display modes
+>   - [ ] Search
+>   - [ ] ...
 > - [x] add different selection styles
 >   - [x] row highlighted   
 >   - [x] selection indicator (selection char at end of line)
+> - [x] Add help screen
+>   - [ ] Generate help screen based on keys dict
 > - [ ] add key-chain support. Can use the timeout to clear the key.
 >   - [ ] gg
 >   - [ ] count
 > - [ ] add return value; e.g., refreshing
 > - [ ] add indexed columns
 >   - [ ] will fix highlighting when column order is switched
-> - [x] Redo copy
->   - [x] Add copy selection box with options
-> - [ ] Modes
->   - [x] Allow filtering in mode
->   - [x] Display modes
->   - [ ] Search
->   - [ ] ...
 > - [ ] adjust width of particular columns
 > - [ ] merge columns
 > - [ ] show/hide col based on name; have tab auto complete
 > - [ ] add option for padding/border
 >   - [ ] stdscr.box??
-> - [ ] add option to go to next dissimilar value in column
+> - [ ] add key to go to next dissimilar value in column
 >   - [ ] e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
 > - [ ] when column is selected try best guess search method
-> - [ ] Add ability to dump generated data to file. lists_of_lists_to_table
 
 
 
@@ -110,9 +125,13 @@
 >    - Not sure if this can be avoided. 
 >       - In alacritty it always shows the cursor
 >       - In kitty it shows only after opening nvim
-> - [ ] Certain keys (e.g., backspace) are not registered in the input field when the cursor is in the options box. The keys work in the main application and in help but not in the options box list_picker...
+> - [x] The backspace key is not registered in the input field when the cursor is in the options box. The keys work in the main application and in help but not in the options box list_picker...
+>   -  [x] No idea why but the keycode for backspace is 263 in the main window but in curses.newwin the backspace keycode is 127
+>   - Had to set submenu_win.keypad(True) for the submenu window as well as the main window. It doesn't seem to inherit the parent window's properties
+
 > - [x] Last character on header string doesn't show if header value for that cell is longer than all entries in that column
 >   - [x] have to +1 to total visible column width
+> - [x] If require option is given and the box is empty then we should exit the input field without returning the index
 
 
 

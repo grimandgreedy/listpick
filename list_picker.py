@@ -1,5 +1,7 @@
 import curses
 import re
+
+from sqlalchemy import func
 from list_picker_colours import get_colours, help_colours, notification_colours
 import pyperclip
 import os
@@ -18,6 +20,7 @@ from help_screen import help_lines
 from keys import keys_dict, notification_keys
 from typing import Callable, Optional, Tuple
 from generate_data import generate_list_picker_data
+from dump import dump_state, load_state, dump_data
 
 try:
     from data_stuff import test_items, test_highlights, test_header
@@ -586,6 +589,7 @@ def list_picker(
             "current_row":          current_row,
             "current_page":         current_page,
             "cursor_pos":           cursor_pos,
+            "colours":              colours,
             "sort_column":          sort_column,
             "sort_method":          sort_method,
             "sort_reverse":         sort_reverse,
@@ -697,6 +701,7 @@ def list_picker(
         window_height = min(h//2, max(6, len(options)+2))
 
         submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
+        submenu_win.keypad(True)
 
         
         s, o, f = list_picker(
@@ -949,9 +954,41 @@ def list_picker(
             lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="custom_sv", copy_hidden_cols=True, separator=o),
         ]
 
+        # Copy items based on selection
         if s:
             for idx in s.keys():
                 funcs[idx](items, indexed_items, selections, hidden_columns)
+
+    def dump_dialog() -> None:
+        
+        # dump_header = [
+        #     "Representation",
+        #     "Columns",
+        # ]
+        dump_header = []
+        options = [["Dump state"], ["Dump data."]]
+        # options = [
+        #     ["Python list of lists", "Exclude hidden"],
+        #     ["Python list of lists", "Include hidden"],
+        #     ["Tab-separated values", "Exclude hidden"],
+        #     ["Tab-separated values", "Include hidden"],
+        #     ["Comma-separated values", "Exclude hidden"],
+        #     ["Comma-separated values", "Include hidden"],
+        #     ["Custom separator", "Exclude hidden"],
+        #     ["Custom separator", "Include hidden"],
+        # ]
+        require_option = [True, True]
+        s, o, f = choose_option(stdscr, options=options, field_name="Dump items", header=dump_header, require_option=require_option)
+
+
+        funcs = [
+            lambda opts: dump_state(get_function_data(), opts),
+            lambda opts: dump_data(get_function_data(), opts),
+        ]
+
+        if s:
+            for idx in s.keys():
+                funcs[idx](o)
 
     initial_time = time.time()-timer
 
@@ -1143,6 +1180,7 @@ def list_picker(
             if not selected_indices:
                 selected_indices = [indexed_items[cursor_pos][0]]
             
+            options_sufficient = True
             for index in selected_indices:
                 field_end = w-38 if show_footer else w-3
                 if require_option[index]:
@@ -1158,12 +1196,14 @@ def list_picker(
                     )
                     if return_val:
                         user_opts = usrtxt
+                    else: options_sufficient =False
 
-            stdscr.clear()
-            stdscr.refresh()
-            function_data = get_function_data()
-            function_data["last_key"] = key
-            return selected_indices, user_opts, function_data
+            if options_sufficient:
+                stdscr.clear()
+                stdscr.refresh()
+                function_data = get_function_data()
+                function_data["last_key"] = key
+                return selected_indices, user_opts, function_data
         elif check_key("page_down", key, keys_dict):  # Next page
             cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)
 
@@ -1208,6 +1248,8 @@ def list_picker(
             toggle_column_visibility(col_index)
         elif check_key("copy", key, keys_dict):
             copy_dialog()
+        elif check_key("dump", key, keys_dict):
+            dump_dialog()
 
         elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
@@ -1488,16 +1530,26 @@ def list_picker(
 
 
 
-def parse_arguments() -> Tuple[argparse.Namespace, list[list[str]]]:
+def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     """ Parse arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
-    parser.add_argument('-i', dest='file', help='File containing the table to be converted')
-    parser.add_argument('--stdin', action='store_true', help='Table passed on stdin')
+    parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
+    parser.add_argument('--load', '-l', dest='load', type=str, help='File load from list_picker dump.')
+    parser.add_argument('--stdin', dest='stdin', action='store_true', help='Table passed on stdin')
     parser.add_argument('--stdin2', action='store_true', help='Table passed on stdin')
     parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for list picker.')
     parser.add_argument('-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods'], help='Type of file (tsv, csv, json, xlsx, ods)')
     args = parser.parse_args()
+
+    function_data = {
+        "items" : [],
+        "header": [],
+        "unselectable_indices" : [],
+        "colours": get_colours(0),
+        "top_gap": 0,
+        "max_column_width": 70,
+    }
     
     if args.file:
         input_arg = args.file
@@ -1508,28 +1560,32 @@ def parse_arguments() -> Tuple[argparse.Namespace, list[list[str]]]:
 
     elif args.generate:
         items, header = generate_list_picker_data(args.generate)
-        return args, items, header
+        function_data["header"] = header
+        function_data["items"] = items
+        return args, function_data
+    elif args.load:
+        function_data_tmp = load_state(args.load)
+        if len(function_data_tmp) == 2:
+            function_data["items"] = function_data_tmp["items"]
+            function_data["header"] = function_data_tmp["header"]
+        else:
+            function_data = function_data_tmp
+        return args, function_data
+
     else:
         print("Error: Please provide input file or use --stdin flag.")
-        return args, [], []
+        return args, function_data
         # sys.exit(1)
     
-    table_data = table_to_list(input_arg, args.delimiter, args.file_type)
-    return args, table_data, []
+    items = table_to_list(input_arg, args.delimiter, args.file_type)
+    function_data["items"] = items
+    return args, function_data
 
 if __name__ == '__main__':
-    args, items, header = parse_arguments()
+    args, function_data = parse_arguments()
     
-    function_data = {
-        "items" : items,
-        "header": header,
-        "unselectable_indices" : [],
-        "colours": get_colours(0),
-        "top_gap": 0,
-        "max_column_width": 70,
-    }
 
-    if items == []:
+    if function_data["items"] == []:
         function_data["items"] = test_items
         function_data["highlights"] = test_highlights
         function_data["header"] = test_header

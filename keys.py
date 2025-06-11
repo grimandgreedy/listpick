@@ -54,6 +54,7 @@ keys_dict = {
     "edit":                             [ord('e')],
     "edit_picker":                      [ord('E')],
     "copy":                             [ord('y')],
+    "dump":                             [ord('D')],
 }
 
 
