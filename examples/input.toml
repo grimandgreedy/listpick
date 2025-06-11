@@ -1,0 +1,25 @@
+[environment]
+cwd="~/Videos"
+
+[data]
+files_command = "eza -1 --no-quotes | grep mp4"
+
+commands = [
+  """eza -1 --no-quotes | grep mp4""",
+  """mediainfo {} | grep -i format | head -n 1 | awk -F ':' '{{print $2}}'""",
+  """mediainfo {} | grep -i height | head -n 1 | awk -F ':' '{{print $2}}'""",
+  """mediainfo {} | grep -i width | head -n 1 | awk -F ':' '{{print $2}}'""",
+  """mediainfo {} | grep -i duration | head -n 1 | awk -F ':' '{{print $2}}'""",
+  """mediainfo {} | grep -i 'bit rate' | head -n 1 | awk -F ':' '{{print $2}}'""",
+  """mediainfo {} | grep -i 'frame rate' | head -n 1 | awk -F ':' '{{print $2}}'""",
+]
+
+header = [
+  "file",
+  "format",
+  "height",
+  "width",
+  "duration",
+  "bitrate",
+  "framerate",
+]

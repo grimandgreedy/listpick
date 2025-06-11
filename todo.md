@@ -1,41 +1,34 @@
-# list_picker.py
+# TODO for list_picker.py
 
-> [!error] Errors
-> - [ ] place cursor on last row and hold +.
-> - [ ] why does curses crash when writing to the final char on the final line?
->   - [ ] is there a way to colour it?
-> - [ ] errors thrown when length(header) != length(items[0])
-> - [ ] Error handling needed
->   - [ ] apply_settings("sjjj") 
-> - [ ] Error when drawing highlights. Have to put them in a try-except block
-> - [ ] Add error-checking for:
->   - [ ] display of modes... 
+> [!IMPORTANT] Features
+> - [x] Create notification system
+>    - [ ] add transient non-blocking notifications
+> - [x] add different selection styles
+>   - [x] row highlighted   
+>   - [x] selection indicator (selection char at end of line)
+> - [ ] add key-chain support. Can use the timeout to clear the key.
+>   - [ ] gg
+>   - [ ] count
+> - [ ] add return value; e.g., refreshing
+> - [ ] add indexed columns
+>   - [ ] will fix highlighting when column order is switched
+> - [x] Redo copy
+>   - [x] Add copy selection box with options
+> - [ ] Modes
+>   - [x] Allow filtering in mode
+>   - [x] Display modes
+>   - [ ] Search
+>   - [ ] ...
+> - [ ] adjust width of particular columns
+> - [ ] merge columns
+> - [ ] show/hide col based on name; have tab auto complete
+> - [ ] add option for padding/border
+>   - [ ] stdscr.box??
+> - [ ] add option to go to next dissimilar value in column
+>   - [ ] e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
+> - [ ] when column is selected try best guess search method
+> - [ ] Add ability to dump generated data to file. lists_of_lists_to_table
 
-
-
-> [!Bug] Bugs
-> - [ ] blinking cursor shows after opening nvim and returning to listpicker
->    - 
-> - [ ] fix resizing when input field active
-> - [ ] Visual selection
->   - [ ] when visually selecting sometimes single rows above are highlighted (though not selected)
-> - [ ] weird alignment problem when following characters are in cells:
->       - ： 
-> - [ ] moving columns:
->   - ruins highlighting
->   - is not preserved in function_data
->   - implement indexed_columns
->   - will have to put header in function_data to track location of fields
-> - [ ] regexp and field entry errors
->   - [ ] filter
->   - [ ] "--1 error .*" doesn't work but ".* --1" error does
->   - [ ] search
->   - [ ] highlights
->   - [ ] when +,* is added to the filter it errors out
->   - [ ] some capture groups don't work [^0]
->   - [ ] should general search be cell-wise?
->   - [ ] option to search visible columns only
-> - [ ] Visual selection: start visual selection on row 100. List_picker refreshes and there are only 10 rows with the applied filter. End visual selection on row 2. Crash
 
 
 > [!Important] Improvements
@@ -80,43 +73,58 @@
 >      - [ ] escape should close option selections and notifications
 >   - [ ] Add keybind to focus on next (visible) column
 > - [ ] (?) adjust default column width based on current page?
+> - [ ] Need to set environment variables somehow.
+>   - [ ] cwd
+> - [ ] Make time sort work with formats like: 
+>   - [ ] '42 min 40 s'
 
 
-> [!IMPORTANT] Features
-> - [x] Create notification system
->    - [ ] add transient non-blocking notifications
-> - [x] add different selection styles
->   - [x] row highlighted   
->   - [x] selection indicator (selection char at end of line)
-> - [ ] add key-chain support. Can use the timeout to clear the key.
->   - [ ] gg
->   - [ ] count
-> - [ ] add return value; e.g., refreshing
-> - [ ] add indexed columns
->   - [ ] will fix highlighting when column order is switched
-> - [x] Redo copy
->   - [x] Add copy selection box with options
-> - [ ] Modes
->   - [x] Allow filtering in mode
->   - [x] Display modes
->   - [ ] Search
->   - [ ] ...
-> - [ ] adjust width of particular columns
-> - [ ] merge columns
-> - [ ] show/hide col based on name; have tab auto complete
-> - [ ] add option for padding/border
->   - [ ] stdscr.box??
-> - [ ] add option to go to next dissimilar value in column
->   - [ ] e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
-> - [ ] when column is selected try best guess search method
+
+> [!Bug] Bugs
+> - [ ] fix resizing when input field active
+>   - [ ] Remap resize in keymaps and return "refresh" in the opts 
+> - [ ] Visual selection
+>   - [ ] when visually selecting sometimes single rows above are highlighted (though not selected)
+> - [ ] weird alignment problem with certain characters
+>   - [x] Chinese characters
+>   - [x] Korean characters
+>   - [x] Japanese characters
+>   - [ ] Problems with the following:
+>       - ： 
+> - [ ] moving columns:
+>   - ruins highlighting
+>   - is not preserved in function_data
+>   - implement indexed_columns
+>   - will have to put header in function_data to track location of fields
+> - [ ] regexp and field entry errors
+>   - [ ] filter
+>   - [ ] "--1 error .*" doesn't work but ".* --1" error does
+>   - [ ] search
+>   - [ ] highlights
+>   - [x] when +,* is added to the filter it errors out
+>   - [ ] some capture groups don't work [^0]
+>   - [ ] should general search be cell-wise?
+>   - [ ] option to search visible columns only
+> - [ ] Visual selection: start visual selection on row 100. List_picker refreshes and there are only 10 rows with the applied filter. End visual selection on row 2. Crash
+> - [ ] blinking cursor character shows after opening nvim and returning to listpicker
+>    - Not sure if this can be avoided. 
+>       - In alacritty it always shows the cursor
+>       - In kitty it shows only after opening nvim
+> - [ ] Certain keys (e.g., backspace) are not registered in the input field when the cursor is in the options box. The keys work in the main application and in help but not in the options box list_picker...
+> - [x] Last character on header string doesn't show if header value for that cell is longer than all entries in that column
+>   - [x] have to +1 to total visible column width
 
 
-> - [!IMPORTANT] Done
-> - [x] Make escape work with : (as it does with | and f)
+
+
+
+
+> - [!IMPORTANT] Done (assorted)
 > - [x] make filter work with regular expressions
+> - [x] Make escape work with opts (as it does with pipe and filter)
 > - [x] adjust page after resize
 > - [x] fix not resizing properly
-> - [x] fix header columns not being aligned (fixed by replacing tabs with spaces so char count clipped properly)
+> - [x] fix header columns not being aligned with certain input (fixed by replacing tabs with spaces so char count clipped properly)
 > - [x] rows not aligned with chinese characters (need to trim display rows based on wcswidth)
 > - [x] fix problems with empty lists both [] and [[],[]] 
 > - [x] fix issue where item when filtering the cursor goes to a nonexistent item
@@ -187,6 +195,21 @@
 > - [x] make sure `separator` works with header
 > - [x] add cursor when inputing filter, opts, etc.
 > - [x] remain on same row when resizing with +/-
+
+
+> [!error] Errors
+> - [ ] Crash: place cursor on last row and hold + when entries > items_per_page
+>   - [ ] Does it even need the +/- functionality any more?
+> - [ ] why does curses crash when writing to the final char on the final line?
+>   - [ ] is there a way to colour it?
+> - [ ] errors thrown when length(header) != length(items[0])
+> - [ ] Error handling needed
+>   - [ ] apply_settings("sjjj") 
+> - [ ] Error when drawing highlights. Have to put them in a try-except block
+> - [ ] Add error-checking for:
+>   - [ ] displaying modes... 
+> - [x] Crash on the display header section of draw_screen when we have a column selected and we resize that column out of the frame
+
 
 > # [!WARNING] Add docstrings
 > - [x] aria2_detailing

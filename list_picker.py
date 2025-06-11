@@ -17,6 +17,7 @@ from searching import search
 from help_screen import help_lines
 from keys import keys_dict, notification_keys
 from typing import Callable, Optional, Tuple
+from generate_data import generate_list_picker_data
 
 try:
     from data_stuff import test_items, test_highlights, test_header
@@ -38,7 +39,7 @@ def list_picker(
         timer: float = 5,
 
         get_new_data: bool =False,
-        refresh_function: Optional[Callable] =None,
+        refresh_function: Optional[Callable] = lambda: [],
         get_data_startup: bool =False,
         track_entries_upon_refresh: bool = True,
         id_column: int = 0,
@@ -315,19 +316,19 @@ def list_picker(
                 if i == sort_column: up_to_selected_col = header_str
                 if i in hidden_columns: continue
                 number = f"{i}. " if number_columns else ""
-                number = f"{intStringToExponentString(i)}. " if number_columns else ""
+                number = f"{intStringToExponentString(str(i))}. " if number_columns else ""
                 header_str += number
                 header_str +=f"{header[i]:^{column_widths[i]}}"
                 header_str += " "
 
             stdscr.addstr(top_space, 0, ' '*w, curses.color_pair(colours_start+4) | curses.A_BOLD)
-            stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(colours_start+4) | curses.A_BOLD)
+            stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width+1)], curses.color_pair(colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
-            if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) < w and len(header) > 1: 
+            if sort_column != None and sort_column not in hidden_columns and len(up_to_selected_col) + 1 < w and len(header) > 1: 
                 number = f"{sort_column}. " if number_columns else ""
                 number = f"{intStringToExponentString(sort_column)}. " if number_columns else ""
-                stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)], curses.color_pair(colours_start+19) | curses.A_BOLD)
+                stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{header[sort_column]:^{column_widths[sort_column]}}")[:w-len(up_to_selected_col)-startx], curses.color_pair(colours_start+19) | curses.A_BOLD)
         ## Paginate
         if paginate:
             start_index = (cursor_pos//items_per_page) * items_per_page
@@ -573,7 +574,7 @@ def list_picker(
                     cursor_pos = [i[0] for i in indexed_items].index(cursor_pos_x)
         return SORT_METHODS, h, w, items_per_page
 
-    SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=True)
+    SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=get_data_startup)
 
     draw_screen(indexed_items, highlights)
     
@@ -1487,12 +1488,13 @@ def list_picker(
 
 
 
-def parse_arguments():
+def parse_arguments() -> Tuple[argparse.Namespace, list[list[str]]]:
     """ Parse arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
     parser.add_argument('-i', dest='file', help='File containing the table to be converted')
     parser.add_argument('--stdin', action='store_true', help='Table passed on stdin')
     parser.add_argument('--stdin2', action='store_true', help='Table passed on stdin')
+    parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for list picker.')
     parser.add_argument('-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods'], help='Type of file (tsv, csv, json, xlsx, ods)')
     args = parser.parse_args()
@@ -1503,25 +1505,31 @@ def parse_arguments():
         input_arg = '--stdin'
     elif args.stdin2:
         input_arg = '--stdin2'
+
+    elif args.generate:
+        items, header = generate_list_picker_data(args.generate)
+        return args, items, header
     else:
         print("Error: Please provide input file or use --stdin flag.")
-        return None, None
+        return args, [], []
         # sys.exit(1)
     
     table_data = table_to_list(input_arg, args.delimiter, args.file_type)
-    return args, table_data
+    return args, table_data, []
 
 if __name__ == '__main__':
-    args, items = parse_arguments()
+    args, items, header = parse_arguments()
     
     function_data = {
         "items" : items,
+        "header": header,
         "unselectable_indices" : [],
         "colours": get_colours(0),
         "top_gap": 0,
         "max_column_width": 70,
     }
-    if items == None:
+
+    if items == []:
         function_data["items"] = test_items
         function_data["highlights"] = test_highlights
         function_data["header"] = test_header
