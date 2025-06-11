@@ -31,19 +31,19 @@ def list_picker(
         stdscr: curses.window, 
         items: list = [],
         cursor_pos: int = 0,
-        colours: dict = {},
+        colours: dict = get_colours(0),
         max_selected: int = -1,
         top_gap: int =0,
-        title: str ="",
+        title: str ="List Picker",
         header: list =[],
         max_column_width: int =70,
         
         auto_refresh: bool =False,
         timer: float = 5,
 
-        get_new_data: bool =False,
-        refresh_function: Optional[Callable] = lambda: [],
-        get_data_startup: bool =False,
+        get_new_data: bool =False,                          # Whether we can get new data
+        refresh_function: Optional[Callable] = lambda: [],  # The function with which we get new data
+        get_data_startup: bool =False,                      # Whether we should get data at statrup
         track_entries_upon_refresh: bool = True,
         id_column: int = 0,
 
@@ -578,6 +578,7 @@ def list_picker(
         return SORT_METHODS, h, w, items_per_page
 
     SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=get_data_startup)
+    curses.raw()
 
     draw_screen(indexed_items, highlights)
     
@@ -1559,17 +1560,14 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         input_arg = '--stdin2'
 
     elif args.generate:
-        items, header = generate_list_picker_data(args.generate)
-        function_data["header"] = header
-        function_data["items"] = items
+        function_data["refresh_function"] = lambda : generate_list_picker_data(args.generate)
+        function_data["get_data_startup"] = True
+        function_data["get_new_data"] = True
         return args, function_data
     elif args.load:
-        function_data_tmp = load_state(args.load)
-        if len(function_data_tmp) == 2:
-            function_data["items"] = function_data_tmp["items"]
-            function_data["header"] = function_data_tmp["header"]
-        else:
-            function_data = function_data_tmp
+        function_data = load_state(args.load)
+        function_data["refresh_function"] = lambda : (load_state(args.load)["items"], load_state(args.load)["header"])
+        function_data["get_new_data"] = True
         return args, function_data
 
     else:
@@ -1585,10 +1583,14 @@ if __name__ == '__main__':
     args, function_data = parse_arguments()
     
 
-    if function_data["items"] == []:
-        function_data["items"] = test_items
-        function_data["highlights"] = test_highlights
-        function_data["header"] = test_header
+    try:
+
+        if function_data["items"] == []:
+            function_data["items"] = test_items
+            function_data["highlights"] = test_highlights
+            function_data["header"] = test_header
+    except:
+        pass
         
         # unselectable_indices=[0,1,3,7,59]
 
@@ -1606,6 +1608,7 @@ if __name__ == '__main__':
     # Clean up
     stdscr.keypad(False)
     curses.nocbreak()
+    curses.noraw()
     curses.echo()
     curses.endwin()
 

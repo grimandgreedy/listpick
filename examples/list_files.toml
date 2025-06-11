@@ -6,14 +6,10 @@ files_command = "eza -1 --no-quotes | grep mp4"
 
 commands = [
   """eza -1 --no-quotes | grep mp4""",
+  """eza -1 /nosuchdirectory""",
 ]
 
 header = [
   "file",
-  "format",
-  "height",
-  "width",
-  "duration",
-  "bitrate",
-  "framerate",
+  "empty column"
 ]
