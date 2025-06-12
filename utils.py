@@ -161,7 +161,7 @@ def format_size(n:int) -> str:
     return f"{value:.1f}{symbol}"
 
 
-def openFiles(files: list[str]) -> None:
+def openFiles(files: list[str]) -> str:
     """
     Opens multiple files using their associated applications.
         Get mime types
@@ -178,7 +178,7 @@ def openFiles(files: list[str]) -> None:
         types = {}
 
         for file in files:
-            resp = subprocess.run(f"xdg-mime query filetype {file}", stdout=subprocess.PIPE, shell=True)
+            resp = subprocess.run(f"xdg-mime query filetype {file}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             ftype = resp.stdout.decode("utf-8").strip()
             if ftype in types:
                 types[ftype] += [file]
@@ -191,7 +191,7 @@ def openFiles(files: list[str]) -> None:
         apps = {}
 
         for t in types:
-            resp = subprocess.run(f"xdg-mime query default {t}", stdout=subprocess.PIPE, shell=True)
+            resp = subprocess.run(f"xdg-mime query default {t}", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             app = resp.stdout.decode("utf-8").strip()
             if app in apps:
                 apps[app] += [t]
@@ -215,4 +215,7 @@ def openFiles(files: list[str]) -> None:
 
     for app, files in apps_files.items():
         files_str = ' '.join(files)
-        subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        result = subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        if result.stderr: 
+            return result.stderr.read().decode("utf-8").strip()
+        return ""

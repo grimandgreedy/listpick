@@ -9,6 +9,8 @@
 >   - [ ] add other formats
 >     - [ ] csv, tsv
 >     - [ ] json
+> - [x] Dump current state to file.
+>   - [ ] Can't pickle refresh function if it uses libraries not included in list_picker
 > - [x] Create notification system
 >    - [ ] add transient non-blocking notifications
 > - [x] Copy selected frows to clipboard
@@ -43,6 +45,13 @@
 > - [ ] add key to go to next dissimilar value in column
 >   - [ ] e.g., select column 2 (download: complete), and pressing tab will go to the next entry that is not complete 
 > - [ ] when column is selected try best guess search method
+> - [x] add registers to input field
+> - [x] Add keys_dict to support remapping of keys
+>   - [x] Separate keys for:
+>     - [x] notifications
+>     - [x] options
+>     - [x] menu
+
 
 
 
@@ -92,6 +101,7 @@
 >   - [ ] cwd
 > - [ ] Make time sort work with formats like: 
 >   - [ ] '42 min 40 s'
+> - [ ] Add no-select mode which will look better for notifications, options and menus
 
 
 

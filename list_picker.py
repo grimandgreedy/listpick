@@ -17,7 +17,7 @@ from input_field import *
 from clipboard_operations import *
 from searching import search
 from help_screen import help_lines
-from keys import keys_dict, notification_keys
+from keys import list_picker_keys, notification_keys, options_keys
 from typing import Callable, Optional, Tuple
 from generate_data import generate_list_picker_data
 from dump import dump_state, load_state, dump_data
@@ -93,6 +93,7 @@ def list_picker(
         colours_start: int =0,
         colours_end: int =-1,
         key_remappings: dict = {},
+        keys_dict = list_picker_keys,
         display_infobox : bool = False,
         infobox_items: list[list[str]] = [[]],
         display_only: bool = False,
@@ -719,6 +720,7 @@ def list_picker(
             # scroll_bar=False,
             hidden_columns=[],
             require_option=require_option,
+            keys_dict = options_keys,
         )
         if s:
             return {x: options[x] for x in s}, o, f
@@ -758,6 +760,8 @@ def list_picker(
                 centre_in_terminal=True,
                 centre_in_cols=True,
                 hidden_columns=[],
+                keys_dict=notification_keys,
+                highlight_full_row=True,
             )
             if o != "refresh": break
             submenu_win.clear()
@@ -1517,7 +1521,9 @@ def list_picker(
                 selected_indices = [indexed_items[cursor_pos][0]]
 
             file_names = [items[i][sort_column] for i in selected_indices]
-            openFiles(file_names)
+            response = openFiles(file_names)
+            if response:
+                notification(stdscr, message=response)
 
 
         elif check_key("reset_opts", key, keys_dict):
