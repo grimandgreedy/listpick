@@ -2,7 +2,9 @@ import curses
 from typing import Tuple
 import os
 
-def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False, max_length:int = 10000) -> Tuple[str, bool]:
+from sqlalchemy.sql.operators import regexp_match_op
+
+def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False, max_length:int = 10000, registers={}) -> Tuple[str, bool]:
     """
     Display input field at x,y for the user to enter text.
 
@@ -112,6 +114,12 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
             
         elif key in [5, 360]:                                                          # CTRL+E (end)
             cursor = 0
+        elif key in [18]:                                                          # CTRL+E (end)
+            if cursor == 0:
+                addtxt = registers["*"]
+                usrtxt = usrtxt[-cursor:] + registers["*"]
+            else:
+                usrtxt = usrtxt[:-cursor] + registers["*"] + usrtxt[-cursor:]
 
         # elif key in [23,8]:                                                     # Ctrl+BACKSPACE, CTRL+W
         #     if cursor == 0: tmp = usrtxt[::-1]

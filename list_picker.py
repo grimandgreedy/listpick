@@ -828,6 +828,9 @@ def list_picker(
                 elif setting == "footer":
                     show_footer = not show_footer
                     SORT_METHODS, h, w, items_per_page = initialise_variables()
+                elif setting.startswith("cwd="):
+                    os.chdir(os.path.expandvars(os.path.expanduser(setting[len("cwd="):])))
+
 
             user_settings = ""
 
@@ -960,14 +963,14 @@ def list_picker(
             for idx in s.keys():
                 funcs[idx](items, indexed_items, selections, hidden_columns)
 
-    def dump_dialog() -> None:
+    def save_dialog() -> None:
         
         # dump_header = [
         #     "Representation",
         #     "Columns",
         # ]
         dump_header = []
-        options = [["Dump state"], ["Dump data."]]
+        options = [ ["Save data."], ["Save state"]]
         # options = [
         #     ["Python list of lists", "Exclude hidden"],
         #     ["Python list of lists", "Include hidden"],
@@ -979,12 +982,12 @@ def list_picker(
         #     ["Custom separator", "Include hidden"],
         # ]
         require_option = [True, True]
-        s, o, f = choose_option(stdscr, options=options, field_name="Dump items", header=dump_header, require_option=require_option)
+        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
 
 
         funcs = [
-            lambda opts: dump_state(get_function_data(), opts),
             lambda opts: dump_data(get_function_data(), opts),
+            lambda opts: dump_state(get_function_data(), opts),
         ]
 
         if s:
@@ -1075,6 +1078,7 @@ def list_picker(
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
             field_end = w-38 if show_footer else w-3
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1082,6 +1086,7 @@ def list_picker(
                 x=2,
                 y=h-1,
                 max_length=field_end,
+                registers=registers,
             )
             if return_val:
                 user_settings = usrtxt
@@ -1187,13 +1192,15 @@ def list_picker(
                 if require_option[index]:
                     # notification(stdscr, message=f"opt required for {index}")
                     usrtxt = f"{user_opts} " if user_opts else ""
+                    registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                     usrtxt, return_val = input_field(
                         stdscr,
                         usrtxt=usrtxt,
                         field_name="Opts",
                         x=2,
                         y=h-1,
-                    max_length=field_end,
+                        max_length=field_end,
+                        registers=registers,
                     )
                     if return_val:
                         user_opts = usrtxt
@@ -1249,8 +1256,8 @@ def list_picker(
             toggle_column_visibility(col_index)
         elif check_key("copy", key, keys_dict):
             copy_dialog()
-        elif check_key("dump", key, keys_dict):
-            dump_dialog()
+        elif check_key("save", key, keys_dict):
+            save_dialog()
 
         elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
@@ -1304,6 +1311,7 @@ def list_picker(
             usrtxt = f" {filter_query}" if filter_query else ""
             h, w = stdscr.getmaxyx()
             field_end = w-38 if show_footer else w-3
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1311,6 +1319,7 @@ def list_picker(
                 x=2,
                 y=h-2,
                 max_length=field_end,
+                registers=registers,
             )
             if return_val:
                 filter_query = usrtxt
@@ -1335,6 +1344,7 @@ def list_picker(
             draw_screen(indexed_items, highlights)
             usrtxt = f"{search_query} " if search_query else ""
             field_end = w-38 if show_footer else w-3
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1342,6 +1352,7 @@ def list_picker(
                 x=2,
                 y=h-3,
                 max_length=field_end,
+                registers=registers,
             )
             if return_val:
                 search_query = usrtxt
@@ -1419,6 +1430,7 @@ def list_picker(
         elif check_key("opts_input", key, keys_dict):
             usrtxt = f"{user_opts} " if user_opts else ""
             field_end = w-38 if show_footer else w-3
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1426,6 +1438,7 @@ def list_picker(
                 x=2,
                 y=h-1,
                 max_length=field_end,
+                registers=registers,
             )
             if return_val:
                 user_opts = usrtxt
@@ -1475,6 +1488,7 @@ def list_picker(
         elif check_key("pipe_input", key, keys_dict):
             usrtxt = "xargs -d '\n' -I{}  "
             field_end = w-38 if show_footer else w-3
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1483,16 +1497,28 @@ def list_picker(
                 y=h-2,
                 literal=True,
                 max_length=field_end,
+                registers=registers,
             )
             if return_val:
                 selected_indices = get_selected_indices(selections)
                 if not selected_indices:
                     selected_indices = [indexed_items[cursor_pos][0]]
+
                 full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
+                full_values = [items[i][sort_column] for i in selected_indices]
                 if full_values:
                     # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
                     process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     process.communicate(input='\n'.join(full_values).encode('utf-8'))
+
+        elif check_key("open", key, keys_dict):
+            selected_indices = get_selected_indices(selections)
+            if not selected_indices:
+                selected_indices = [indexed_items[cursor_pos][0]]
+
+            file_names = [items[i][sort_column] for i in selected_indices]
+            openFiles(file_names)
+
 
         elif check_key("reset_opts", key, keys_dict):
             user_opts = ""
@@ -1501,6 +1527,7 @@ def list_picker(
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
+                registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
@@ -1508,6 +1535,7 @@ def list_picker(
                     x=2,
                     y=h-2,
                     max_length=field_end,
+                    registers=registers,
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt
@@ -1517,6 +1545,7 @@ def list_picker(
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
+                registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
@@ -1524,6 +1553,7 @@ def list_picker(
                     x=2,
                     y=h-2,
                     max_length=field_end,
+                    registers=registers,
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt

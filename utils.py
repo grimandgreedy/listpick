@@ -1,6 +1,7 @@
 from wcwidth import wcwidth, wcswidth
 from math import log10
 from typing import Tuple
+import subprocess
 
 def truncate_to_display_width(text: str, max_column_width: int, centre=False) -> str:
     """ 
@@ -159,3 +160,59 @@ def format_size(n:int) -> str:
     
     return f"{value:.1f}{symbol}"
 
+
+def openFiles(files: list[str]) -> None:
+    """
+    Opens multiple files using their associated applications.
+        Get mime types
+        Get default application for each mime type
+        Open all files; files with the same default application will be opened in one instance
+
+    Args:
+        files (list[str]): A list of file paths.
+
+    Returns:
+        None
+    """
+    def get_mime_types(files):
+        types = {}
+
+        for file in files:
+            resp = subprocess.run(f"xdg-mime query filetype {file}", stdout=subprocess.PIPE, shell=True)
+            ftype = resp.stdout.decode("utf-8").strip()
+            if ftype in types:
+                types[ftype] += [file]
+            else:
+                types[ftype] = [file]
+
+        return types
+
+    def get_applications(types):
+        apps = {}
+
+        for t in types:
+            resp = subprocess.run(f"xdg-mime query default {t}", stdout=subprocess.PIPE, shell=True)
+            app = resp.stdout.decode("utf-8").strip()
+            if app in apps:
+                apps[app] += [t]
+            else:
+                apps[app] = [t]
+
+        return apps
+    for i in range(len(files)):
+        if ' ' in files[i] and files[i][0] not in ["'", '"']:
+            files[i] = repr(files[i])
+
+    types = get_mime_types(files)
+    apps = get_applications(types.keys())
+
+    apps_files = {}
+    for app, filetypes in apps.items():
+        flist = []
+        for filetype in filetypes:
+            flist += types[filetype]
+        apps_files[app] = flist
+
+    for app, files in apps_files.items():
+        files_str = ' '.join(files)
+        subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)

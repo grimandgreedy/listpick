@@ -1,0 +1,25 @@
+[environment]
+cwd="~/Downloads/new/"
+
+[data]
+files_command = "eza -1 --no-quotes | grep mp4"
+
+commands = [
+  """eza -1 --no-quotes | grep mp4""",
+  # """sha1sum {} | awk '{{print $1}}'""",
+  """ffprobe -show_entries format=duration -v quiet -of csv="p=0" -i {}""",
+  """ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=s=x:p=0 {}""",
+  """ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=s=x:p=0 {}"""
+]
+
+header = [
+  "file",
+  # "sha1",
+  "duration",
+  "width",
+  "height",
+]
+
+run = [
+  "mpv",
+]
