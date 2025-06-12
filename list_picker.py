@@ -103,6 +103,8 @@ def list_picker(
         centre_in_terminal: bool = False,
         centre_in_terminal_vertical: bool = False,
         centre_in_cols: bool = False,
+
+        startup_notification = "",
         
 ) -> Tuple[list[int], str, dict]:
     """
@@ -387,7 +389,8 @@ def list_picker(
                 elif is_deselecting and start_selection <= idx <= cursor_pos:
                     stdscr.addstr(y, max(startx-2,0), ' ', curses.color_pair(colours_start+10))
 
-            if not highlights_hide:
+            # if not highlights_hide:
+            if not highlights_hide and idx != cursor_pos:
                 for highlight in highlights:
                     try:
                         if highlight["field"] == "all":
@@ -578,10 +581,6 @@ def list_picker(
                     cursor_pos = [i[0] for i in indexed_items].index(cursor_pos_x)
         return SORT_METHODS, h, w, items_per_page
 
-    SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=get_data_startup)
-    curses.raw()
-
-    draw_screen(indexed_items, highlights)
     
     def get_function_data() -> dict:
         """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
@@ -635,7 +634,7 @@ def list_picker(
             "refresh_function":     refresh_function,
             "get_data_startup":     get_data_startup,
             "editable_columns":     editable_columns,
-            "last_key":             None,
+            "last_key":             last_key,
             "centre_in_terminal":   centre_in_terminal,
             "centre_in_terminal_vertical":   centre_in_terminal_vertical,
             "centre_in_cols":       centre_in_cols,
@@ -643,11 +642,22 @@ def list_picker(
             "column_widths":        column_widths,
             "track_entries_upon_refresh": track_entries_upon_refresh,
             "id_column":            id_column,
+            "startup_notification": startup_notification,
             
         }
         return function_data
 
+    def set_function_data(function_data: dict) -> None:
+        """ Set variables from state dict containing core variables."""
+        nonlocal items, indexed_items, header, selections, indexed_items, unselectable_indices, editable_columns
+        nonlocal filter_query, search_query, search_count, search_index
+        nonlocal columns_sort_method, hidden_columns, sort_reverse
+        nonlocal refresh_function
+        nonlocal start_selection, is_deselecting, is_selecting
+        nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, number_columns, max_column_width
 
+        if "items" in function_data: items = function_data["items"]
+        if "header" in function_data: header = function_data["header"]
 
 
     def delete_entries() -> None:
@@ -729,7 +739,7 @@ def list_picker(
 
 
 
-    def notification(stdscr: curses.window, message: str="", colours_end: int=0, duration:int=4) -> None:
+    def notification(stdscr: curses.window, message: str="", title:str="Notification", colours_end: int=0, duration:int=4) -> None:
         """ Notification box. """
         notification_width, notification_height = 50, 7
         message_width = notification_width-5
@@ -749,7 +759,7 @@ def list_picker(
                 submenu_win,
                 submenu_items,
                 colours=notification_colours,
-                title="Notification",
+                title=title,
                 show_footer=False,
                 colours_start=50,
                 disabled_keys=[ord('z'), ord('c')],
@@ -969,36 +979,88 @@ def list_picker(
 
     def save_dialog() -> None:
         
-        # dump_header = [
-        #     "Representation",
-        #     "Columns",
-        # ]
         dump_header = []
-        options = [ ["Save data."], ["Save state"]]
-        # options = [
-        #     ["Python list of lists", "Exclude hidden"],
-        #     ["Python list of lists", "Include hidden"],
-        #     ["Tab-separated values", "Exclude hidden"],
-        #     ["Tab-separated values", "Include hidden"],
-        #     ["Comma-separated values", "Exclude hidden"],
-        #     ["Comma-separated values", "Include hidden"],
-        #     ["Custom separator", "Exclude hidden"],
-        #     ["Custom separator", "Include hidden"],
-        # ]
-        require_option = [True, True]
+        options = [ 
+            ["Save data (pickle)."],
+            ["Save data (csv)."],
+            ["Save data (tsv)."],
+            ["Save data (json)."],
+            ["Save data (feather)."],
+            ["Save data (parquet)."],
+            ["Save data (msgpack)."],
+            ["Save state"]
+        ]
+        require_option = [True, True, True, True, True, True, True, True]
         s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
 
 
         funcs = [
             lambda opts: dump_data(get_function_data(), opts),
+            lambda opts: dump_data(get_function_data(), opts, format="csv"),
+            lambda opts: dump_data(get_function_data(), opts, format="tsv"),
+            lambda opts: dump_data(get_function_data(), opts, format="json"),
+            lambda opts: dump_data(get_function_data(), opts, format="feather"),
+            lambda opts: dump_data(get_function_data(), opts, format="parquet"),
+            lambda opts: dump_data(get_function_data(), opts, format="msgpack"),
             lambda opts: dump_state(get_function_data(), opts),
         ]
 
         if s:
             for idx in s.keys():
-                funcs[idx](o)
+                return_val = funcs[idx](o)
+                if return_val:
+                    notification(stdscr, message=return_val, title="Error")
+
+    def load_dialog() -> None:
+        
+        dump_header = []
+        options = [ 
+            ["Load data (pickle)."],
+            # ["Load data (csv)."],
+            # ["Load data (tsv)."],
+            # ["Load data (json)."],
+            # ["Load data (feather)."],
+            # ["Load data (parquet)."],
+            # ["Load data (msgpack)."],
+            # ["Load state"]
+        ]
+        require_option = [True, True, True, True, True, True, True, True]
+        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
+
+
+        funcs = [
+            # lambda opts: dump_data(get_function_data(), opts),
+            # lambda opts: dump_data(get_function_data(), opts, format="csv"),
+            # lambda opts: dump_data(get_function_data(), opts, format="tsv"),
+            # lambda opts: dump_data(get_function_data(), opts, format="json"),
+            # lambda opts: dump_data(get_function_data(), opts, format="feather"),
+            # lambda opts: dump_data(get_function_data(), opts, format="parquet"),
+            # lambda opts: dump_data(get_function_data(), opts, format="msgpack"),
+            lambda opts: load_state(opts)
+        ]
+
+        if s:
+            for idx in s.keys():
+                return_val = funcs[idx](o)
+                set_function_data(return_val)
+
+                # items = return_val["items"]
+                # header = return_val["header"]
+                notification(stdscr, str(len(return_val)))
+                SORT_METHODS, h, w, items_per_page = initialise_variables()
+                # if return_val:
+                #     notification(stdscr, message=return_val, title="Error")
 
     initial_time = time.time()-timer
+
+    SORT_METHODS, h, w, items_per_page = initialise_variables(get_data=get_data_startup)
+    curses.raw()
+
+    draw_screen(indexed_items, highlights)
+
+    if startup_notification:
+        notification(stdscr, message=startup_notification)
+        startup_notification = ""
 
     curses.curs_set(0)
     # stdscr.nodelay(1)  # Non-blocking input
@@ -1262,6 +1324,8 @@ def list_picker(
             copy_dialog()
         elif check_key("save", key, keys_dict):
             save_dialog()
+        elif check_key("load", key, keys_dict):
+            load_dialog()
 
         elif check_key("delete", key, keys_dict):  # Delete key
             delete_entries()
@@ -1630,16 +1694,20 @@ if __name__ == '__main__':
         
         # unselectable_indices=[0,1,3,7,59]
 
-    # Run the list picker
+    selected_indices = []
     stdscr = curses.initscr()
-    curses.start_color()
-    curses.noecho()  # Turn off automatic echoing of keys to the screen
-    curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
-    stdscr.keypad(True)
-    selected_indices, opts, function_data = list_picker(
-        stdscr,
-        **function_data,
-    )
+    try:
+        # Run the list picker
+        curses.start_color()
+        curses.noecho()  # Turn off automatic echoing of keys to the screen
+        curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
+        stdscr.keypad(True)
+        selected_indices, opts, function_data = list_picker(
+            stdscr,
+            **function_data,
+        )
+    except Exception as e:
+        print(e)
 
     # Clean up
     stdscr.keypad(False)

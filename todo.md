@@ -6,9 +6,12 @@
 >     - [x]  selected column, sort method, etc.
 > - [x] Add ability to dump current view to file.
 >   - [x] pickle
->   - [ ] add other formats
->     - [ ] csv, tsv
->     - [ ] json
+>   - [x] add other formats
+>     - [x] csv, tsv
+>     - [x] json
+>     - [x] parquet
+>     - [x] msgpack
+>     - [x] feather
 > - [x] Dump current state to file.
 >   - [ ] Can't pickle refresh function if it uses libraries not included in list_picker
 > - [x] Create notification system
@@ -51,6 +54,18 @@
 >     - [x] notifications
 >     - [x] options
 >     - [x] menu
+> - [x] Add load data dialog
+>   - [ ] Open yazi and allow file to be chosen.
+>   - [ ] Load full state from running list_picker instance
+>   - [ ] Complete load_function_data function
+>   - [ ] Add more formats:
+>     - [ ] csv, tsv
+>     - [x] pickle
+>     - [ ] msgpack
+>     - [ ] feather
+>     - [ ] parquet
+>     - [ ] json
+
 
 
 
@@ -102,6 +117,7 @@
 > - [ ] Make time sort work with formats like: 
 >   - [ ] '42 min 40 s'
 > - [ ] Add no-select mode which will look better for notifications, options and menus
+> - [ ] Unify in-app load and command-line input file
 
 
 

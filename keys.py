@@ -55,6 +55,7 @@ list_picker_keys = {
     "edit_picker":                      [ord('E')],
     "copy":                             [ord('y')],
     "save":                             [19, ord('D')],  # Ctrl+s
+    "load":                             [ord('L'), 15], # Ctrl+o
     "open":                             [ord('O')], 
 }
 
