@@ -50,6 +50,8 @@ list_picker_keys = {
     "pipe_input":                       [ord('|')],
     "reset_opts":                       [ord('\\')],
     "col_select":                       [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')],
+    "col_select_next":                             [ord('>')], 
+    "col_select_prev":                             [ord('<')], 
     "col_hide":                         [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')],
     "edit":                             [ord('e')],
     "edit_picker":                      [ord('E')],

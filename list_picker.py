@@ -1314,6 +1314,22 @@ def list_picker(
                     current_index = indexed_items[cursor_pos][0]
                     sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
                     cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif check_key("col_select_next", key, keys_dict):
+            if len(items) > 0 and len(items[0]) > 0:
+                col_index = (sort_column +1) % (len(items[0]))
+                sort_column = col_index
+                if len(indexed_items) > 0:
+                    current_index = indexed_items[cursor_pos][0]
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                    cursor_pos = [row[0] for row in indexed_items].index(current_index)
+        elif check_key("col_select_prev", key, keys_dict):
+            if len(items) > 0 and len(items[0]) > 0:
+                col_index = (sort_column -1) % (len(items[0]))
+                sort_column = col_index
+                if len(indexed_items) > 0:
+                    current_index = indexed_items[cursor_pos][0]
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                    cursor_pos = [row[0] for row in indexed_items].index(current_index)
         elif check_key("col_hide", key, keys_dict):
             d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
             d = {s:i for i,s in enumerate(")!@#$%^&*(")}
