@@ -1,0 +1,15 @@
+[environment]
+cwd="~/Videos"
+
+[data]
+files_command = "eza -1 --no-quotes | grep zzz"
+
+commands = [
+  """eza -1 --no-quotes | grep zzz""",
+  """eza -1 /nosuchdirectory""",
+]
+
+header = [
+  "file",
+  "empty column"
+]

@@ -230,7 +230,7 @@ help_colours = {
         'normal_fg': 253,
         'unselected_fg': 253,
         'cursor_fg': 253,
-        'cursor_bg': 232,
+        'cursor_bg': 235,
         'selected_fg': 253,
         'header_fg': 232,
         'unselected_bg': 232,

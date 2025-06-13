@@ -65,6 +65,7 @@
 >     - [ ] feather
 >     - [ ] parquet
 >     - [ ] json
+> - [ ] Merge data sets/look at two datasets at once
 
 
 
@@ -118,6 +119,7 @@
 >   - [ ] '42 min 40 s'
 > - [ ] Add no-select mode which will look better for notifications, options and menus
 > - [ ] Unify in-app load and command-line input file
+> - [ ] Create list of errors encountered when generating data and output to file if user requests...
 
 
 
@@ -154,10 +156,12 @@
 > - [x] The backspace key is not registered in the input field when the cursor is in the options box. The keys work in the main application and in help but not in the options box list_picker...
 >   -  [x] No idea why but the keycode for backspace is 263 in the main window but in curses.newwin the backspace keycode is 127
 >   - Had to set submenu_win.keypad(True) for the submenu window as well as the main window. It doesn't seem to inherit the parent window's properties
-
 > - [x] Last character on header string doesn't show if header value for that cell is longer than all entries in that column
 >   - [x] have to +1 to total visible column width
 > - [x] If require option is given and the box is empty then we should exit the input field without returning the index
+> - [ ] Sometimes the variables from one menu remain in the other in aria2tui... weird
+> - [ ] When loading a pickled file from aria2tui we get a crash because there are more lines in the data.
+>   - [ ] Reset other variables when loading data?
 
 
 

@@ -25,7 +25,7 @@ from dump import dump_state, load_state, dump_data
 try:
     from data_stuff import test_items, test_highlights, test_header
 except:
-    test_items, test_highlights, test_header = [[]], [], []
+    test_items, test_highlights, test_header = [], [], []
 
 def list_picker(
         stdscr: curses.window, 
@@ -95,7 +95,7 @@ def list_picker(
         key_remappings: dict = {},
         keys_dict = list_picker_keys,
         display_infobox : bool = False,
-        infobox_items: list[list[str]] = [[]],
+        infobox_items: list[list[str]] = [],
         display_only: bool = False,
 
         editable_columns: list[int] = [],
@@ -493,20 +493,15 @@ def list_picker(
             items, header = refresh_function()
 
                     
-
-
-
-
-
         if items == []: items = [[]]
         ## Ensure that items is a List[List[Str]] object
-        if not isinstance(items[0], list):
+        if len(items) > 0 and not isinstance(items[0], list):
             items = [[item] for item in items]
         items = [[str(cell) for cell in row] for row in items]
 
 
         # Ensure that header is of the same length as the rows
-        if header and len(header) != len(items[0]):
+        if header and len(items) > 0 and len(header) != len(items[0]):
             header = [str(header[i]) if i < len(header) else "" for i in range(len(items[0]))]
 
         # Constants
@@ -566,7 +561,7 @@ def list_picker(
         cursor_pos = new_pos
 
 
-        if tracking:
+        if tracking and len(items) > 1:
             selected_indices = []
             all_ids = [item[id_column] for item in items]
             selections = {i: False for i in range(len(items))}
@@ -643,6 +638,7 @@ def list_picker(
             "track_entries_upon_refresh": track_entries_upon_refresh,
             "id_column":            id_column,
             "startup_notification": startup_notification,
+            "keys_dict":            keys_dict,
             
         }
         return function_data
@@ -821,7 +817,9 @@ def list_picker(
                         highlights_hide = not highlights_hide
 
                 elif setting in ["nhl", "nohl", "nohighlights"]:
-                    highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
+                    # highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
+                    
+                    highlights_hide = not highlights_hide
                 elif setting[0] == "s":
                     if 0 <= int(setting[1:]) < len(items[0]):
                         sort_column = int(setting[1:])
@@ -1166,6 +1164,7 @@ def list_picker(
                 options += [["ct", "Centre column-set in terminal"]]
                 options += [["cc", "Centre values in cells"]]
                 options += [["!r", "Toggle auto-refresh"]]
+                options += [["nohl", "Toggle highlights"]]
                 options += [["footer", "Toggle footer"]]
                 options += [[f"s{i}", f"Select col. {i}"] for i in range(len(items[0]))]
                 options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(items[0]))]
@@ -1684,7 +1683,6 @@ if __name__ == '__main__':
     
 
     try:
-
         if function_data["items"] == []:
             function_data["items"] = test_items
             function_data["highlights"] = test_highlights
@@ -1702,6 +1700,12 @@ if __name__ == '__main__':
         curses.noecho()  # Turn off automatic echoing of keys to the screen
         curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
         stdscr.keypad(True)
+        h, w = stdscr.getmaxyx()
+        if (h>8 and w >20):
+            stdscr.addstr(h//2, (w-len("List picker is loading your data..."))//2, "List picker is loading your data...")
+            stdscr.refresh()
+
+        ## Start list picker
         selected_indices, opts, function_data = list_picker(
             stdscr,
             **function_data,

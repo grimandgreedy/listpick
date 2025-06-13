@@ -25,7 +25,7 @@ def command_to_func(command: str) -> Callable:
         mediainfo {} | grep -i format | head -n 1 | awk '{{print $3}}'
     """
     
-    func = lambda arg: subprocess.run(command.format(repr(arg)), shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    func = lambda arg: subprocess.run(command.format(repr(arg)), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8")
     return func
 
 def load_environment(envs:dict):
@@ -44,11 +44,10 @@ def read_toml(file_path) -> Tuple[dict, list, list]:
     with open(file_path, 'r') as file:
         config = toml.load(file)
 
-    environment = config['environment']
-    data = config['data']
-    commands = [command.strip() for command in data['commands']]  # Remove quotes from command strings
-    header = [header for header in data['header']]  # No need to do anything here
-
+    environment = config['environment'] if 'environment' in config else {}
+    data = config['data'] if 'data' in config else {}
+    commands = [command.strip() for command in data['commands']] if 'commands' in data else []
+    header = [header for header in data['header']]  if 'header' in data else []
     return environment, commands, header
     
 def generate_list_picker_data(file_path: str) -> Tuple[list[list[str]], list[str]]:
@@ -62,7 +61,7 @@ def generate_list_picker_data(file_path: str) -> Tuple[list[list[str]], list[str
         load_environment(environment)
 
     arg_command = lines[0]
-    args = subprocess.run(arg_command, shell=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+    args = subprocess.run(arg_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8").split("\n")
     args = [arg.strip() for arg in args if arg]
     
     commands_list = [line.strip() for line in lines[1:]]
