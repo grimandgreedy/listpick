@@ -468,7 +468,7 @@ def list_picker(
         ## Display infobox
         if display_infobox:
             infobox(stdscr, message=infobox_items)
-            stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
+            # stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
     def initialise_variables(get_data: bool = False) -> None:
         """ Initialise the variables that keep track of the data. """
@@ -487,7 +487,7 @@ def list_picker(
                 selected_indices = get_selected_indices(selections)
                 ids = [item[id_column] for i, item in enumerate(items) if i in selected_indices]
 
-                if len(indexed_items) > 0:
+                if len(indexed_items) > 0 and len(indexed_items) >= cursor_pos and len(indexed_items[0]) >= id_column:
                     cursor_pos_id = indexed_items[cursor_pos][1][id_column]
 
             items, header = refresh_function()
@@ -654,6 +654,8 @@ def list_picker(
 
         if "items" in function_data: items = function_data["items"]
         if "header" in function_data: header = function_data["header"]
+        indexed_items = function_data["indexed_items"] if "indexed_items" in function_data else []
+
 
 
     def delete_entries() -> None:
@@ -1022,7 +1024,8 @@ def list_picker(
             # ["Load data (msgpack)."],
             # ["Load state"]
         ]
-        require_option = [True, True, True, True, True, True, True, True]
+        # require_option = [True, True, True, True, True, True, True, True]
+        require_option = [False]
         s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
 
 
@@ -1038,13 +1041,15 @@ def list_picker(
         ]
 
         if s:
-            for idx in s.keys():
-                return_val = funcs[idx](o)
+            file_to_load = file_picker()
+            if file_to_load:
+                index = list(s.keys())[0]
+                return_val = funcs[index](file_to_load)
                 set_function_data(return_val)
 
                 # items = return_val["items"]
                 # header = return_val["header"]
-                notification(stdscr, str(len(return_val)))
+                notification(stdscr, f"{repr(file_to_load)} has been loaded!")
                 SORT_METHODS, h, w, items_per_page = initialise_variables()
                 # if return_val:
                 #     notification(stdscr, message=return_val, title="Error")
@@ -1080,8 +1085,7 @@ def list_picker(
     draw_screen(indexed_items, highlights)
 
     if display_only:
-        stdscr.timeout(50)
-        stdscr.getch()
+        stdscr.refresh()
         function_data = get_function_data()
         return [], "", function_data
 

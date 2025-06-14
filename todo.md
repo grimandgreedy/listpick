@@ -2,6 +2,7 @@
 
 > [!IMPORTANT] Features
 > - [x] Generate data based on commands in input file
+>   - [ ] Add support for python commands in addition to bash.
 > - [x] Add ability to list_picker current state to file.
 >     - [x]  selected column, sort method, etc.
 > - [x] Add ability to dump current view to file.

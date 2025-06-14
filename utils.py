@@ -2,6 +2,7 @@ from wcwidth import wcwidth, wcswidth
 from math import log10
 from typing import Tuple
 import subprocess
+import tempfile
 
 def truncate_to_display_width(text: str, max_column_width: int, centre=False) -> str:
     """ 
@@ -221,3 +222,16 @@ def openFiles(files: list[str]) -> str:
         if result.stderr: 
             return result.stderr.read().decode("utf-8").strip()
         return ""
+
+def file_picker() -> None:
+
+    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+        subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
+
+        lines = tmpfile.readlines()
+        if lines:
+            filename = lines[0].decode("utf-8").strip()
+            return filename
+        else:
+            return ""
+            
