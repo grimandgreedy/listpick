@@ -121,6 +121,17 @@
 > - [ ] Add no-select mode which will look better for notifications, options and menus
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Create list of errors encountered when generating data and output to file if user requests...
+> - [ ] Add different options for different rows.
+>   - Examples:
+>     - Run dir selector before asking for string and then use that string as the base for the input_field
+>     - Select from given options.
+>     - Reject option if it doesn't meet certain criteria
+>     - Name the options field
+>     - 
+>   - [ ] list of dicts
+>     - [ ] dicts should specify:
+>      - [ ] 
+> - [ ] If highlights are off we should still see inverted search highlights.
 
 
 

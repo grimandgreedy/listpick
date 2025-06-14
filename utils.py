@@ -224,6 +224,7 @@ def openFiles(files: list[str]) -> str:
         return ""
 
 def file_picker() -> str:
+    """ Run file picker (yazi by default) and return the path of the file picked. If no file is picked an empty string is returned. """
 
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
@@ -237,6 +238,8 @@ def file_picker() -> str:
 
             
 def dir_picker() -> str:
+    """ Run dir picker (yazi by default) and return the path of the directory one is in upon exit. """
+
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         subprocess.run(f"yazi --cwd-file={tmpfile.name}", shell=True)
 

@@ -520,10 +520,9 @@ def list_picker(
         h, w = stdscr.getmaxyx()
         items_per_page = h - top_space-int(bool(header)) - 3*int(bool(show_footer))
         indexed_items = list(enumerate(items))
-        column_widths = get_column_widths(items, header=header, max_column_width=max_column_width, number_columns=number_columns)
-        if require_option == []:
-            require_option = [False for x in indexed_items]
 
+        if len(require_option) < len(items):
+            require_option += [False for i in range(len(items)-len(require_option))]
         if len(items)>0 and len(columns_sort_method) < len(items[0]):
             columns_sort_method = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
         if len(items)>0 and len(sort_reverse) < len(items[0]):
@@ -1144,7 +1143,13 @@ def list_picker(
             function_data["last_key"] = key
             return [], "", function_data
         elif check_key("full_exit", key, keys_dict):
+            stdscr.keypad(False)
+            curses.nocbreak()
+            curses.noraw()
+            curses.echo()
+            curses.endwin()
             exit()
+
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
             field_end = w-38 if show_footer else w-3
