@@ -3,6 +3,7 @@ import re
 
 from sqlalchemy import func
 from list_picker_colours import get_colours, help_colours, notification_colours
+from options_selectors import default_option_input, output_file_option_selector
 import pyperclip
 import os
 import subprocess
@@ -87,6 +88,7 @@ def list_picker(
         modes: list[dict] = [{}],
         display_modes: bool =False,
         require_option: list=[],
+        option_functions: list[Callable[..., Tuple[bool, str]]] = [],
         disabled_keys: list=[],
 
         show_footer: bool =True,
@@ -109,6 +111,13 @@ def list_picker(
 ) -> Tuple[list[int], str, dict]:
     """
     A list picker implemented using curses. Pass a list of lists and a header (optional) and it will display them as tabulated data.
+
+
+
+
+    option_functions: list[Callable[..., Tuple[bool, str]]]: A list containing the function to call when choosing an option for that index. By default the default_options_selector will be used which will use a simple input field. 
+        The options functions must take stdscr, a refresh function (draw_screen()) and return a success/fail bool and a return string. 
+
 
 
     Returns:
@@ -477,7 +486,7 @@ def list_picker(
         nonlocal columns_sort_method, hidden_columns, sort_reverse
         nonlocal refresh_function
         nonlocal start_selection, is_deselecting, is_selecting
-        nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, number_columns, max_column_width
+        nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, option_functions, number_columns, max_column_width
 
         tracking, ids, cursor_pos_id = False, [], 0
 
@@ -523,6 +532,8 @@ def list_picker(
 
         if len(require_option) < len(items):
             require_option += [False for i in range(len(items)-len(require_option))]
+        if len(option_functions) < len(items):
+            option_functions += [None for i in range(len(items)-len(option_functions))]
         if len(items)>0 and len(columns_sort_method) < len(items[0]):
             columns_sort_method = columns_sort_method + [0 for i in range(len(items[0])-len(columns_sort_method))]
         if len(items)>0 and len(sort_reverse) < len(items[0]):
@@ -608,6 +619,7 @@ def list_picker(
             "title":                title,
             "display_modes":        display_modes,
             "require_option":       require_option,
+            "option_functions":     option_functions,
             "top_gap":              top_gap,
             "number_columns":       number_columns,
             "items":                items,
@@ -682,6 +694,7 @@ def list_picker(
             colours_start:int=0,
             header: list[str] = [],
             require_option:list = [],
+            option_functions: list = [],
     ) -> Tuple[dict, str, dict]:
         """
         Display input field at x,y
@@ -989,8 +1002,8 @@ def list_picker(
             ["Save data (msgpack)."],
             ["Save state"]
         ]
-        require_option = [True, True, True, True, True, True, True, True]
-        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
+        # require_option = [True, True, True, True, True, True, True, True]
+        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header)
 
 
         funcs = [
@@ -1003,12 +1016,17 @@ def list_picker(
             lambda opts: dump_data(get_function_data(), opts, format="msgpack"),
             lambda opts: dump_state(get_function_data(), opts),
         ]
-
+        
         if s:
             for idx in s.keys():
-                return_val = funcs[idx](o)
-                if return_val:
-                    notification(stdscr, message=return_val, title="Error")
+                save_path_entered, save_path = output_file_option_selector(
+                    stdscr,
+                    refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
+                )
+                if save_path_entered:
+                    return_val = funcs[idx](save_path)
+                    if return_val:
+                        notification(stdscr, message=return_val, title="Error")
 
     def load_dialog() -> None:
         
@@ -1024,8 +1042,8 @@ def list_picker(
             # ["Load state"]
         ]
         # require_option = [True, True, True, True, True, True, True, True]
-        require_option = [False]
-        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header, require_option=require_option)
+        # require_option = [False]
+        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header)
 
 
         funcs = [
@@ -1052,6 +1070,11 @@ def list_picker(
                 SORT_METHODS, h, w, items_per_page = initialise_variables()
                 # if return_val:
                 #     notification(stdscr, message=return_val, title="Error")
+
+
+
+
+
 
     initial_time = time.time()-timer
 
@@ -1263,31 +1286,28 @@ def list_picker(
                 selected_indices = [indexed_items[cursor_pos][0]]
             
             options_sufficient = True
+            usrtxt = user_opts
             for index in selected_indices:
-                field_end = w-38 if show_footer else w-3
                 if require_option[index]:
-                    # notification(stdscr, message=f"opt required for {index}")
-                    usrtxt = f"{user_opts} " if user_opts else ""
-                    registers = {"*": indexed_items[cursor_pos][1][sort_column]}
-                    usrtxt, return_val = input_field(
-                        stdscr,
-                        usrtxt=usrtxt,
-                        field_name="Opts",
-                        x=2,
-                        y=h-1,
-                        max_length=field_end,
-                        registers=registers,
-                    )
-                    if return_val:
-                        user_opts = usrtxt
-                    else: options_sufficient =False
+                    if option_functions[index] != None:
+                        options_sufficient, usrtxt = option_functions[index](
+                            stdscr=stdscr,
+                            refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
+                        )
+                    else:
+                        options_sufficient, usrtxt = default_option_input(
+                            stdscr,
+                            starting_value=user_opts,
+                            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+                        )
 
             if options_sufficient:
+                user_opts = usrtxt
                 stdscr.clear()
                 stdscr.refresh()
                 function_data = get_function_data()
                 function_data["last_key"] = key
-                return selected_indices, user_opts, function_data
+                return selected_indices, usrtxt, function_data
         elif check_key("page_down", key, keys_dict):  # Next page
             cursor_pos = min(len(indexed_items) - 1, cursor_pos+items_per_page)
 
