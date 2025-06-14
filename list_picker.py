@@ -1143,6 +1143,8 @@ def list_picker(
             function_data = get_function_data()
             function_data["last_key"] = key
             return [], "", function_data
+        elif check_key("full_exit", key, keys_dict):
+            exit()
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
             field_end = w-38 if show_footer else w-3

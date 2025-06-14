@@ -223,7 +223,7 @@ def openFiles(files: list[str]) -> str:
             return result.stderr.read().decode("utf-8").strip()
         return ""
 
-def file_picker() -> None:
+def file_picker() -> str:
 
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
@@ -234,4 +234,15 @@ def file_picker() -> None:
             return filename
         else:
             return ""
+
             
+def dir_picker() -> str:
+    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+        subprocess.run(f"yazi --cwd-file={tmpfile.name}", shell=True)
+
+        lines = tmpfile.readlines()
+        if lines:
+            filename = lines[0].decode("utf-8").strip()
+            return filename
+        else:
+            return ""

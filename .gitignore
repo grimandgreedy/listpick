@@ -4,3 +4,4 @@ data_stuff.py
 __pycache__/
 oldcode.py
 tmp/
+.vscode/

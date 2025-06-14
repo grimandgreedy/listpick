@@ -8,6 +8,7 @@ list_picker_keys = {
     "refresh":                          [curses.KEY_F5],
     "help":                             [ord('?')],
     "exit":                             [ord('q'), ord('h')],
+    "full_exit":                        [3], # Ctrl+c
     "move_column_left":                 [ord('{')],
     "move_column_right":                [ord('}')],
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
@@ -64,6 +65,7 @@ list_picker_keys = {
 
 notification_keys = {
     "exit":                             [ord('q'), ord('h'), curses.KEY_ENTER, ord('\n'), ord(' '), 27],
+    "full_exit":                        [3], # Ctrl+c
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
@@ -83,6 +85,7 @@ notification_keys = {
 menu_keys = {
     "help":                             [ord('?')],
     "exit":                             [ord('q'), ord('h')],
+    "full_exit":                        [3], # Ctrl+c
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
@@ -108,6 +111,7 @@ menu_keys = {
 
 options_keys = {
     "exit":                             [ord('q'), ord('h')],
+    "full_exit":                        [3], # Ctrl+c
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
     "cursor_up":                        [ord('k'), curses.KEY_UP],
     "half_page_up":                     [ord('u')],
