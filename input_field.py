@@ -61,6 +61,13 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
 
         if key == 27:                                                           # ESC key
             return "", False
+        elif key == 3:                                                           # ESC key
+            stdscr.keypad(False)
+            curses.nocbreak()
+            curses.noraw()
+            curses.echo()
+            curses.endwin()
+            exit()
         elif key == 10:                                                         # Enter/return key
             return usrtxt, True
             # selected_indices = print_selected_indices()
