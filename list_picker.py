@@ -716,36 +716,37 @@ def list_picker(
         """
         if options == []: options = [[f"{i}"] for i in range(256)]
         cursor = 0
-        h, w = stdscr.getmaxyx()
-
-        choose_opts_widths = get_column_widths(options)
-        window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
-        window_height = min(h//2, max(6, len(options)+2))
-
-        submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
-        submenu_win.keypad(True)
 
         
-        s, o, f = list_picker(
-            submenu_win,
-            items=options,
-            colours=notification_colours,
-            colours_start=50,
-            title=field_name,
-            # show_footer=False,
-            disabled_keys=[ord('z'), ord('c')],
-            top_gap=0,
-            show_footer=False,
-            header=header,
-            # scroll_bar=False,
-            hidden_columns=[],
-            require_option=require_option,
-            keys_dict = options_keys,
-        )
-        if s:
-            return {x: options[x] for x in s}, o, f
+        option_picker_data = {
+            "items": options,
+            "colours": notification_colours,
+            "colours_start": 50,
+            "title":field_name,
+            "header":header,
+            "hidden_columns":[],
+            "require_option":require_option,
+            "keys_dict": options_keys,
+        }
+        while True:
+            h, w = stdscr.getmaxyx()
 
-        return {}, "", f
+            choose_opts_widths = get_column_widths(options)
+            window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
+            window_height = min(h//2, max(6, len(options)+2))
+
+            submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
+            submenu_win.keypad(True)
+            s, o, f = list_picker(
+                submenu_win,
+                **option_picker_data,
+            )
+            if o == "refresh": 
+                draw_screen(indexed_items, highlights)
+                continue
+            if s:
+                return {x: options[x] for x in s}, o, f
+            return {}, "", f
 
 
 
@@ -1176,15 +1177,17 @@ def list_picker(
         elif check_key("settings_input", key, keys_dict):
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
             field_end = w-38 if show_footer else w-3
+            field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Settings",
-                x=2,
-                y=h-1,
-                max_length=field_end,
+                x=lambda:2,
+                y=lambda: stdscr.getmaxyx()[0]-1,
+                max_length=field_end_f,
                 registers=registers,
+                refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
             )
             if return_val:
                 user_settings = usrtxt
@@ -1425,15 +1428,18 @@ def list_picker(
             usrtxt = f" {filter_query}" if filter_query else ""
             h, w = stdscr.getmaxyx()
             field_end = w-38 if show_footer else w-3
+            field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Filter",
-                x=2,
-                y=h-2,
-                max_length=field_end,
+                x=lambda:2,
+                y=lambda: stdscr.getmaxyx()[0]-2,
+                # max_length=field_end,
+                max_length=field_end_f,
                 registers=registers,
+                refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
             )
             if return_val:
                 filter_query = usrtxt
@@ -1458,15 +1464,17 @@ def list_picker(
             draw_screen(indexed_items, highlights)
             usrtxt = f"{search_query} " if search_query else ""
             field_end = w-38 if show_footer else w-3
+            field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Search",
-                x=2,
-                y=h-3,
-                max_length=field_end,
+                x=lambda:2,
+                y=lambda: stdscr.getmaxyx()[0]-3,
+                max_length=field_end_f,
                 registers=registers,
+                refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
             )
             if return_val:
                 search_query = usrtxt
@@ -1544,15 +1552,17 @@ def list_picker(
         elif check_key("opts_input", key, keys_dict):
             usrtxt = f"{user_opts} " if user_opts else ""
             field_end = w-38 if show_footer else w-3
+            field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Opts",
-                x=2,
-                y=h-1,
-                max_length=field_end,
+                x=lambda:2,
+                y=lambda: stdscr.getmaxyx()[0]-1,
+                max_length=field_end_f,
                 registers=registers,
+                refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
             )
             if return_val:
                 user_opts = usrtxt
@@ -1602,16 +1612,18 @@ def list_picker(
         elif check_key("pipe_input", key, keys_dict):
             usrtxt = "xargs -d '\n' -I{}  "
             field_end = w-38 if show_footer else w-3
+            field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
                 field_name="Command",
-                x=2,
-                y=h-2,
+                x=lambda:2,
+                y=lambda: stdscr.getmaxyx()[0]-2,
                 literal=True,
-                max_length=field_end,
+                max_length=field_end_f,
                 registers=registers,
+                refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
             )
             if return_val:
                 selected_indices = get_selected_indices(selections)
@@ -1643,15 +1655,17 @@ def list_picker(
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
+                field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
                 registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
                     field_name="Edit value",
-                    x=2,
-                    y=h-2,
-                    max_length=field_end,
+                    x=lambda:2,
+                    y=lambda: stdscr.getmaxyx()[0]-2,
+                    max_length=field_end_f,
                     registers=registers,
+                    refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt
@@ -1661,15 +1675,17 @@ def list_picker(
                 current_val = indexed_items[cursor_pos][1][sort_column]
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
+                field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
                 registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
                     field_name="Edit value",
-                    x=2,
-                    y=h-2,
-                    max_length=field_end,
+                    x=lambda:2,
+                    y=lambda: stdscr.getmaxyx()[0]-2,
+                    max_length=field_end_f,
                     registers=registers,
+                    refresh_screen_function=lambda: draw_screen(indexed_items, highlights)
                 )
                 if return_val:
                     indexed_items[cursor_pos][1][sort_column] = usrtxt

@@ -132,6 +132,7 @@
 >     - [ ] dicts should specify:
 >      - [ ] 
 > - [ ] If highlights are off we should still see inverted search highlights.
+> - [ ] Resizing of options select should redraw the screen. Implement refresh loop.
 
 
 

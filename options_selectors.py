@@ -9,13 +9,14 @@ def default_option_input(stdscr: curses.window, refresh_screen_function=None, st
     h, w = stdscr.getmaxyx()
     # field_end = w-38 if show_footer else w-3
     field_end = w-3
+    field_end_f = lambda: stdscr.getmaxyx()[1]-3
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
         field_name=field_name,
-        x=2,
-        y=h-1,
-        max_length=field_end,
+        x=lambda:2,
+        y=lambda: stdscr.getmaxyx()[0]-1,
+        max_length=field_end_f,
         registers=registers,
     )
     if return_val: return True, usrtxt
@@ -28,13 +29,14 @@ def default_option_selector(stdscr: curses.window, refresh_screen_function=None,
     h, w = stdscr.getmaxyx()
     # field_end = w-38 if show_footer else w-3
     field_end = w-3
+    field_end_f = lambda: stdscr.getmaxyx()[1]-3
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
         field_name=field_name,
-        x=2,
-        y=h-1,
-        max_length=field_end,
+        x=lambda:2,
+        y=lambda: stdscr.getmaxyx()[0]-1,
+        max_length=field_end_f,
         registers=registers,
     )
     if return_val: return True, usrtxt
@@ -50,14 +52,14 @@ def output_file_option_selector(stdscr:curses.window, refresh_screen_function, r
     usrtxt = f"{s}/"
     h, w = stdscr.getmaxyx()
     # field_end = w-38 if show_footer else w-3
-    field_end = w-3
+    field_end_f = lambda: stdscr.getmaxyx()[1]-3
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
         field_name="Save as",
-        x=2,
-        y=h-1,
-        max_length=field_end,
+        x=lambda:2,
+        y=lambda: stdscr.getmaxyx()[0]-1,
+        max_length=field_end_f,
         registers=registers,
     )
     if return_val: return True, usrtxt

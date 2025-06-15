@@ -139,4 +139,5 @@ options_keys = {
     "continue_search_backward":         [ord('I')],
     "cancel":                           [27], # Escape key
     "col_select":                       [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5'), ord('6'), ord('7'), ord('8'), ord('9')],
+    "refresh":                          [curses.KEY_F5, curses.KEY_RESIZE],
 }

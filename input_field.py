@@ -1,8 +1,19 @@
 import curses
-from typing import Tuple
+from typing import Tuple, Optional, Callable
 import os
 
-def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:int=0, y:int=0, colours_start:int=0, literal:bool=False, max_length:int = 10000, registers={}) -> Tuple[str, bool]:
+def input_field(
+        stdscr: curses.window,
+        usrtxt:str="",
+        field_name:str="Input",
+        x:Callable=lambda:0,
+        y:Callable=lambda:0,
+        colours_start:int=0,
+        literal:bool=False,
+        max_length:Callable = lambda: 1000,
+        registers={},
+        refresh_screen_function:Optional[Callable]=None,
+) -> Tuple[str, bool]:
     """
     Display input field at x,y for the user to enter text.
 
@@ -11,10 +22,10 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
         usrtxt (str): text to be edited by the user
         field_name (str): The text to be displayed at the start of the text input
         x (int): prompt begins at (x,y) in the screen given
-        y (int): prompt begins at (x,y) in the screen given
+        y (Callable): prompt begins at (x,y) in the screen given
         colours_start (int): where to start when initialising the colour pairs with curses.
         literal: whether to display the repr() of the string; e.g., if we want to display escape sequences literally
-        max_length (int): length of input field
+        max_length (callable): function that returns the length of input field
 
 
     ---Returns
@@ -25,37 +36,44 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
                         1: user hit return
     """
     cursor = 0
-    h, w = stdscr.getmaxyx()
     while True:
 
+        h, w = stdscr.getmaxyx()
 
-        field_end = min(w-3, max_length)
+        if refresh_screen_function != None:
+            refresh_screen_function()
+        field_end = min(w-3, max_length())
+        field_y = min(h-1, y())
+        field_x = min(h-1, x())
+
         # Clear background to end of row
-        stdscr.addstr(y, x, " "*(field_end-x), curses.color_pair(colours_start+20))
+        stdscr.addstr(field_y, x(), " "*(field_end-x()), curses.color_pair(colours_start+20))
         stdscr.refresh()
         # Display the field name and current text
         field_length = 0
+
         if literal:
-            stdscr.addstr(y, x, f"{field_name}: {repr(usrtxt)}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
+            stdscr.addstr(field_y, x(), f"{field_name}: {repr(usrtxt)}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
             field_length=len(f"{field_name}: {repr(usrtxt)}   ")
         else:
-            stdscr.addstr(y, x, f" {field_name}: {usrtxt}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
+            stdscr.addstr(field_y, x(), f" {field_name}: {usrtxt}   "[:field_end], curses.color_pair(colours_start+13) | curses.A_BOLD)
             field_length=len(f" {field_name}: {usrtxt}   ")
 
-        visible_cursor_x = x+len(usrtxt)-cursor+len(f" {field_name}: ")
+        visible_cursor_x = x()+len(usrtxt)-cursor+len(f" {field_name}: ")
         if literal:
-            visible_cursor_x = x+len(repr(usrtxt))-cursor+len(f" {field_name}: ")-2
+            visible_cursor_x = x()+len(repr(usrtxt))-cursor+len(f" {field_name}: ")-2
 
+        # if key == curses.KEY_RESIZE:  # Terminal resize signal
 
         # Display cursor if the field fits onto the screen
         if field_length + 1 < field_end:
             if not literal:
                 if usrtxt and cursor != 0:
-                    stdscr.addstr(y, visible_cursor_x, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
+                    stdscr.addstr(field_y, visible_cursor_x, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
                 else:
-                    stdscr.addstr(y, visible_cursor_x, f" ", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
+                    stdscr.addstr(field_y, visible_cursor_x, f" ", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
             elif literal:
-                stdscr.addstr(y, visible_cursor_x, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
+                stdscr.addstr(field_y, visible_cursor_x, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+13) | curses.A_REVERSE | curses.A_BOLD)
 
         key = stdscr.getch()
 
@@ -133,6 +151,7 @@ def input_field(stdscr: curses.window, usrtxt:str="", field_name:str="Input", x:
         #     if index == -1: index = len(usrtxt)-1-cursor
         #
         #     cursor = len(usrtxt)
+        elif key == curses.KEY_RESIZE: pass
 
         else:
             if isinstance(key, int):
