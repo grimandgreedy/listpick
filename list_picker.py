@@ -77,7 +77,7 @@ def list_picker(
 
         items_per_page : int = -1,
         sort_method : int = 0,
-        sort_reverse: list[int] = [0],
+        sort_reverse: list[bool] = [False],
         sort_column : int = 0,
         columns_sort_method: list[int] = [0],
         key_chain: str = "",
@@ -203,28 +203,32 @@ def list_picker(
         #     (19, curses.COLOR_BLACK, curses.COLOR_CYAN)       # Black text on cyan background
         # ]
 
-        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+
+        try:
+            curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+            curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+            curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+            curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+            curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+            curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+            curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+            curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+            curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+            curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+            curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+            curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+            curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+            curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+            curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+            curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+            curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+            curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+            curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+            curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+            curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+            curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+        except:
+            pass
         return start+21
 
     def infobox(stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
@@ -496,7 +500,7 @@ def list_picker(
                 selected_indices = get_selected_indices(selections)
                 ids = [item[id_column] for i, item in enumerate(items) if i in selected_indices]
 
-                if len(indexed_items) > 0 and len(indexed_items) >= cursor_pos and len(indexed_items[0]) >= id_column:
+                if len(indexed_items) > 0 and len(indexed_items) >= cursor_pos and len(indexed_items[0][1]) >= id_column:
                     cursor_pos_id = indexed_items[cursor_pos][1][id_column]
 
             items, header = refresh_function()
@@ -540,8 +544,6 @@ def list_picker(
             sort_reverse = sort_reverse + [False for i in range(len(items[0])-len(sort_reverse))]
         if len(items)>0 and len(editable_columns) < len(items[0]):
             editable_columns = editable_columns + [False for i in range(len(items[0])-len(editable_columns))]
-        if sort_reverse == [] and len(items) > 0:
-            sort_reverse = [False for i in items[0]]
 
         # If a filter is passed then refilter
         if filter_query:
@@ -551,7 +553,7 @@ def list_picker(
             if cursor_pos in [x[0] for x in indexed_items]: cursor_pos = [x[0] for x in indexed_items].index(cursor_pos)
             else: cursor_pos = 0
         # If a sort is passed
-        if len(indexed_items) > 0 and sort_column != None and columns_sort_method[sort_column] != 0:
+        if len(indexed_items) > 0:
             sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         if len(items[0]) == 1:
             number_columns = False
@@ -727,6 +729,7 @@ def list_picker(
             "hidden_columns":[],
             "require_option":require_option,
             "keys_dict": options_keys,
+            "show_footer": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1090,7 +1093,8 @@ def list_picker(
 
     curses.curs_set(0)
     # stdscr.nodelay(1)  # Non-blocking input
-    stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
+    # stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
+    stdscr.timeout(max(min(2000, int(timer*1000)), 20))  # Set a timeout for getch() to ensure it does not block indefinitely
     stdscr.clear()
     stdscr.refresh()
 
@@ -1101,6 +1105,8 @@ def list_picker(
     if curses.has_colors() and colours != None:
         # raise Exception("Terminal does not support color")
         curses.start_color()
+        if curses.COLORS < 16:
+            colours = help_colours
         colours_end = set_colours(colours, start=colours_start)
 
     # Set terminal background color
@@ -1178,6 +1184,8 @@ def list_picker(
             usrtxt = f"{user_settings.strip()} " if user_settings else ""
             field_end = w-38 if show_footer else w-3
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+            if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+            else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1429,6 +1437,8 @@ def list_picker(
             h, w = stdscr.getmaxyx()
             field_end = w-38 if show_footer else w-3
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+            if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+            else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1465,6 +1475,8 @@ def list_picker(
             usrtxt = f"{search_query} " if search_query else ""
             field_end = w-38 if show_footer else w-3
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+            if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+            else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1553,6 +1565,8 @@ def list_picker(
             usrtxt = f"{user_opts} " if user_opts else ""
             field_end = w-38 if show_footer else w-3
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+            if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+            else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1589,8 +1603,7 @@ def list_picker(
                     else: new_index = 0
                     cursor_pos = new_index
                     # Re-sort items after applying filter
-                    if columns_sort_method[sort_column] != 0:
-                        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         elif check_key("mode_prev", key, keys_dict): # shift+tab key
             # apply setting 
             prev_mode_index = mode_index
@@ -1607,12 +1620,13 @@ def list_picker(
                     else: new_index = 0
                     cursor_pos = new_index
                     # Re-sort items after applying filter
-                    if columns_sort_method[sort_column] != 0:
-                        sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
+                    sort_items(indexed_items, sort_method=columns_sort_method[sort_column], sort_column=sort_column, sort_reverse=sort_reverse[sort_column])  # Re-sort items based on new column
         elif check_key("pipe_input", key, keys_dict):
             usrtxt = "xargs -d '\n' -I{}  "
             field_end = w-38 if show_footer else w-3
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+            if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+            else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
             registers = {"*": indexed_items[cursor_pos][1][sort_column]}
             usrtxt, return_val = input_field(
                 stdscr,
@@ -1656,6 +1670,8 @@ def list_picker(
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
                 field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+                if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+                else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
                 registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
@@ -1676,6 +1692,8 @@ def list_picker(
                 usrtxt = f"{current_val}"
                 field_end = w-38 if show_footer else w-3
                 field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
+                if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
+                else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
                 registers = {"*": indexed_items[cursor_pos][1][sort_column]}
                 usrtxt, return_val = input_field(
                     stdscr,
