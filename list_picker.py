@@ -1,16 +1,14 @@
 import curses
 import re
 
-from sqlalchemy import func
 from list_picker_colours import get_colours, help_colours, notification_colours
 from options_selectors import default_option_input, output_file_option_selector
-import pyperclip
 import os
 import subprocess
 import argparse
 from table_to_list_of_lists import *
 import time
-from wcwidth import wcwidth, wcswidth
+from wcwidth import wcswidth
 from utils import *
 from sorting import *
 from filtering import *
@@ -1047,7 +1045,7 @@ def list_picker(
         ]
         # require_option = [True, True, True, True, True, True, True, True]
         # require_option = [False]
-        s, o, f = choose_option(stdscr, options=options, field_name="Save...", header=dump_header)
+        s, o, f = choose_option(stdscr, options=options, field_name="Open file...", header=dump_header)
 
 
         funcs = [
@@ -1186,7 +1184,7 @@ def list_picker(
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
             else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1309,7 +1307,7 @@ def list_picker(
                         options_sufficient, usrtxt = default_option_input(
                             stdscr,
                             starting_value=user_opts,
-                            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+                            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
                         )
 
             if options_sufficient:
@@ -1439,7 +1437,7 @@ def list_picker(
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
             else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1477,7 +1475,7 @@ def list_picker(
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
             else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1567,7 +1565,7 @@ def list_picker(
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
             else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1627,7 +1625,7 @@ def list_picker(
             field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
             if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
             else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-            registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+            registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
             usrtxt, return_val = input_field(
                 stdscr,
                 usrtxt=usrtxt,
@@ -1672,7 +1670,7 @@ def list_picker(
                 field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
                 if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-                registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+                registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,
@@ -1694,7 +1692,7 @@ def list_picker(
                 field_end_f = lambda: stdscr.getmaxyx()[1]-38 if show_footer else lambda: stdscr.getmaxyx()[1]-3
                 if show_footer: field_end_f = lambda: stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: stdscr.getmaxyx()[1]-3
-                registers = {"*": indexed_items[cursor_pos][1][sort_column]}
+                registers = {"*": indexed_items[cursor_pos][1][sort_column]} if len(indexed_items) else {}
                 usrtxt, return_val = input_field(
                     stdscr,
                     usrtxt=usrtxt,

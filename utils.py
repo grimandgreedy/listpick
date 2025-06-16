@@ -1,6 +1,5 @@
 from wcwidth import wcwidth, wcswidth
 from math import log10
-from typing import Tuple
 import subprocess
 import tempfile
 

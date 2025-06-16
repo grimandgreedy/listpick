@@ -1,6 +1,5 @@
 import curses
 from typing import Tuple, Optional, Callable
-import os
 
 def input_field(
         stdscr: curses.window,
@@ -138,11 +137,12 @@ def input_field(
         elif key in [5, 360]:                                                          # CTRL+E (end)
             cursor = 0
         elif key in [18]:                                                          # CTRL+E (end)
-            if cursor == 0:
-                addtxt = registers["*"]
-                usrtxt = usrtxt[-cursor:] + registers["*"]
-            else:
-                usrtxt = usrtxt[:-cursor] + registers["*"] + usrtxt[-cursor:]
+            if "*" in registers:
+                if cursor == 0:
+                    addtxt = registers["*"]
+                    usrtxt = usrtxt[-cursor:] + registers["*"]
+                else:
+                    usrtxt = usrtxt[:-cursor] + registers["*"] + usrtxt[-cursor:]
 
         # elif key in [23,8]:                                                     # Ctrl+BACKSPACE, CTRL+W
         #     if cursor == 0: tmp = usrtxt[::-1]
