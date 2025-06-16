@@ -121,7 +121,7 @@
 > - [ ] Add no-select mode which will look better for notifications, options and menus
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Create list of errors encountered when generating data and output to file if user requests...
-> - [ ] Add different options for different rows.
+> - [x] Add different options for different rows.
 >   - Examples:
 >     - Run dir selector before asking for string and then use that string as the base for the input_field
 >     - Select from given options.
@@ -175,6 +175,7 @@
 > - [ ] Sometimes the variables from one menu remain in the other in aria2tui... weird
 > - [ ] When loading a pickled file from aria2tui we get a crash because there are more lines in the data.
 >   - [ ] Reset other variables when loading data?
+> - [ ] When search has no matches it still shows the previous matched search numbers ([3/8])
 
 
 

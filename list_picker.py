@@ -1,7 +1,7 @@
 import curses
 import re
 
-from list_picker_colours import get_colours, help_colours, notification_colours
+from list_picker_colours import get_colours, get_help_colours, get_notification_colours
 from options_selectors import default_option_input, output_file_option_selector
 import os
 import subprocess
@@ -26,11 +26,17 @@ try:
 except:
     test_items, test_highlights, test_header = [], [], []
 
+COLOURS_SET = False
+help_colours, notification_colours = {}, {}
+
+
+
 def list_picker(
         stdscr: curses.window, 
         items: list = [],
         cursor_pos: int = 0,
         colours: dict = get_colours(0),
+        colour_theme_number: int = 0,
         max_selected: int = -1,
         top_gap: int =0,
         title: str ="List Picker",
@@ -165,69 +171,6 @@ def list_picker(
         sort_column = new_index
 
 
-    def set_colours(colours: dict, start: int = 0) -> int:
-        """ Initialise curses colour pairs using dictionary with colour keys. """
-
-        if not colours: return None
-        # num_color_pairs = 256
-        # for fg in range(1, 8):  # Foreground colors (white is usually 0)
-        #     for bg in range(8, 16):  # Background colors (black is usually 0)
-        #         pair_id = fg * 8 + bg
-        #         if pair_id < num_color_pairs:
-        #             curses.init_pair(pair_id, fg, bg)
-
-
-        # color_pairs = [
-        #     (1, curses.COLOR_RED, curses.COLOR_BLACK),       # Red text on black background
-        #     (2, curses.COLOR_GREEN, curses.COLOR_BLACK),     # Green text on black background
-        #     (3, curses.COLOR_BLUE, curses.COLOR_BLACK),      # Blue text on black background
-        #     (4, curses.COLOR_YELLOW, curses.COLOR_BLACK),    # Yellow text on black background
-        #     (5, curses.COLOR_MAGENTA, curses.COLOR_BLACK),   # Magenta text on black background
-        #     (6, curses.COLOR_CYAN, curses.COLOR_BLACK),     # Cyan text on black background
-        #     (7, curses.COLOR_WHITE, curses.COLOR_BLACK),    # White text on black background
-        #
-        #     (8, curses.COLOR_RED, curses.COLOR_WHITE),       # Red text on white background
-        #     (9, curses.COLOR_GREEN, curses.COLOR_WHITE),     # Green text on white background
-        #     (10, curses.COLOR_BLUE, curses.COLOR_WHITE),     # Blue text on white background
-        #     (11, curses.COLOR_YELLOW, curses.COLOR_WHITE),   # Yellow text on white background
-        #     (12, curses.COLOR_MAGENTA, curses.COLOR_WHITE),  # Magenta text on white background
-        #     (13, curses.COLOR_CYAN, curses.COLOR_WHITE),    # Cyan text on white background
-        #
-        #     (14, curses.COLOR_BLACK, curses.COLOR_RED),       # Black text on red background
-        #     (15, curses.COLOR_BLACK, curses.COLOR_GREEN),     # Black text on green background
-        #     (16, curses.COLOR_BLACK, curses.COLOR_BLUE),      # Black text on blue background
-        #     (17, curses.COLOR_BLACK, curses.COLOR_YELLOW),    # Black text on yellow background
-        #     (18, curses.COLOR_BLACK, curses.COLOR_MAGENTA),   # Black text on magenta background
-        #     (19, curses.COLOR_BLACK, curses.COLOR_CYAN)       # Black text on cyan background
-        # ]
-
-
-        try:
-            curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-            curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-            curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-            curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-            curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-            curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-            curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-            curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-            curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-            curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-            curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-            curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-            curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-            curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-            curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-            curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-            curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-            curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-            curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-            curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-            curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-            curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
-        except:
-            pass
-        return start+21
 
     def infobox(stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
         """ Display non-interactive infobox window. """
@@ -297,10 +240,11 @@ def list_picker(
 
         ## Display title (if applicable)
         if title:
-            stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(colours_start+17))
-            title_x = (w-wcswidth(title))//2
+            padded_title = f" {title.strip()} "
+            stdscr.addstr(top_gap, 0, f"{' ':^{w}}", curses.color_pair(colours_start+16) | curses.A_UNDERLINE)
+            title_x = (w-wcswidth(padded_title))//2
             # title = f"{title:^{w}}"
-            stdscr.addstr(top_gap, title_x, title, curses.color_pair(colours_start+16) | curses.A_BOLD)
+            stdscr.addstr(top_gap, title_x, padded_title, curses.color_pair(colours_start+16) | curses.A_BOLD)
             top_space += 1
 
         ## Display modes
@@ -596,6 +540,7 @@ def list_picker(
             "current_page":         current_page,
             "cursor_pos":           cursor_pos,
             "colours":              colours,
+            "colour_theme_number":  colour_theme_number,
             "sort_column":          sort_column,
             "sort_method":          sort_method,
             "sort_reverse":         sort_reverse,
@@ -1105,7 +1050,7 @@ def list_picker(
         curses.start_color()
         if curses.COLORS < 16:
             colours = help_colours
-        colours_end = set_colours(colours, start=colours_start)
+        colours_end = set_colours(pick=colour_theme_number, start=colours_start)
 
     # Set terminal background color
     stdscr.bkgd(' ', curses.color_pair(colours_start+3))  # Apply background color
@@ -1708,6 +1653,159 @@ def list_picker(
         draw_screen(indexed_items, highlights, clear=clear_screen)
 
 
+def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
+    """ Initialise curses colour pairs using dictionary with colour keys. """
+    global COLOURS_SET, notification_colours, help_colours
+    if notification_colours == {}: notification_colours = get_notification_colours(0)
+    if help_colours == {}: help_colours = get_help_colours(0)
+    if COLOURS_SET: return None
+    if start == None: start = 0
+
+    colours = get_colours(pick)
+    notification_colours = get_notification_colours(pick)
+    help_colours = get_help_colours(pick)
+
+    if not colours: return 0
+    # num_color_pairs = 256
+    # for fg in range(1, 8):  # Foreground colors (white is usually 0)
+    #     for bg in range(8, 16):  # Background colors (black is usually 0)
+    #         pair_id = fg * 8 + bg
+    #         if pair_id < num_color_pairs:
+    #             curses.init_pair(pair_id, fg, bg)
+
+
+    # color_pairs = [
+    #     (1, curses.COLOR_RED, curses.COLOR_BLACK),       # Red text on black background
+    #     (2, curses.COLOR_GREEN, curses.COLOR_BLACK),     # Green text on black background
+    #     (3, curses.COLOR_BLUE, curses.COLOR_BLACK),      # Blue text on black background
+    #     (4, curses.COLOR_YELLOW, curses.COLOR_BLACK),    # Yellow text on black background
+    #     (5, curses.COLOR_MAGENTA, curses.COLOR_BLACK),   # Magenta text on black background
+    #     (6, curses.COLOR_CYAN, curses.COLOR_BLACK),     # Cyan text on black background
+    #     (7, curses.COLOR_WHITE, curses.COLOR_BLACK),    # White text on black background
+    #
+    #     (8, curses.COLOR_RED, curses.COLOR_WHITE),       # Red text on white background
+    #     (9, curses.COLOR_GREEN, curses.COLOR_WHITE),     # Green text on white background
+    #     (10, curses.COLOR_BLUE, curses.COLOR_WHITE),     # Blue text on white background
+    #     (11, curses.COLOR_YELLOW, curses.COLOR_WHITE),   # Yellow text on white background
+    #     (12, curses.COLOR_MAGENTA, curses.COLOR_WHITE),  # Magenta text on white background
+    #     (13, curses.COLOR_CYAN, curses.COLOR_WHITE),    # Cyan text on white background
+    #
+    #     (14, curses.COLOR_BLACK, curses.COLOR_RED),       # Black text on red background
+    #     (15, curses.COLOR_BLACK, curses.COLOR_GREEN),     # Black text on green background
+    #     (16, curses.COLOR_BLACK, curses.COLOR_BLUE),      # Black text on blue background
+    #     (17, curses.COLOR_BLACK, curses.COLOR_YELLOW),    # Black text on yellow background
+    #     (18, curses.COLOR_BLACK, curses.COLOR_MAGENTA),   # Black text on magenta background
+    #     (19, curses.COLOR_BLACK, curses.COLOR_CYAN)       # Black text on cyan background
+    # ]
+
+
+    try:
+        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+
+
+        # notifications 50, infobox 100, help 150
+        # Notification colours
+        colours = notification_colours
+        start = 50
+        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+
+        # Infobox
+        colours = notification_colours
+        start = 100
+        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+
+        # Help
+        colours = notification_colours
+        start = 150
+        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+    except:
+        pass
+    COLOURS_SET = True
+    return start+21
 
 def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     """ Parse arguments. """
