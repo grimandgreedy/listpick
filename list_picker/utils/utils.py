@@ -174,7 +174,7 @@ def openFiles(files: list[str]) -> str:
         files (list[str]): A list of file paths.
 
     Returns:
-        None
+        str
     """
     def get_mime_types(files):
         types = {}
@@ -218,9 +218,9 @@ def openFiles(files: list[str]) -> str:
     for app, files in apps_files.items():
         files_str = ' '.join(files)
         result = subprocess.Popen(f"gio launch /usr/share/applications/{app} {files_str}", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        if result.stderr: 
-            return result.stderr.read().decode("utf-8").strip()
-        return ""
+        # if result.stderr: 
+        #     return result.stderr.read().decode("utf-8").strip()
+    return ""
 
 def file_picker() -> str:
     """ Run file picker (yazi by default) and return the path of the file picked. If no file is picked an empty string is returned. """

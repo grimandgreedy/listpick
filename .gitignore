@@ -2,6 +2,10 @@ aria2tui.toml
 data_stuff.py
 *.pyc
 __pycache__/
+./list_picker/__pycache__/
+./list_picker/utils/__pycache__/
+./list_picker/ui/__pycache__/
 oldcode.py
-tmp/
 .vscode/
+tmp/
+./list_picker/tmp/

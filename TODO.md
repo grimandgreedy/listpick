@@ -133,6 +133,7 @@
 >      - [ ] 
 > - [ ] If highlights are off we should still see inverted search highlights.
 > - [ ] Resizing of options select should redraw the screen. Implement refresh loop.
+> - [ ] Add return value to distinguish between "back" ("h") and "exit" ("q")
 
 
 

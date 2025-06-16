@@ -77,8 +77,6 @@ notification_keys = {
     "five_up":                          [ord('K')],
     "five_down":                        [ord('J')],
     "redraw_screen":                    [12], # Ctrl-l
-    "opts_input":                       [ord(':')],
-    "opts_select":                      [ord('o')],
 }
 
 

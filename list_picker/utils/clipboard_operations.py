@@ -1,5 +1,5 @@
 import pyperclip
-from utils import get_selected_indices, format_row, format_row_full
+from list_picker.utils.utils import get_selected_indices, format_row, format_row_full
 from typing import Tuple
 
 """

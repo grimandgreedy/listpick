@@ -88,7 +88,23 @@ The application allows you to:
     - Display/hide highlights
     - Option to centre in cells, centre in terminal and centre rows vertically.
 
+14. Change settings on the fly.
+    - Press '~' to see list of display settings or press '`' to enter a command to change display settings.
+    - Change visual options
+        - Cycle through themes
+        - Centre data in cells or centre rows vertically
+        - Show/hide the footer
+        - Show/hide a specific column.
+        - Select a column
+    - Toggle auto-refresh
+    - Toggle highlights
 
+15. Pipe the data from the selected rows in the focussed column to a bash command ('|')
+    - By default when you press '|' it will fill the input field with `xargs -d '\n' -I {} `. You can remove this if you like (^U).
+    - If you add `notify-send {}` to this it will display notifications containing the data from the current column 
+    - Useful for:
+        - Opening files with a specific application `xargs -d \n -I{} mpv {}` will open the files in mpv
+        - Dumping data. `xargs -d \n -I{} echo {} > ~/stuff.txt`
 
 ## Overview
 

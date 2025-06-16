@@ -1,7 +1,7 @@
 import curses
 from typing import Tuple
-from input_field import input_field
-from utils import dir_picker
+from list_picker.ui.input_field import input_field
+from list_picker.utils.utils import dir_picker
 
 def default_option_input(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_name:str="Opts", registers={}) -> Tuple[bool, str]:
     # notification(stdscr, message=f"opt required for {index}")
