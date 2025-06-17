@@ -45,7 +45,6 @@ list_picker_keys = {
     "cancel":                           [27], # Escape key
     "opts_input":                       [ord(':')],
     "opts_select":                      [ord('o')],
-    "notification_toggle":              [ord('z')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
     "pipe_input":                       [ord('|')],
@@ -60,6 +59,7 @@ list_picker_keys = {
     "save":                             [19, ord('D')],  # Ctrl+s
     "load":                             [ord('L'), 15], # Ctrl+o
     "open":                             [ord('O')], 
+    # "notification_toggle":              [ord('z')],
 }
 
 

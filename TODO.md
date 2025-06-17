@@ -177,6 +177,8 @@
 > - [ ] When loading a pickled file from aria2tui we get a crash because there are more lines in the data.
 >   - [ ] Reset other variables when loading data?
 > - [ ] When search has no matches it still shows the previous matched search numbers ([3/8])
+> - [ ] When the number of items in the infobox display is longer than the infobox there is a crash.
+>   - [x] Limited the number of lines displayed so that there will not be a crash, but still not entirely sure why it happens.
 
 
 

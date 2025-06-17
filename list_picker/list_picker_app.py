@@ -94,11 +94,17 @@ class Picker:
         require_option: list=[],
         option_functions: list[Callable[..., Tuple[bool, str]]] = [],
         disabled_keys: list=[],
+
         show_footer: bool =True,
+        footer_string: str="",
+        footer_string_auto_refresh: bool=False,
+        footer_string_refresh_function: Optional[Callable] = None,
+        footer_timer=1,
+
         colours_start: int =0,
         colours_end: int =-1,
         key_remappings: dict = {},
-         keys_dict:dict = list_picker_keys,
+        keys_dict:dict = list_picker_keys,
         display_infobox : bool = False,
         infobox_items: list[list[str]] = [],
         display_only: bool = False,
@@ -175,10 +181,16 @@ class Picker:
         self.disabled_keys = disabled_keys
 
         self.show_footer = show_footer
+        self.footer_string = footer_string
+        self.footer_string_auto_refresh = footer_string_auto_refresh
+        self.footer_string_refresh_function = footer_string_refresh_function
+        self.footer_timer = footer_timer
+
+
         self.colours_start = colours_start
         self.colours_end = colours_end
         self.key_remappings = key_remappings
-        self.keys_dict = list_picker_keys
+        self.keys_dict = keys_dict
         self.display_infobox = display_infobox
         self.infobox_items = infobox_items
         self.display_only = display_only
@@ -199,12 +211,6 @@ class Picker:
 
     def initialise_variables(self, get_data: bool = False) -> Tuple[list, int, int, int]:
         """ Initialise the variables that keep track of the data. """
-        # nonlocal items, indexed_items, header, selections, indexed_items, unselectable_indices, editable_columns
-        # nonlocal filter_query, search_query, search_count, search_index
-        # nonlocal columns_sort_method, hidden_columns, sort_reverse
-        # nonlocal refresh_function
-        # nonlocal start_selection, is_deselecting, is_selecting
-        # nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, option_functions, number_columns, max_column_width
 
         tracking, ids, cursor_pos_id = False, [], 0
 
@@ -304,7 +310,6 @@ class Picker:
 
 
     def move_column(self, direction: int) -> None:
-        # nonlocal items, header, column_widths, sort_column
         """ 
         Cycles the column $direction places. 
         E.g., If $direction == -1 and the sort column is 3, then column 3 will swap with column 2
@@ -335,15 +340,10 @@ class Picker:
         self.column_widths[self.sort_column], self.column_widths[new_index] = self.column_widths[new_index], self.column_widths[self.sort_column]
 
         # Update current column index
-        sort_column = new_index
+        self.sort_column = new_index
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw the list_picker screen. """
-        # nonlocal items, header
-        # nonlocal filter_query, search_query, search_count, search_index 
-        # nonlocal column_widths, hidden_columns 
-        # nonlocal start_selection, is_deselecting, is_selecting
-        # nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row
 
         if clear:
             self.stdscr.erase()
@@ -526,25 +526,34 @@ class Picker:
             # Display sort information
             sort_column_info = f"{self.sort_column if self.sort_column is not None else 'None'}"
             sort_method_info = f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}" if self.sort_column != None else "NA"
+
+
+            ## RIGHT
+            # Sort status
             sort_order_info = "Desc." if self.sort_reverse[self.sort_column] else "Asc."
             self.stdscr.addstr(h - 2, w-35, f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) ", curses.color_pair(self.colours_start+20) | curses.A_BOLD)
 
 
-            # Display cursor mode
-            select_mode = "Cursor"
-            if self.is_selecting: select_mode = "Visual Selection"
-            elif self.is_deselecting: select_mode = "Visual deselection"
-            self.stdscr.addstr(h - 3, w-35, f" {select_mode}", curses.color_pair(self.colours_start+4) | curses.A_BOLD)
-            # Show auto-refresh
-            if self.auto_refresh:
-                self.stdscr.addstr(h - 3, w-35+len(select_mode)+2, f"Auto-refresh", curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
+            if self.footer_string:
+                footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
+                self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
+                self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{self.footer_string[:footer_string_width]:^{footer_string_width}}", curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
+            else:
+                # Display cursor mode
+                select_mode = "Cursor"
+                if self.is_selecting: select_mode = "Visual Selection"
+                elif self.is_deselecting: select_mode = "Visual deselection"
+                self.stdscr.addstr(h - 1, w-35, f" {select_mode}", curses.color_pair(self.colours_start+4) | curses.A_BOLD)
+                # Show auto-refresh
+                if self.auto_refresh:
+                    self.stdscr.addstr(h - 1, w-35+len(select_mode)+2, f"Auto-refresh", curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
 
             # Display selection count
             selected_count = sum(self.selections.values())
             if self.paginate:
-                self.stdscr.addstr(h - 1, w-35, f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count} ", curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+                self.stdscr.addstr(h - 3, w-35, f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count} ", curses.color_pair(self.colours_start+20) | curses.A_BOLD)
             else:
-                self.stdscr.addstr(h - 1, w-35, f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count} ".ljust(34), curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+                self.stdscr.addstr(h - 3, w-35, f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count} ".ljust(34), curses.color_pair(self.colours_start+20) | curses.A_BOLD)
 
             self.stdscr.refresh()
         
@@ -558,7 +567,7 @@ class Picker:
     def infobox(self, stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
         """ Display non-interactive infobox window. """
         h, w = stdscr.getmaxyx()
-        notification_width, notification_height = w//2, h-8
+        notification_width, notification_height = w//2, 3*h//5
         message_width = notification_width-5
 
         if not message: message = "!!"
@@ -571,6 +580,8 @@ class Picker:
             curses.KEY_RESIZE: curses.KEY_F5,
             27: ord('q')
         }
+        if len(submenu_items) > notification_height - 2:
+            submenu_items = submenu_items[:notification_height-3] + [f"{'....':^{notification_width}}"]
         while True:
             h, w = stdscr.getmaxyx()
 
@@ -599,79 +610,77 @@ class Picker:
     def get_function_data(self) -> dict:
         """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
         function_data = {
-            "selections": self.selections,
-            "items_per_page":       self.items_per_page,
-            "current_row":          self.current_row,
-            "current_page":         self.current_page,
-            "cursor_pos":           self.cursor_pos,
-            "colours":              self.colours,
-            "colour_theme_number":  self.colour_theme_number,
-            "sort_column":          self.sort_column,
-            "sort_method":          self.sort_method,
-            "sort_reverse":         self.sort_reverse,
-            "hidden_columns":       self.hidden_columns,
-            "is_selecting":         self.is_selecting,
-            "is_deselecting":       self.is_deselecting,
-            "user_opts":            self.user_opts,
-            "user_settings":        self.user_settings,
-            "separator":            self.separator,
-            "search_query":         self.search_query,
-            "search_count":         self.search_count,
-            "search_index":         self.search_index,
-            "filter_query":         self.filter_query,
-            "indexed_items":        self.indexed_items,
-            "start_selection":      self.start_selection,
-            "end_selection":        self.end_selection,
-            "highlights":           self.highlights,
-            "max_column_width":     self.max_column_width,
-            "mode_index":           self.mode_index,
-            "modes":                self.modes,
-            "title":                self.title,
-            "display_modes":        self.display_modes,
-            "require_option":       self.require_option,
-            "option_functions":     self.option_functions,
-            "top_gap":              self.top_gap,
-            "number_columns":       self.number_columns,
-            "items":                self.items,
-            "indexed_items":        self.indexed_items,
-            "header":               self.header,
-            "scroll_bar":           self.scroll_bar,
-            "columns_sort_method":  self.columns_sort_method,
-            "disabled_keys":        self.disabled_keys,
-            "show_footer":          self.show_footer,
-            "colours_start":        self.colours_start,
-            "colours_end":          self.colours_end,
-            "display_only":         self.display_only,
-            "infobox_items":        self.infobox_items,
-            "display_infobox":      self.display_infobox,
-            "key_remappings":       self.key_remappings,
-            "auto_refresh":         self.auto_refresh,
-            "get_new_data":         self.get_new_data,
-            "refresh_function":     self.refresh_function,
-            "get_data_startup":     self.get_data_startup,
-            "editable_columns":     self.editable_columns,
-            "last_key":             self.last_key,
-            "centre_in_terminal":   self.centre_in_terminal,
-            "centre_in_terminal_vertical":   self.centre_in_terminal_vertical,
-            "centre_in_cols":       self.centre_in_cols,
-            "highlight_full_row":   self.highlight_full_row,
-            "column_widths":        self.column_widths,
-            "track_entries_upon_refresh": self.track_entries_upon_refresh,
-            "id_column":            self.id_column,
-            "startup_notification": self.startup_notification,
-            "keys_dict":            self.keys_dict,
+            "selections":                       self.selections,
+            "items_per_page":                   self.items_per_page,
+            "current_row":                      self.current_row,
+            "current_page":                     self.current_page,
+            "cursor_pos":                       self.cursor_pos,
+            "colours":                          self.colours,
+            "colour_theme_number":              self.colour_theme_number,
+            "sort_column":                      self.sort_column,
+            "sort_method":                      self.sort_method,
+            "sort_reverse":                     self.sort_reverse,
+            "hidden_columns":                   self.hidden_columns,
+            "is_selecting":                     self.is_selecting,
+            "is_deselecting":                   self.is_deselecting,
+            "user_opts":                        self.user_opts,
+            "user_settings":                    self.user_settings,
+            "separator":                        self.separator,
+            "search_query":                     self.search_query,
+            "search_count":                     self.search_count,
+            "search_index":                     self.search_index,
+            "filter_query":                     self.filter_query,
+            "indexed_items":                    self.indexed_items,
+            "start_selection":                  self.start_selection,
+            "end_selection":                    self.end_selection,
+            "highlights":                       self.highlights,
+            "max_column_width":                 self.max_column_width,
+            "mode_index":                       self.mode_index,
+            "modes":                            self.modes,
+            "title":                            self.title,
+            "display_modes":                    self.display_modes,
+            "require_option":                   self.require_option,
+            "option_functions":                 self.option_functions,
+            "top_gap":                          self.top_gap,
+            "number_columns":                   self.number_columns,
+            "items":                            self.items,
+            "indexed_items":                    self.indexed_items,
+            "header":                           self.header,
+            "scroll_bar":                       self.scroll_bar,
+            "columns_sort_method":              self.columns_sort_method,
+            "disabled_keys":                    self.disabled_keys,
+            "show_footer":                      self.show_footer,
+            "footer_string":                    self.footer_string,
+            "footer_string_auto_refresh":       self.footer_string_auto_refresh,
+            "footer_string_refresh_function":   self.footer_string_refresh_function,
+            "footer_timer":                     self.footer_timer,
+            "colours_start":                    self.colours_start,
+            "colours_end":                      self.colours_end,
+            "display_only":                     self.display_only,
+            "infobox_items":                    self.infobox_items,
+            "display_infobox":                  self.display_infobox,
+            "key_remappings":                   self.key_remappings,
+            "auto_refresh":                     self.auto_refresh,
+            "get_new_data":                     self.get_new_data,
+            "refresh_function":                 self.refresh_function,
+            "get_data_startup":                 self.get_data_startup,
+            "editable_columns":                 self.editable_columns,
+            "last_key":                         self.last_key,
+            "centre_in_terminal":               self.centre_in_terminal,
+            "centre_in_terminal_vertical":      self.centre_in_terminal_vertical,
+            "centre_in_cols":                   self.centre_in_cols,
+            "highlight_full_row":               self.highlight_full_row,
+            "column_widths":                    self.column_widths,
+            "track_entries_upon_refresh":       self.track_entries_upon_refresh,
+            "id_column":                        self.id_column,
+            "startup_notification":             self.startup_notification,
+            "keys_dict":                        self.keys_dict,
             
         }
         return function_data
 
     def set_function_data(self, function_data: dict) -> None:
         """ Set variables from state dict containing core variables."""
-        # nonlocal items, indexed_items, header, selections, indexed_items, unselectable_indices, editable_columns
-        # nonlocal filter_query, search_query, search_count, search_index
-        # nonlocal columns_sort_method, hidden_columns, sort_reverse
-        # nonlocal refresh_function
-        # nonlocal start_selection, is_deselecting, is_selecting
-        # nonlocal paginate, title, modes, cursor_pos, scroll_bar,top_gap, show_footer, highlights_hide, centre_in_terminal, centre_in_cols, highlight_full_row, require_option, number_columns, max_column_width
 
         if "items" in function_data: self.items = function_data["items"]
         if "header" in function_data: self.header = function_data["header"]
@@ -681,7 +690,6 @@ class Picker:
 
     def delete_entries(self) -> None:
         """ Delete entries from view. """
-        # nonlocal indexed_items, selections, items
         # Remove selected items from the list
         selected_indices = [index for index, selected in self.selections.items() if selected]
         if not selected_indices:
@@ -725,7 +733,7 @@ class Picker:
                             0: user hit escape
                             1: user hit return
         """
-        if options == []: options = [[f"{i}"] for i in range(256)]
+        if options == []: options = [[f"{i}"] for i in range(10)]
         cursor = 0
 
         
@@ -833,9 +841,6 @@ class Picker:
     def apply_settings(self) -> None:
         """ The users settings will be stored in the user_settings variable. This function applies those settings. """
         
-        # nonlocal user_settings, highlights, sort_column, columns_sort_method
-        # nonlocal auto_refresh, cursor_pos, centre_in_cols, centre_in_terminal, highlights_hide, centre_in_terminal_vertical, show_footer, colour_theme_number
-        # nonlocal h,w,SORT_METHODS,items_per_page
         # settings= usrtxt.split(' ')
         # split settings and appy them
         """
@@ -917,7 +922,6 @@ class Picker:
 
     def handle_visual_selection(self, selecting:bool = True) -> None:
         """ Toggle visual selection or deselection. """
-        # nonlocal start_selection, end_selection, is_selecting, is_deselecting, cursor_pos
         if not self.is_selecting and not self.is_deselecting:
             # start_selection = indexed_items[current_page * items_per_page + current_row][0]
             self.start_selection = self.cursor_pos
@@ -1116,6 +1120,7 @@ class Picker:
 
     def run(self):
         initial_time = time.time()-self.timer
+        initial_time_footer = time.time()-self.footer_timer
 
         self.SORT_METHODS, h, w, self.items_per_page = self.initialise_variables(get_data=self.get_data_startup)
         curses.raw()
@@ -1183,6 +1188,10 @@ class Picker:
 
                     function_data = self.get_function_data()
                     return [], "refresh", function_data
+            if self.footer_string_auto_refresh and ((time.time() - initial_time_footer) > self.footer_timer):
+                self.footer_string = self.footer_string_refresh_function()
+                initial_time_footer = time.time()
+                self.draw_screen(self.indexed_items, self.highlights)
 
             if self.check_key("help", key, self.keys_dict):
                 self.stdscr.clear()
@@ -1582,7 +1591,6 @@ class Picker:
                 # 2. search
                 # 3. filter
                 # 4. selecting
-                # nonlocal self.highlights
 
                 if self.is_selecting or self.is_deselecting:
                     self.start_selection = -1
@@ -1997,14 +2005,8 @@ def main():
             stdscr.addstr(h//2, (w-len("List picker is loading your data..."))//2, "List picker is loading your data...")
             stdscr.refresh()
 
-        ## Start list picker
         app = Picker(stdscr, **function_data)
-        
         app.run()
-        # selected_indices, opts, function_data = picker(
-        #     stdscr,
-        #     **function_data,
-        # )
     except Exception as e:
         print(e)
 
