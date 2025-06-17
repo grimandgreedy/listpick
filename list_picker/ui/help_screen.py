@@ -45,6 +45,7 @@ help_lines = [
     ['    y',                           'Open dialogue to select how you want the selected rows to be copied'],
     ['Misc:',                           ''],
     ['    ?',                           'Show this help screen'],
+    ['    O',                           'Try to open the data in the focussed column of the selected rows as file paths.'],
     ['    :',                           'Specify user optios to be returned with selection'],
     ['    \\',                          'Clear settings'],
     ['Settings:',                           ''],
