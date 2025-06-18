@@ -6,6 +6,7 @@ import argparse
 import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
+import IPython
 
 from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
 from list_picker.utils.options_selectors import default_option_input, output_file_option_selector
@@ -17,7 +18,7 @@ from list_picker.ui.input_field import *
 from list_picker.utils.clipboard_operations import *
 from list_picker.utils.searching import search
 from list_picker.ui.help_screen import help_lines
-from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys
+from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, help_keys
 from list_picker.utils.generate_data import generate_list_picker_data
 from list_picker.utils.dump import dump_state, load_state, dump_data
 
@@ -250,7 +251,10 @@ class Picker:
         if len(self.selections) != len(self.items):
             self.selections = {i : False if i not in self.selections else bool(self.selections[i]) for i in range(len(self.items))}
         h, w = self.stdscr.getmaxyx()
+
         self.items_per_page = h - top_space-int(bool(self.header)) - 3*int(bool(self.show_footer))
+        if not self.show_footer and self.footer_string: self.items_per_page-=1
+        self.items_per_page = min(h-top_space-2, self.items_per_page)
         self.indexed_items = list(enumerate(self.items))
 
         if len(self.require_option) < len(self.items):
@@ -351,7 +355,7 @@ class Picker:
         ## Terminal too small to display list_picker
         h, w = self.stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
-        if self.show_footer and (h<12 or w<40) or (h<12 and w<10):
+        if (self.show_footer or self.footer_string) and (h<12 or w<40) or (h<12 and w<10):
             self.stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
             self.stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
             self.stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
@@ -556,6 +560,10 @@ class Picker:
                 self.stdscr.addstr(h - 3, w-35, f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count} ".ljust(34), curses.color_pair(self.colours_start+20) | curses.A_BOLD)
 
             self.stdscr.refresh()
+        elif self.footer_string:
+            footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{self.footer_string[:footer_string_width]:^{footer_string_width}}", curses.color_pair(self.colours_start+21) | curses.A_BOLD | curses.A_REVERSE)
         
         ## Display infobox
         if self.display_infobox:
@@ -1123,7 +1131,6 @@ class Picker:
         initial_time_footer = time.time()-self.footer_timer
 
         self.SORT_METHODS, h, w, self.items_per_page = self.initialise_variables(get_data=self.get_data_startup)
-        curses.raw()
 
         self.draw_screen(self.indexed_items, self.highlights)
 
@@ -1203,7 +1210,7 @@ class Picker:
                     "colours": help_colours,
                     "show_footer": True,
                     "max_selected": 1,
-                    "keys_dict": notification_keys,
+                    "keys_dict": help_keys,
                     "disabled_keys": [ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')],
                     "highlight_full_row": True,
                     "top_gap": 0,
@@ -1262,6 +1269,9 @@ class Picker:
                     self.user_settings = usrtxt
                     self.apply_settings()
                     self.user_settings = ""
+            elif self.check_key("toggle_footer", key, self.keys_dict):
+                self.user_settings = "footer"
+                self.apply_settings()
 
             elif self.check_key("settings_options", key, self.keys_dict):
                 options = []
@@ -1474,14 +1484,16 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
 
             if key == curses.KEY_RESIZE:  # Terminal resize signal
-                h, w = self.stdscr.getmaxyx()
                 top_space = self.top_gap
+                h, w = self.stdscr.getmaxyx()
                 if self.title: top_space+=1
                 if self.display_modes: top_space+=1
-                self.items_per_page = os.get_terminal_size().lines - top_space*2-2-int(bool(self.header))
-                h, w = self.stdscr.getmaxyx()
+
                 self.items_per_page = h - top_space-int(bool(self.header)) - 3*int(bool(self.show_footer))
+                if not self.show_footer and self.footer_string: self.items_per_page-=1
+                self.items_per_page = max(min(h-top_space-2, self.items_per_page), 0)
                 self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
+                self.draw_screen(self.indexed_items, self.highlights)
 
 
             elif key == ord('r'):
@@ -1771,6 +1783,32 @@ class Picker:
                     )
                     if return_val:
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
+            elif self.check_key("edit_ipython", key, self.keys_dict):
+                self.stdscr.clear()
+                restrict_curses(self.stdscr)
+                self.stdscr.clear()
+                os.system('cls' if os.name == 'nt' else 'clear')
+                globals()['self'] = self  # make the instance available in IPython namespace
+
+                from traitlets.config import Config
+                c = Config()
+                # Doesn't work; Config only works with start_ipython, not embed... but start_ipython causes errors
+                # c.InteractiveShellApp.exec_lines = [
+                #     '%clear'
+                # ]
+                msg = "The active Picker object has variable name self.\n"
+                msg += "\te.g., self.items will display the items in Picker"
+                IPython.embed(header=msg, config=c)
+
+                unrestrict_curses(self.stdscr)
+
+                self.stdscr.clear()
+                self.stdscr.refresh()
+                SORT_METHODS, h, w, items_per_page = self.initialise_variables()
+                self.draw_screen(self.indexed_items, self.highlights)
+
+
+
             self.draw_screen(self.indexed_items, self.highlights, clear=clear_screen)
 
 
@@ -1976,9 +2014,36 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     function_data["items"] = items
     return args, function_data
 
+def start_curses() -> curses.window:
+    stdscr = curses.initscr()
+    curses.start_color()
+    curses.noecho()  # Turn off automatic echoing of keys to the screen
+    curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
+    stdscr.keypad(True)
+    curses.raw()
+
+    return stdscr
+
+def close_curses(stdscr: curses.window) -> None:
+    stdscr.keypad(False)
+    curses.nocbreak()
+    curses.noraw()
+    curses.echo()
+    curses.endwin()
+
+def restrict_curses(stdscr: curses.window) -> None:
+    stdscr.keypad(False)
+    curses.nocbreak()
+    curses.noraw()
+    curses.echo()
+
+def unrestrict_curses(stdscr: curses.window) -> None:
+    curses.noecho()  # Turn off automatic echoing of keys to the screen
+    curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
+    stdscr.keypad(True)
+
 def main():
     args, function_data = parse_arguments()
-    
 
     try:
         if function_data["items"] == []:
@@ -1988,16 +2053,9 @@ def main():
     except:
         pass
         
-        # unselectable_indices=[0,1,3,7,59]
-
-    selected_indices = []
-    stdscr = curses.initscr()
+    stdscr = start_curses()
     try:
         # Run the list picker
-        curses.start_color()
-        curses.noecho()  # Turn off automatic echoing of keys to the screen
-        curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
-        stdscr.keypad(True)
         h, w = stdscr.getmaxyx()
         if (h>8 and w >20):
             curses.init_pair(1, 253, 232)
@@ -2011,13 +2069,8 @@ def main():
         print(e)
 
     # Clean up
-    stdscr.keypad(False)
-    curses.nocbreak()
-    curses.noraw()
-    curses.echo()
-    curses.endwin()
+    close_curses(stdscr)
 
-    print("Final selected indices:", selected_indices)
 
 
 if __name__ == '__main__':

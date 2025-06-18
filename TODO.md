@@ -67,6 +67,10 @@
 >     - [ ] parquet
 >     - [ ] json
 > - [ ] Merge data sets/look at two datasets at once
+> - [ ] Add the ability to add tooltips
+> - [ ] Add the ability to edit the data
+>   - [x] Edit focused cell.
+>   - [x] Open ipython console.
 
 
 
@@ -134,6 +138,8 @@
 > - [ ] If highlights are off we should still see inverted search highlights.
 > - [ ] Resizing of options select should redraw the screen. Implement refresh loop.
 > - [ ] Add return value to distinguish between "back" ("h") and "exit" ("q")
+> - [ ] Add a crashlog. 
+>   - [ ] Anonymised crashlog
 
 
 
@@ -179,6 +185,9 @@
 > - [ ] When search has no matches it still shows the previous matched search numbers ([3/8])
 > - [ ] When the number of items in the infobox display is longer than the infobox there is a crash.
 >   - [x] Limited the number of lines displayed so that there will not be a crash, but still not entirely sure why it happens.
+> - [ ] Resizing when footer is hidden causes issues.
+>   - [x] This is largely fixed but still sometimes when the number of lines is decreased there is still an issue and even occasionally we get a crash.
+>   - [x] The issue was not setting the number of lines correctly after key=curses.KEY_RESIZE was detected.
 
 
 
