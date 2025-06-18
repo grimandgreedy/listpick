@@ -1,3 +1,4 @@
+#!/bin/python
 import curses
 from typing import Tuple
 from list_picker.ui.input_field import input_field

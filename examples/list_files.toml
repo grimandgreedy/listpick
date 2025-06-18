@@ -1,11 +1,11 @@
 [environment]
-cwd="~/Videos"
+cwd="~/"
 
 [data]
-files_command = "eza -1 --no-quotes | grep mp4"
+files_command = "eza -1 --no-quotes -a"
 
 commands = [
-  """eza -1 --no-quotes | grep mp4""",
+  """eza -1 --no-quotes -a""",
   """eza -1 /nosuchdirectory""",
 ]
 

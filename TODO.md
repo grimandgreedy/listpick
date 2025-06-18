@@ -1,5 +1,12 @@
 # TODO for list_picker.py
 
+
+ASAP
+> - [ ] Redo colours so that only the key differences are redone in help, notification and options colours for each of the themes.
+> - [ ] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
+
+
+
 > [!IMPORTANT] Features
 > - [x] Generate data based on commands in input file
 >   - [ ] Add support for python commands in addition to bash.
@@ -39,6 +46,10 @@
 >   - [ ] gg
 >   - [ ] count
 > - [ ] add return value; e.g., refreshing
+> - [ ] Allow columns to be moved.
+>   - [x] Implement column_indices
+>   - [ ] Implement indexed header
+>   - [ ] Highlights need to be applied based upon the indexed column_indices
 > - [ ] add indexed columns
 >   - [ ] will fix highlighting when column order is switched
 > - [ ] adjust width of particular columns
@@ -77,7 +88,8 @@
 
 
 > [!Important] Improvements
-> - [ ] (!!!) Need to remove nonlocal args and pass all variables as arguments
+> - [x] (!!!) Need to remove nonlocal args and pass all variables as arguments
+>   - [x] Solved by making the picker into a Picker class.
 > - [ ] change hidden_columns from set() to list()
 > - [ ] make unselectable_indices work with filtering
 > - [ ] look at adjustment for cursor position and hidden unselectable indices
@@ -106,20 +118,22 @@
 >      - [ ] add variable max display length
 > - [ ] Highlights
 >   - [ ] (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
+>     - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
+>     - [ ]  - e.g., --2 wmv$ shows matches but no highlights
+>     - [ ]  - e.g., searching '1 8' cycles through ten matches but highlights 100 lines (every line that has a 1 or an 8)
 >      - [?] allow visual matches with searches?
 >      - [?] hide highlights across fields?
->      - [?] e.g., mkv$ shows no highlights but does match
->   - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
+>      - [?] e.g., mkv$ shows no highlights but does show match
 > - [ ] Pipe
 >   - [ ] if no items are selected pipe cursor to command
-> - [ ] Redo keybinds
->   - [ ]  n/N search next/prev
->   - [ ] (!!!) allow key remappings; have a dictionary to remap
+> - [x] Redo keybinds
+>   - [x]  n/N search next/prev
+>   - [x] (!!!) allow key remappings; have a dictionary to remap
 >      - [ ] escape should close option selections and notifications
->   - [ ] Add keybind to focus on next (visible) column
+>   - [x] Add keybind to focus on next (visible) column
 > - [ ] (?) adjust default column width based on current page?
 > - [ ] Need to set environment variables somehow.
->   - [ ] cwd
+>   - [x] cwd
 > - [ ] Make time sort work with formats like: 
 >   - [ ] '42 min 40 s'
 > - [ ] Add no-select mode which will look better for notifications, options and menus
@@ -140,6 +154,10 @@
 > - [ ] Add return value to distinguish between "back" ("h") and "exit" ("q")
 > - [ ] Add a crashlog. 
 >   - [ ] Anonymised crashlog
+> - [ ] Add a cursor-steady mode to complement the existing cursor-follow mode
+>   - [ ] Follow index vs follow entry?
+>   - [ ] Follow-entry mode: You are watching a download at the top of the list. It finishes and takes you to the bottom of the download list.
+>   - [ ] Follow-entry mode (not ideal): You are visually selecting the active and paused downloads but when the cursor is on one of the active downloads you are suddenly cast down the list when it finishes.
 
 
 
@@ -160,8 +178,8 @@
 >   - implement indexed_columns
 >   - will have to put header in function_data to track location of fields
 > - [ ] regexp and field entry errors
->   - [ ] filter
->   - [ ] "--1 error .*" doesn't work but ".* --1" error does
+>   - [x] filter
+>   - [x] "--1 error .*" doesn't work but ".* --1" error does
 >   - [ ] search
 >   - [ ] highlights
 >   - [x] when +,* is added to the filter it errors out
@@ -182,12 +200,16 @@
 > - [ ] Sometimes the variables from one menu remain in the other in aria2tui... weird
 > - [ ] When loading a pickled file from aria2tui we get a crash because there are more lines in the data.
 >   - [ ] Reset other variables when loading data?
-> - [ ] When search has no matches it still shows the previous matched search numbers ([3/8])
+> - [ ] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
 > - [ ] When the number of items in the infobox display is longer than the infobox there is a crash.
 >   - [x] Limited the number of lines displayed so that there will not be a crash, but still not entirely sure why it happens.
 > - [ ] Resizing when footer is hidden causes issues.
 >   - [x] This is largely fixed but still sometimes when the number of lines is decreased there is still an issue and even occasionally we get a crash.
 >   - [x] The issue was not setting the number of lines correctly after key=curses.KEY_RESIZE was detected.
+> - [ ] Importing IPython causes errors with registering keys.
+>   - [x] Limited the damage by only importing when the edit_python key is pressed.
+> - [ ] When adding torrents/opening nvim sometimes there are still artifacts after we return to the Picker.
+>  - [ ] Add a clear_on_start flag to Picker(), if not true then simply erase
 
 
 

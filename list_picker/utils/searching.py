@@ -1,5 +1,7 @@
+#!/bin/python
 import re
 from typing import Tuple
+from list_picker.utils.search_and_filter_utils import apply_filter, tokenise
 
 def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict]=[], cursor_pos:int=0, unselectable_indices:list=[], reverse:bool=False, continue_search:bool=False) -> Tuple[bool, int, int, int, list[dict]]:
     """
@@ -31,79 +33,7 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
 
     highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
 
-    def apply_filter(row: list[str], filters: dict) -> bool:
-        """ Checks if row matches the search. """
-        for col, value in filters.items():
-            if case_sensitive or (value != value.lower()):
-                pattern = re.compile(value)
-            else:
-                pattern = re.compile(value, re.IGNORECASE)
-            if col == -1:  # Apply filter to all columns
-                if not any(pattern.search(str(item)) for item in row):
-                    return invert_filter
-                # return not invert_filter
-            elif col >= len(row) or col < 0:
-                return False
-            else:
-                cell_value = str(row[col])
-                if not pattern.search(str(cell_value)):
-                    return invert_filter
-                # return invert_filter
 
-        return True
-
-    def tokenize(query:str) -> dict:
-        """ Convert query into dict consisting of filters. '--1  """
-        filters = {}
-
-        # tokens = re.split(r'(\s+--\d+|\s+--i)', query)
-        tokens = re.split(r'((\s+|^)--\w)', query)
-        tokens = [token.strip() for token in tokens if token.strip()]  # Remove empty tokens
-        i = 0
-        while i < len(tokens):
-            token = tokens[i]
-            if token:
-                if token.startswith("--"):
-                    flag = token
-                    if flag == '--v':
-                        invert_filter = True 
-                        i += 1
-                    elif flag == '--i':
-                        case_sensitive = True
-                        i += 1
-                    else:
-                        if i+1 >= len(tokens):
-                            break
-                        col = int(flag[2:])
-                        arg = tokens[i+1].strip()
-                        try:
-                            i+=2
-                            re.compile(arg)
-                            filters[col] = arg
-                            highlights.append({
-                                "match": arg,
-                                "field": col,
-                                "color": 10,
-                                "type": "search",
-                            })
-                        except:
-                            pass
-                else:
-                    try:
-                        i += 1
-                        re.compile(token)
-                        filters[-1] = token
-                        highlights.append({
-                            "match": token,
-                            "field": "all",
-                            "color": 10,
-                            "type": "search",
-                        })
-                    except:
-                        pass
-            else:
-                i += 1
-        return filters
 
 
 
@@ -114,7 +44,7 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
 
     invert_filter = False
     case_sensitive = False
-    filters = tokenize(query)
+    filters = tokenise(query)
 
     if not filters: return False, cursor_pos, 0,0,highlights
     found = False
@@ -123,7 +53,7 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
     
     for i in searchables:
         # if apply_filter(indexed_items[i][1]):
-        if apply_filter(indexed_items[i][1], filters):
+        if apply_filter(indexed_items[i][1], filters, add_highlights=True, highlights=highlights):
             new_pos = i
             if new_pos in unselectable_indices: continue
             search_count += 1

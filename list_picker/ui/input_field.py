@@ -12,6 +12,7 @@ def input_field(
         max_length:Callable = lambda: 1000,
         registers={},
         refresh_screen_function:Optional[Callable]=None,
+        cursor: int = 0,
 ) -> Tuple[str, bool]:
     """
     Display input field at x,y for the user to enter text.
@@ -34,7 +35,6 @@ def input_field(
                         0: user hit escape
                         1: user hit return
     """
-    cursor = 0
     while True:
 
         h, w = stdscr.getmaxyx()
@@ -93,7 +93,6 @@ def input_field(
             # full_values = [format_row_full(items[i], hidden_columns) for i in selected_indices]  # Use format_row_full for full data
             # # selected_data = [format_full_row(items[i]).strip() for i, selected in enumerate(selections) if selected and i not in hidden_columns]
             # if full_values:
-            #     # os.system("notify-send " + "'" + '\t'.join(full_values).replace("'", "*") + "'")
             #     process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             #     process.communicate(input='\n'.join(full_values).encode('utf-8'))
             # break

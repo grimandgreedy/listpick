@@ -1,3 +1,4 @@
+#!/bin/python
 from wcwidth import wcwidth, wcswidth
 from math import log10
 import subprocess

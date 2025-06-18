@@ -1,3 +1,4 @@
+#!/bin/python
 import sys
 import csv
 import json
@@ -6,6 +7,8 @@ from openpyxl import load_workbook
 from io import StringIO
 import argparse
 from typing import Tuple, Iterable, Optional
+import dill as pickle
+import os
 
 def read_file_content(file_path: str) -> str:
     """ Read lines from file. """
@@ -23,7 +26,7 @@ def strip_whitespace(item: Iterable) -> Iterable:
 
 
 
-def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=None) -> list[list[str]]:
+def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=None) -> Tuple[list[list[str]], list[str]]:
     """ 
     Convert data string to list. The input_arg
     Currently accepts: csv, tsv, json, xlsx, ods
@@ -35,16 +38,16 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
 
         try:
             reader = csv.reader(StringIO(data), delimiter=delimiter)
-            return [row for row in reader]
+            return [row for row in reader], []
         except Exception as e:
             print(f"Error reading CSV-like input: {e}")
-            return []
+            return [], []
 
     def csv_string_to_list(csv_string:str) -> list[list[str]]:
         """ Convert csv string to list of lists using csv.reader. """
         f = StringIO(csv_string)
         reader = csv.reader(f, skipinitialspace=True)
-        return [row for row in reader]
+        return [row for row in reader], []
 
     if file_type == 'csv' or delimiter in [',']:
         try:
@@ -57,12 +60,12 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
                 input_data = read_file_content(input_arg)
             table_data = csv_string_to_list(input_data)
             table_data = strip_whitespace(table_data)
-            return table_data
+            return table_data, []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
-            return []
+            return [], []
 
-    elif file_type == 'tsv' or delimiter in ['\t']:
+    elif file_type == 'tsv':
         try:
             if input_arg == '--stdin':
                 input_data = sys.stdin.read()
@@ -80,10 +83,10 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             
             table_data = parse_csv_like(input_data, delimiter)
             table_data = strip_whitespace(table_data)
-            return table_data
+            return table_data, []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
-            return []
+            return [], []
 
     elif file_type == 'json':
         try:
@@ -96,13 +99,13 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
                 input_data = read_file_content(input_arg)
             
             table_data = json.loads(input_data)
-            return table_data
+            return table_data, []
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON input: {e}")
-            return []
+            return [], []
         except FileNotFoundError as e:
             print(f"File not found: {e}")
-            return []
+            return [], []
 
     elif file_type == 'xlsx':
         try:
@@ -124,19 +127,25 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             sheet = wb.active
             for row in sheet.iter_rows(values_only=True):
                 table_data.append(list(row))
-            return table_data
+            return table_data, []
         except Exception as e:
             print(f"Error loading Excel file: {e}")
-            return []
+            return [], []
 
     elif file_type == 'ods':
         try:
             df = pd.read_excel(input_arg, engine='odf')
             table_data = df.values.tolist()
-            return table_data
+            return table_data, []
         except Exception as e:
             print(f"Error loading ODS file: {e}")
-            return []
+            return [], []
+    elif file_type == 'pkl':
+        with open(os.path.expandvars(os.path.expanduser(input_arg)), 'rb') as f:
+            loaded_data = pickle.load(f)
+        items = loaded_data["items"] if "items" in loaded_data else []
+        header = loaded_data["header"] if "header" in loaded_data else []
+        return items, header
 
     if input_arg == '--stdin':
         input_data = sys.stdin.read()
@@ -148,7 +157,7 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
     
     table_data = parse_csv_like(input_data, delimiter)
 
-    return table_data
+    return table_data, []
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
