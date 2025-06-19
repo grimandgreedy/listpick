@@ -10,7 +10,7 @@ from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 
 from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
-from list_picker.utils.options_selectors import default_option_input, output_file_option_selector
+from list_picker.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
 from list_picker.utils.table_to_list_of_lists import *
 from list_picker.utils.utils import *
 from list_picker.utils.sorting import *
@@ -44,6 +44,7 @@ class Picker:
         title: str ="List Picker",
         header: list =[],
         max_column_width: int =70,
+        clear_on_start: bool = False,
         
         auto_refresh: bool =False,
         timer: float = 5,
@@ -91,6 +92,7 @@ class Picker:
         last_key: Optional[str] = None,
 
         paginate: bool =False,
+        cancel_is_back: bool = False,
         mode_index: int =0,
         modes: list[dict] = [{}],
         display_modes: bool =False,
@@ -110,6 +112,7 @@ class Picker:
         keys_dict:dict = list_picker_keys,
         display_infobox : bool = False,
         infobox_items: list[list[str]] = [],
+        infobox_title: str = "",
         display_only: bool = False,
 
         editable_columns: list[int] = [],
@@ -130,6 +133,7 @@ class Picker:
         self.title = title
         self.header = header
         self.max_column_width = max_column_width
+        self.clear_on_start = clear_on_start
         
         self.auto_refresh = auto_refresh
         self.timer = timer
@@ -177,6 +181,7 @@ class Picker:
         self.last_key = last_key
 
         self.paginate = paginate
+        self.cancel_is_back = cancel_is_back
         self.mode_index = mode_index
         self.modes = modes
         self.display_modes = display_modes
@@ -197,6 +202,7 @@ class Picker:
         self.keys_dict = keys_dict
         self.display_infobox = display_infobox
         self.infobox_items = infobox_items
+        self.infobox_title = infobox_title
         self.display_only = display_only
 
         self.editable_columns = editable_columns
@@ -378,8 +384,24 @@ class Picker:
         if not self.show_footer and self.footer_string: self.items_per_page-=1
         self.items_per_page = min(h-top_space-2, self.items_per_page)
 
+
+        # Determine which rows are to be displayed on the current screen
+        ## Paginate
+        if self.paginate:
+            start_index = (self.cursor_pos//self.items_per_page) * self.items_per_page
+            end_index = min(start_index + self.items_per_page, len(self.indexed_items))
+        ## Scroll
+        else:
+            scrolloff = self.items_per_page//2
+            start_index = max(0, min(self.cursor_pos - (self.items_per_page-scrolloff), len(self.indexed_items)-self.items_per_page))
+            end_index = min(start_index + self.items_per_page, len(self.indexed_items))
+        if len(self.indexed_items) == 0: start_index, end_index = 0, 0
+
         # self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
-        rows = [v[1] for v in self.indexed_items] if len(self.indexed_items) else self.items
+        # Determine widths based only on the currently indexed rows
+        # rows = [v[1] for v in self.indexed_items] if len(self.indexed_items) else self.items
+        # Determine widths based only on the currently displayed indexed rows
+        rows = [v[1] for v in self.indexed_items[start_index:end_index]] if len(self.indexed_items) else self.items
         self.column_widths = get_column_widths(rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
         visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
         visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
@@ -392,7 +414,8 @@ class Picker:
         ## Display title (if applicable)
         if self.title:
             padded_title = f" {self.title.strip()} "
-            self.stdscr.addstr(self.top_gap, 0, f"{' ':^{w}}", curses.color_pair(self.colours_start+16) | curses.A_UNDERLINE)
+            # self.stdscr.addstr(self.top_gap, 0, f"{' ':^{w}}", curses.color_pair(self.colours_start+16) | curses.A_UNDERLINE)
+            self.stdscr.addstr(self.top_gap, 0, f"{' ':^{w}}", curses.color_pair(self.colours_start+16))
             title_x = (w-wcswidth(padded_title))//2
             # title = f"{title:^{w}}"
             self.stdscr.addstr(self.top_gap, title_x, padded_title, curses.color_pair(self.colours_start+16) | curses.A_BOLD)
@@ -441,16 +464,6 @@ class Picker:
                 number = f"{self.sort_column}. " if self.number_columns else ""
                 number = f"{intStringToExponentString(self.sort_column)}. " if self.number_columns else ""
                 self.stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]}}")[:w-len(up_to_selected_col)-startx], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
-        ## Paginate
-        if self.paginate:
-            start_index = (self.cursor_pos//self.items_per_page) * self.items_per_page
-            end_index = min(start_index + self.items_per_page, len(self.indexed_items))
-        ## Scroll
-        else:
-            scrolloff = self.items_per_page//2
-            start_index = max(0, min(self.cursor_pos - (self.items_per_page-scrolloff), len(self.indexed_items)-self.items_per_page))
-            end_index = min(start_index + self.items_per_page, len(self.indexed_items))
-        if len(self.indexed_items) == 0: start_index, end_index = 0, 0
 
         if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
             top_space += (self.items_per_page - len(self.indexed_items)) //2 
@@ -592,7 +605,7 @@ class Picker:
         
         ## Display infobox
         if self.display_infobox:
-            self.infobox(self.stdscr, message=self.infobox_items)
+            self.infobox(self.stdscr, message=self.infobox_items, title=self.infobox_title)
             # self.stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
 
@@ -693,6 +706,7 @@ class Picker:
             "display_only":                     self.display_only,
             "infobox_items":                    self.infobox_items,
             "display_infobox":                  self.display_infobox,
+            "infobox_title":                    self.infobox_title,
             "key_remappings":                   self.key_remappings,
             "auto_refresh":                     self.auto_refresh,
             "get_new_data":                     self.get_new_data,
@@ -709,6 +723,8 @@ class Picker:
             "id_column":                        self.id_column,
             "startup_notification":             self.startup_notification,
             "keys_dict":                        self.keys_dict,
+            "cancel_is_back":                   self.cancel_is_back,
+            "paginate":                         self.paginate,
             
         }
         return function_data
@@ -781,6 +797,7 @@ class Picker:
             "require_option":require_option,
             "keys_dict": options_keys,
             "show_footer": False,
+            "cancel_is_back": True,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -832,6 +849,7 @@ class Picker:
                 "disabled_keys": [ord('z'), ord('c')],
                 "highlight_full_row": True,
                 "top_gap": 0,
+                "cancel_is_back": True,
 
             }
             OptionPicker = Picker(submenu_win, **notification_data)
@@ -1118,7 +1136,7 @@ class Picker:
 
 
 
-    def run(self):
+    def run(self) -> Tuple[list[int], str, dict]:
         initial_time = time.time()-self.timer
         initial_time_footer = time.time()-self.footer_timer
 
@@ -1134,7 +1152,11 @@ class Picker:
         # stdscr.nodelay(1)  # Non-blocking input
         # stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
         self.stdscr.timeout(max(min(2000, int(self.timer*1000)), 20))  # Set a timeout for getch() to ensure it does not block indefinitely
-        self.stdscr.erase()
+        if self.clear_on_start:
+            self.stdscr.clear()
+            self.clear_on_start = False
+        else:
+            self.stdscr.erase()
         self.stdscr.refresh()
 
         
@@ -1211,16 +1233,11 @@ class Picker:
                 function_data["last_key"] = key
                 return [], "", function_data
             elif self.check_key("full_exit", key, self.keys_dict):
-                self.stdscr.keypad(False)
-                curses.nocbreak()
-                curses.noraw()
-                curses.echo()
-                curses.endwin()
+                close_curses(self.stdscr)
                 exit()
 
             elif self.check_key("settings_input", key, self.keys_dict):
                 usrtxt = f"{self.user_settings.strip()} " if self.user_settings else ""
-                field_end = w-38 if self.show_footer else w-3
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1406,6 +1423,7 @@ class Picker:
                 if len(self.indexed_items) > 0:
                     current_index = self.indexed_items[self.cursor_pos][0]
                     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+                    self.draw_screen(self.indexed_items, self.highlights)
                     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
             elif self.check_key("col_select", key, self.keys_dict):
                 col_index = key - ord('0')
@@ -1498,7 +1516,6 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
                 usrtxt = f"{self.filter_query} " if self.filter_query else ""
                 h, w = self.stdscr.getmaxyx()
-                field_end = w-38 if self.show_footer else w-3
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1536,7 +1553,6 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
                 usrtxt = f"{self.search_query} " if self.search_query else ""
                 h, w = self.stdscr.getmaxyx()
-                field_end = w-38 if self.show_footer else w-3
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1562,6 +1578,8 @@ class Picker:
                     )
                     if return_val:
                         self.cursor_pos, self.search_index, self.search_count, self.highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
+                    else:
+                        self.search_index, self.search_count = 0, 0
 
             elif self.check_key("continue_search_forward", key, self.keys_dict):
                 return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
@@ -1591,16 +1609,20 @@ class Picker:
                 # 1. selecting/deslecting
                 # 2. search
                 # 3. filter
+                # 4. if self.cancel_is_back (e.g., notification) then we exit
                 # 4. selecting
 
+                # Cancel visual de/selection
                 if self.is_selecting or self.is_deselecting:
                     self.start_selection = -1
                     self.end_selection = -1
                     self.is_selecting = False
                     self.is_deselecting = False
+                # Cancel search
                 elif self.search_query:
                     self.search_query = ""
                     self.highlights = [highlight for highlight in self.highlights if "type" not in highlight or highlight["type"] != "search" ]
+                # Remove filter
                 elif self.filter_query:
                     if "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] in self.filter_query and self.filter_query.strip() != self.modes[self.mode_index]["filter"]:
                         self.filter_query = self.modes[self.mode_index]["filter"]
@@ -1616,17 +1638,21 @@ class Picker:
                     # Re-sort self.items after applying filter
                     if self.columns_sort_method[self.sort_column] != 0:
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+                elif self.cancel_is_back:
+                    function_data = self.get_function_data()
+                    function_data["last_key"] = key
+                    return [], "escape", function_data
 
-                else:
-                    self.search_query = ""
-                    self.mode_index = 0
-                    self.highlights = [highlight for highlight in self.highlights if "type" not in highlight or highlight["type"] != "search" ]
-                    continue
+
+                # else:
+                #     self.search_query = ""
+                #     self.mode_index = 0
+                #     self.highlights = [highlight for highlight in self.highlights if "type" not in highlight or highlight["type"] != "search" ]
+                #     continue
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("opts_input", key, self.keys_dict):
                 usrtxt = f"{self.user_opts} " if self.user_opts else ""
-                field_end = w-38 if self.show_footer else w-3
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1687,7 +1713,6 @@ class Picker:
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("pipe_input", key, self.keys_dict):
                 usrtxt = "xargs -d '\n' -I{}  "
-                field_end = w-38 if self.show_footer else w-3
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1732,7 +1757,6 @@ class Picker:
                 if len(self.indexed_items) > 0 and self.sort_column >=0 and self.editable_columns[self.sort_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.sort_column]
                     usrtxt = f"{current_val}"
-                    field_end = w-38 if self.show_footer else w-3
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                     if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1754,7 +1778,6 @@ class Picker:
                 if len(self.indexed_items) > 0 and self.sort_column >=0 and self.editable_columns[self.sort_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.sort_column]
                     usrtxt = f"{current_val}"
-                    field_end = w-38 if self.show_footer else w-3
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                     if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3

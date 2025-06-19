@@ -45,7 +45,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'selected_header_column_bg': 247,
         'selected_header_column_fg': 232,
         'footer_bg': 28,
-        'footer_fg': 232,
+        'footer_fg': 253,
         'refreshing_bg': 28,
         'refreshing_fg': 253,
         'refreshing_inactive_bg': 28,

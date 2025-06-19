@@ -3,7 +3,7 @@
 
 ASAP
 > - [ ] Redo colours so that only the key differences are redone in help, notification and options colours for each of the themes.
-> - [ ] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
+> - [ ] Unify in-app load and command-line input file
 
 
 
@@ -200,7 +200,7 @@ ASAP
 > - [ ] Sometimes the variables from one menu remain in the other in aria2tui... weird
 > - [ ] When loading a pickled file from aria2tui we get a crash because there are more lines in the data.
 >   - [ ] Reset other variables when loading data?
-> - [ ] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
+> - [x] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
 > - [ ] When the number of items in the infobox display is longer than the infobox there is a crash.
 >   - [x] Limited the number of lines displayed so that there will not be a crash, but still not entirely sure why it happens.
 > - [ ] Resizing when footer is hidden causes issues.
@@ -210,6 +210,10 @@ ASAP
 >   - [x] Limited the damage by only importing when the edit_python key is pressed.
 > - [ ] When adding torrents/opening nvim sometimes there are still artifacts after we return to the Picker.
 >  - [ ] Add a clear_on_start flag to Picker(), if not true then simply erase
+> - [ ] Sometimes the scroll wheel scrolls up in the terminal.
+> - [x] nvim shows search error sometimes
+>   - [x] Removed the search. It seems unnecessary.
+>   - [x] nvim shada on
 
 
 

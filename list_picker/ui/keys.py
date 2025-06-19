@@ -62,7 +62,7 @@ list_picker_keys = {
     "load":                             [ord('L'), 15], # Ctrl+o
     "open":                             [ord('O')], 
     "toggle_footer":                    [ord('_')], 
-    # "notification_toggle":              [ord('z')],
+    "notification_toggle":              [ord('z')],
 }
 
 
