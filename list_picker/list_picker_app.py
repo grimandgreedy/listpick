@@ -868,9 +868,9 @@ class Picker:
         """ Toggle the visibility of the column at col_index. """
         if 0 <= col_index < len(self.items[0]):
             if col_index in self.hidden_columns:
-                self.hidden_columns.remove(self.col_index)
+                self.hidden_columns.remove(col_index)
             else:
-                self.hidden_columns.append(self.col_index)
+                self.hidden_columns.append(col_index)
 
     def apply_settings(self) -> None:
         """ The users settings will be stored in the user_settings variable. This function applies those settings. """
