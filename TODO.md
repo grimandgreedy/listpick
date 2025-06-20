@@ -2,7 +2,6 @@
 
 
 ASAP
-> - [ ] Redo colours so that only the key differences are redone in help, notification and options colours for each of the themes.
 > - [ ] Unify in-app load and command-line input file
 
 
@@ -110,6 +109,7 @@ ASAP
 >   - [ ] pass colours to list_picker in a more intuitive way
 >   - [ ] complete get_colours loop
 >   - [?] we have arbitrarily set application colours to be 0-50, notification 50-100 and help 100-150
+>   - [x] Redo the definitions so that only the key differences are redone in help, notification and options colours for each of the themes.
 > - [ ] make infobox variable in size and position 
 > - [ ] break draw_screen() into functions
 > - [ ] input_field

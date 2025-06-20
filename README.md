@@ -2,6 +2,10 @@
 
 A TUI tool to select from a list of items using keyboard navigation. Items can come from various formats including text files (tsv, csv), JSON, XLSX, ODS, or directly from standard input. Rows of data can be viewed, selected, generated, saved, loaded, refreshed, modified or copied to the clipboard. Can be used as a standalone data viewer and generator or as a backend for a TUI application.
 
+<div align="center">
+  <img src="assets/lp.png" alt="Calc" width="70%">
+</div>
+
 **NOTE**: list_picker is still in development.
 
 # Quickstart
