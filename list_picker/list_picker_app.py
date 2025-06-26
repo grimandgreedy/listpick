@@ -214,6 +214,7 @@ class Picker:
         self.startup_notification = startup_notification
 
 
+        self.registers = {}
         self.SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
 
         curses.set_escdelay(25)
@@ -1134,6 +1135,8 @@ class Picker:
                 # if return_val:
                 #     notification(stdscr, message=return_val, title="Error")
 
+    def set_registers(self):
+        self.registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) and len(self.indexed_items[0][1]) else {}
 
 
     def run(self) -> Tuple[list[int], str, dict]:
@@ -1241,7 +1244,7 @@ class Picker:
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1249,7 +1252,7 @@ class Picker:
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
-                    registers=registers,
+                    registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                 )
                 if return_val:
@@ -1382,10 +1385,11 @@ class Picker:
                                 refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                             )
                         else:
+                            self.set_registers()
                             options_sufficient, usrtxt = default_option_input(
                                 self.stdscr,
                                 starting_value=self.user_opts,
-                                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                                registers = self.registers
                             )
 
                 if options_sufficient:
@@ -1519,7 +1523,7 @@ class Picker:
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1528,7 +1532,7 @@ class Picker:
                     y=lambda: self.stdscr.getmaxyx()[0]-2,
                     # max_length=field_end,
                     max_length=field_end_f,
-                    registers=registers,
+                    registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                 )
                 if return_val:
@@ -1556,7 +1560,7 @@ class Picker:
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1564,7 +1568,7 @@ class Picker:
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-3,
                     max_length=field_end_f,
-                    registers=registers,
+                    registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                 )
                 if return_val:
@@ -1656,7 +1660,7 @@ class Picker:
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1664,7 +1668,7 @@ class Picker:
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
-                    registers=registers,
+                    registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                 )
                 if return_val:
@@ -1716,7 +1720,7 @@ class Picker:
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1725,7 +1729,7 @@ class Picker:
                     y=lambda: self.stdscr.getmaxyx()[0]-2,
                     literal=True,
                     max_length=field_end_f,
-                    registers=registers,
+                    registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                 )
                 if return_val:
@@ -1760,7 +1764,7 @@ class Picker:
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                     if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                    registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                    self.set_registers()
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
@@ -1768,7 +1772,7 @@ class Picker:
                         x=lambda:2,
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,
-                        registers=registers,
+                        registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                     )
                     if return_val:
@@ -1781,7 +1785,7 @@ class Picker:
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                     if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
-                    registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) else {}
+                    self.set_registers()
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
@@ -1789,7 +1793,7 @@ class Picker:
                         x=lambda:2,
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,
-                        registers=registers,
+                        registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
                     )
                     if return_val:
