@@ -4,11 +4,21 @@ import curses
 """
 Define colour options for list_picker, help, and notification
 """
+def get_theme_count() -> int:
+    col_list = []
+    i = 0
+    for i in range(100):
+        x = get_colours(i)
+        if x in col_list:
+            break
+        col_list.append(x)
+    return i
+
 
 def get_colours(pick:int=0) -> dict[str, int]:
     """ Define colour options for list_picker. """
     colours = [
-        ### Green header, blue cursor, blue modes, 
+        ### Green header, green cursor, green modes, purple selected, blue cursor
     {
         'background': 232,
         'normal_fg': 253,
@@ -102,6 +112,53 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_string_bg': 253,
         'footer_string_fg': 232,
     },
+        ### Green header, green cursor, green modes, purple selected, blue cursor
+    {
+        'background': 232,
+        'normal_fg': 253,
+        'unselected_bg': 232,
+        'unselected_fg': 253,
+        'cursor_bg': 28,
+        'cursor_fg': 253,
+        'selected_bg': 135,
+        'selected_fg': 253,
+        'header_bg': 253,
+        'header_fg': 232,
+        'error_bg': 232,
+        'error_fg': curses.COLOR_RED,
+        'complete_bg': 232,
+        'complete_fg': 82,
+        'waiting_bg': 232,
+        'waiting_fg': curses.COLOR_YELLOW,
+        'active_bg': 232,
+        'active_fg': 33,
+        'paused_bg': 232,
+        'paused_fg': 244,
+        'search_bg': 162,
+        'search_fg': 253,
+        'active_input_bg': 253,
+        'active_input_fg': 25,
+        'modes_selected_bg': 25,
+        'modes_selected_fg': 253,
+        'modes_unselected_bg': 253,
+        'modes_unselected_fg': 232,
+        'title_bar': 25,
+        'title_bg': 25,
+        'title_fg': 253,
+        'scroll_bar_bg': 247,
+        'selected_header_column_bg': 247,
+        'selected_header_column_fg': 232,
+        'footer_bg': 25,
+        'footer_fg': 253,
+        'refreshing_bg': 25,
+        'refreshing_fg': 253,
+        'refreshing_inactive_bg': 25,
+        'refreshing_inactive_fg': 232,
+        '40pc_bg': 232,
+        '40pc_fg': 166,
+        'footer_string_bg': 25,
+        'footer_string_fg': 253,
+    },
     ]
     for colour in colours:
         colour["20pc_bg"] = colour["background"]
@@ -124,6 +181,7 @@ def get_help_colours(pick: int=0) -> dict:
     colours = [
         get_colours(0),
         get_colours(1),
+        get_colours(2),
     ]
     colours[0]['cursor_bg'] = 235
     colours[0]['cursor_fg'] = 253
@@ -135,6 +193,11 @@ def get_help_colours(pick: int=0) -> dict:
     colours[1]['selected_bg'] = 25
     colours[1]['selected_fg'] = 253
 
+    colours[2]['cursor_bg'] = 235
+    colours[2]['cursor_fg'] = 253
+    colours[2]['selected_bg'] = 25
+    colours[2]['selected_fg'] = 253
+
     if pick > len(colours) - 1:
         return colours[0]
     return colours[pick]
@@ -144,6 +207,7 @@ def get_notification_colours(pick:int=0) -> dict:
     colours = [
         get_colours(0),
         get_colours(1),
+        get_colours(2),
     ]
     colours[0]['background'] = 237
     colours[0]['unselected_bg'] = 237
@@ -156,6 +220,12 @@ def get_notification_colours(pick:int=0) -> dict:
     colours[1]['cursor_fg'] = 253
     colours[1]['selected_bg'] = 237
     colours[1]['selected_fg'] = 253
+
+
+    colours[2]['background'] = 237
+    colours[2]['unselected_bg'] = 237
+    colours[2]['cursor_bg'] = 237
+    colours[2]['selected_bg'] = 237
     if pick > len(colours) - 1:
         return colours[0]
     return colours[pick]
