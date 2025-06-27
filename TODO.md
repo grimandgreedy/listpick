@@ -214,9 +214,7 @@ ASAP
 > - [x] nvim shows search error sometimes
 >   - [x] Removed the search. It seems unnecessary.
 >   - [x] nvim shada on
-
-
-
+> - [x] Visual select still shows selected on empty list
 
 
 

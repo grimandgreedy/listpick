@@ -1,6 +1,12 @@
 # CHANGELOG.md
 
-## [0.1.2] 2025-06-19
+## [0.1.4] 2025-06-27
+ - Added more themes: blue and purple.
+ - Added an a key dict which will work well with data passed in to be edited--e.g., settings.
+ - Column width is now determined by the width of the visible data rather than all data in the column.
+ - Notifications and options-picker can be exited with escape.
+
+## [0.1.3] 2025-06-19
  - Fixed bug where list_picker crashed when rapidly resizing terminal or rapidly changing font-size.
  - Fixed bug with filtering/searching where multiple tokens could not be specified for the same column.
  - Visual improvements:

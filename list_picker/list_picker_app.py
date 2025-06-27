@@ -9,7 +9,7 @@ import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 
-from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours
+from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
 from list_picker.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
 from list_picker.utils.table_to_list_of_lists import *
 from list_picker.utils.utils import *
@@ -121,7 +121,7 @@ class Picker:
         centre_in_terminal_vertical: bool = False,
         centre_in_cols: bool = False,
 
-        startup_notification = "",
+        startup_notification:str = "",
     ):
         self.stdscr = stdscr
         self.items = items
@@ -283,7 +283,8 @@ class Picker:
         
         # items2 = [[row[self.column_indices[i]] for i in range(len(row))] for row in self.items]
         # self.indexed_items = list(enumerate(items2))
-        self.indexed_items = list(enumerate(self.items))
+        if self.items == [[]]: self.indexed_items = []
+        else: self.indexed_items = list(enumerate(self.items))
 
         # If a filter is passed then refilter
         if self.filter_query:
@@ -930,7 +931,8 @@ class Picker:
                 elif setting == "th":
                     global COLOURS_SET
                     COLOURS_SET = False
-                    self.colour_theme_number = int(not bool(self.colour_theme_number))
+                    self.colour_theme_number = (self.colour_theme_number + 1)%get_theme_count()
+                    # self.colour_theme_number = int(not bool(self.colour_theme_number))
                     set_colours(self.colour_theme_number)
                     self.draw_screen(self.indexed_items, self.highlights)
                     self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
@@ -957,8 +959,7 @@ class Picker:
 
     def handle_visual_selection(self, selecting:bool = True) -> None:
         """ Toggle visual selection or deselection. """
-        if not self.is_selecting and not self.is_deselecting:
-            # start_selection = indexed_items[current_page * items_per_page + current_row][0]
+        if not self.is_selecting and not self.is_deselecting and len(self.indexed_items) and len(self.indexed_items[0][1]):
             self.start_selection = self.cursor_pos
             if selecting:
                 self.is_selecting = True
