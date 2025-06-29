@@ -1,3 +1,41 @@
+Metadata-Version: 2.4
+Name: listpick
+Version: 0.1.4.12
+Summary: List Picker is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.
+Home-page: https://github.com/grimandgreedy/list_picker
+Author: Grim
+Author-email: grimandgreedy@protonmail.com
+Project-URL: Bug Tracker, https://github.com/grimandgreedy/list_picker/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Unix
+Requires-Python: >=3.0
+Description-Content-Type: text/markdown
+Requires-Dist: wcwidth
+Requires-Dist: pyperclip
+Requires-Dist: toml
+Requires-Dist: dill
+Provides-Extra: full
+Requires-Dist: dill; extra == "full"
+Requires-Dist: wcwidth; extra == "full"
+Requires-Dist: ipython; extra == "full"
+Requires-Dist: msgpack; extra == "full"
+Requires-Dist: openpyxl; extra == "full"
+Requires-Dist: pandas; extra == "full"
+Requires-Dist: pyperclip; extra == "full"
+Requires-Dist: toml; extra == "full"
+Requires-Dist: traitlets; extra == "full"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # list_picker
 
 List Picker is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
@@ -61,7 +99,7 @@ The application allows you to:
 
 - Identify video duplicates (./examples/video_duplicates.toml):
 ```python 
-listpick -g ./examples/video_duplicates.toml
+python list_picker.py -g ./examples/video_duplicates.toml
 ```
   - From the list of commands in the toml file we generate the properties we will use to identify the duplicates. 
 
@@ -88,7 +126,7 @@ listpick -g ./examples/video_duplicates.toml
 ### Key Features:
 1. **File Input Support:**
 ```python 
-listpick -i ~/dn.pkl -t pkl
+python list_picker.py -i ~/dn.pkl -t pkl
 ```
    - Text files (TSV, CSV)
    - JSON
@@ -98,7 +136,7 @@ listpick -i ~/dn.pkl -t pkl
 
 2. **Generate data based on an toml file with relevant commands to generate the rows.**
 ```python 
-listpick -g ./examples/video_duplicates.toml
+python list_picker.py -g ./examples/video_duplicates.toml
 ```
 
   - See ./examples/

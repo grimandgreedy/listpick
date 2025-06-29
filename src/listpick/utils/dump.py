@@ -1,6 +1,5 @@
 #!/bin/python
 import os
-import dill as pickle
 
 def make_list_unique(l:list) -> list:
     result = []
@@ -14,6 +13,8 @@ def make_list_unique(l:list) -> list:
 
 def dump_state(function_data:dict, file_path:str) -> None:
     """ Dump state of list picker to file. """
+
+    import dill as pickle
     exclude_keys =  ["refresh_function", "get_data_startup", "get_new_data", "auto_refresh"]
     function_data = {key: val for key, val in function_data.items() if key not in exclude_keys}
     with open(os.path.expandvars(os.path.expanduser(file_path)), 'wb') as f:
@@ -26,6 +27,7 @@ def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
 
     try:
         if format == "pickle":
+            import dill as pickle
             with open(os.path.expandvars(os.path.expanduser(file_path)), 'wb') as f:
                 pickle.dump(function_data, f)
         elif format == "csv":
@@ -72,6 +74,7 @@ def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
 
 def load_state(file_path:str) -> dict:
     """ Load list_picker state from dump. """
+    import dill as pickle
     with open(os.path.expandvars(os.path.expanduser(file_path)), 'rb') as f:
         loaded_data = pickle.load(f)
     return loaded_data

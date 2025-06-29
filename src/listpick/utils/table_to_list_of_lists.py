@@ -2,8 +2,6 @@
 import sys
 import csv
 import json
-import pandas as pd
-from openpyxl import load_workbook
 from io import StringIO
 import argparse
 from typing import Tuple, Iterable, Optional
@@ -108,6 +106,7 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             return [], []
 
     elif file_type == 'xlsx':
+        from openpyxl import load_workbook
         try:
             if input_arg == '--stdin':
                 input_data = sys.stdin.read()
@@ -134,6 +133,7 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
 
     elif file_type == 'ods':
         try:
+            import pandas as pd
             df = pd.read_excel(input_arg, engine='odf')
             table_data = df.values.tolist()
             return table_data, []

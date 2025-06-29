@@ -1,7 +1,7 @@
 #!/bin/python
 import re
 from typing import Tuple
-from list_picker.utils.search_and_filter_utils import apply_filter, tokenise
+from listpick.utils.search_and_filter_utils import apply_filter, tokenise
 
 def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict]=[], cursor_pos:int=0, unselectable_indices:list=[], reverse:bool=False, continue_search:bool=False) -> Tuple[bool, int, int, int, list[dict]]:
     """

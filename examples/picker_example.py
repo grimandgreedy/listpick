@@ -1,6 +1,6 @@
 import sys, os
 sys.path.append(os.path.expanduser("../../list_picker/"))
-from list_picker.list_picker_app import Picker, close_curses, start_curses
+from listpick.listpick_app import Picker, close_curses, start_curses
 
 l = [["The", "many"], ["words", "of"]]
 l += [["the", "Athenians"], ["I", "do"]]

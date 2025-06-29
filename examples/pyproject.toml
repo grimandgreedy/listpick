@@ -1,0 +1,13 @@
+[build-system]
+requires = [
+    "setuptools",
+    "dill",
+    "ipython",
+    "msgpack_python",
+    "openpyxl",
+    # "pyarrow",
+    "pyperclip",
+    "toml",
+    "traitlets",
+    "wcwidth",
+]

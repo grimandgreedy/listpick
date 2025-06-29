@@ -9,22 +9,22 @@ import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 
-from list_picker.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
-from list_picker.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
-from list_picker.utils.table_to_list_of_lists import *
-from list_picker.utils.utils import *
-from list_picker.utils.sorting import *
-from list_picker.utils.filtering import *
-from list_picker.ui.input_field import *
-from list_picker.utils.clipboard_operations import *
-from list_picker.utils.searching import search
-from list_picker.ui.help_screen import help_lines
-from list_picker.ui.keys import list_picker_keys, notification_keys, options_keys, help_keys
-from list_picker.utils.generate_data import generate_list_picker_data
-from list_picker.utils.dump import dump_state, load_state, dump_data
+from listpick.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
+from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
+from listpick.utils.table_to_list_of_lists import *
+from listpick.utils.utils import *
+from listpick.utils.sorting import *
+from listpick.utils.filtering import *
+from listpick.ui.input_field import *
+from listpick.utils.clipboard_operations import *
+from listpick.utils.searching import search
+from listpick.ui.help_screen import help_lines
+from listpick.ui.keys import list_picker_keys, notification_keys, options_keys, help_keys
+from listpick.utils.generate_data import generate_list_picker_data
+from listpick.utils.dump import dump_state, load_state, dump_data
 
 try:
-    from list_picker.tmp.data_stuff import test_items, test_highlights, test_header
+    from tmp.data_stuff import test_items, test_highlights, test_header
 except:
     test_items, test_highlights, test_header = [], [], []
 
@@ -293,6 +293,17 @@ class Picker:
             self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
             if self.cursor_pos in [x[0] for x in self.indexed_items]: self.cursor_pos = [x[0] for x in self.indexed_items].index(self.cursor_pos)
             else: self.cursor_pos = 0
+        if self.search_query:
+            return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
+                query=self.search_query,
+                indexed_items=self.indexed_items,
+                highlights=self.highlights,
+                cursor_pos=self.cursor_pos,
+                unselectable_indices=self.unselectable_indices,
+                continue_search=True,
+            )
+            if return_val:
+                self.cursor_pos, self.search_index, self.search_count, self.highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
         # If a sort is passed
         if len(self.indexed_items) > 0:
             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column

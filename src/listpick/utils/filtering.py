@@ -1,7 +1,7 @@
 #!/bin/python
 import re
 from typing import Tuple
-from list_picker.utils.search_and_filter_utils import apply_filter, tokenise
+from listpick.utils.search_and_filter_utils import apply_filter, tokenise
 import os
 
 def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str]]], query: str) -> list[Tuple[int, list[str]]]:

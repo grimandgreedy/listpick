@@ -1,4 +1,9 @@
 # CHANGELOG.md
+## [0.1.5] 2025-06-29
+ - Renamed list_picker listpick.
+ - Restructured project and added it to pypi so that it can be intalled with pip. 
+ - Modified dependencies so that the dependencies required for loading/saving--pandas, csv, openpyxl, etc.--are only installed with `python -m pip install listpick[full]`."
+  - `python -m pip install listpick` will install all run-time dependencies outside of those used for saving data.
 
 ## [0.1.4] 2025-06-27
  - Added more themes: blue and purple.

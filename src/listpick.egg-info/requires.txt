@@ -1,0 +1,15 @@
+wcwidth
+pyperclip
+toml
+dill
+
+[full]
+dill
+wcwidth
+ipython
+msgpack
+openpyxl
+pandas
+pyperclip
+toml
+traitlets

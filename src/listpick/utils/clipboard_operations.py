@@ -1,6 +1,5 @@
 #!/bin/python
 import pyperclip
-from list_picker.utils.utils import get_selected_indices, format_row, format_row_full
 from typing import Tuple
 
 """
@@ -17,8 +16,8 @@ def copy_to_clipboard(items: list[list[str]], indexed_items: list[Tuple[int, lis
                             accepted values: python, csv, tsv, current view, custom_sv
 
     """
-    indices = get_selected_indices(selections)
-    rows_to_copy = [item for i, item in enumerate(items) if i in indices]
+    selected_indices = [i for i, selected in selections.items() if selected]
+    rows_to_copy = [item for i, item in enumerate(items) if i in selected_indices]
     formatted_items = [[cell for i, cell in enumerate(item) if i not in hidden_columns or copy_hidden_cols] for item in rows_to_copy]
     if representation == "python":
         pyperclip.copy(repr(formatted_items))
