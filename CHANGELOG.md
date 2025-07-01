@@ -1,4 +1,7 @@
 # CHANGELOG.md
+## [0.1.6] 2025-07-01
+- Fixed footer_string not displaying immediately if passed with a refresh function.
+
 ## [0.1.5] 2025-06-29
  - Renamed list_picker listpick.
  - Restructured project and added it to pypi so that it can be intalled with pip. 
