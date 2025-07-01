@@ -3,8 +3,10 @@ ipython==8.12.3
 msgpack_python==0.5.6
 openpyxl==3.1.5
 pandas==2.3.0
-# pyarrow==19.0.1
+# pyarrow==20.0.0
 pyperclip==1.9.0
+setuptools==80.9.0
+tmp==0.0.2
 toml==0.10.2
 traitlets==5.14.3
 wcwidth==0.2.13

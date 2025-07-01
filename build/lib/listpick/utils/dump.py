@@ -12,7 +12,7 @@ def make_list_unique(l:list) -> list:
     return result
 
 def dump_state(function_data:dict, file_path:str) -> None:
-    """ Dump state of list picker to file. """
+    """ Dump state of Picker to file. """
 
     import dill as pickle
     exclude_keys =  ["refresh_function", "get_data_startup", "get_new_data", "auto_refresh"]
@@ -21,7 +21,7 @@ def dump_state(function_data:dict, file_path:str) -> None:
         pickle.dump(function_data, f)
 
 def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
-    """ Dump data from list_picker. Returns whether there was an error. """
+    """ Dump data from a Picker object. Returns whether there was an error. """
     include_keys = ["items", "header"]
     function_data = {key: val for key, val in function_data.items() if key in include_keys }
 
@@ -73,7 +73,7 @@ def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
             
 
 def load_state(file_path:str) -> dict:
-    """ Load list_picker state from dump. """
+    """ Load Picker state from dump. """
     import dill as pickle
     with open(os.path.expandvars(os.path.expanduser(file_path)), 'rb') as f:
         loaded_data = pickle.load(f)

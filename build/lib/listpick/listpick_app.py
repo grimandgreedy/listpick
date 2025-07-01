@@ -9,7 +9,7 @@ import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 
-from listpick.ui.list_picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
+from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
 from listpick.utils.table_to_list_of_lists import *
 from listpick.utils.utils import *
@@ -19,8 +19,8 @@ from listpick.ui.input_field import *
 from listpick.utils.clipboard_operations import *
 from listpick.utils.searching import search
 from listpick.ui.help_screen import help_lines
-from listpick.ui.keys import list_picker_keys, notification_keys, options_keys, help_keys
-from listpick.utils.generate_data import generate_list_picker_data
+from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_keys
+from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
 
 try:
@@ -41,7 +41,7 @@ class Picker:
         colour_theme_number: int = 0,
         max_selected: int = -1,
         top_gap: int =0,
-        title: str ="List Picker",
+        title: str ="Picker",
         header: list =[],
         max_column_width: int =70,
         clear_on_start: bool = False,
@@ -104,12 +104,13 @@ class Picker:
         footer_string: str="",
         footer_string_auto_refresh: bool=False,
         footer_string_refresh_function: Optional[Callable] = None,
-        footer_timer=1,
+        footer_timer: float=1,
+        get_footer_string_startup=False,
 
         colours_start: int =0,
         colours_end: int =-1,
         key_remappings: dict = {},
-        keys_dict:dict = list_picker_keys,
+        keys_dict:dict = picker_keys,
         display_infobox : bool = False,
         infobox_items: list[list[str]] = [],
         infobox_title: str = "",
@@ -194,6 +195,7 @@ class Picker:
         self.footer_string_auto_refresh = footer_string_auto_refresh
         self.footer_string_refresh_function = footer_string_refresh_function
         self.footer_timer = footer_timer
+        self.get_footer_string_startup = get_footer_string_startup,
 
 
         self.colours_start = colours_start
@@ -375,12 +377,12 @@ class Picker:
         self.sort_column = new_index
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
-        """ Draw the list_picker screen. """
+        """ Draw Picker screen. """
 
         if clear:
             self.stdscr.erase()
 
-        ## Terminal too small to display list_picker
+        ## Terminal too small to display Picker
         h, w = self.stdscr.getmaxyx()
         if h<3 or w<len("Terminal"): return None
         if (self.show_footer or self.footer_string) and (h<12 or w<35) or (h<12 and w<10):
@@ -725,6 +727,7 @@ class Picker:
             "get_new_data":                     self.get_new_data,
             "refresh_function":                 self.refresh_function,
             "get_data_startup":                 self.get_data_startup,
+            "get_footer_string_startup":        self.get_footer_string_startup,
             "editable_columns":                 self.editable_columns,
             "last_key":                         self.last_key,
             "centre_in_terminal":               self.centre_in_terminal,
@@ -1154,6 +1157,8 @@ class Picker:
     def run(self) -> Tuple[list[int], str, dict]:
         initial_time = time.time()-self.timer
         initial_time_footer = time.time()-self.footer_timer
+        if self.get_footer_string_startup and self.footer_string_refresh_function != None:
+            self.footer_string = self.footer_string_refresh_function()
 
         self.initialise_variables(get_data=self.get_data_startup)
 
@@ -1166,7 +1171,7 @@ class Picker:
         curses.curs_set(0)
         # stdscr.nodelay(1)  # Non-blocking input
         # stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
-        self.stdscr.timeout(max(min(2000, int(self.timer*1000)), 20))  # Set a timeout for getch() to ensure it does not block indefinitely
+        self.stdscr.timeout(max(min(2000, int(self.timer*1000), int(self.footer_timer*1000)), 20))  # Set a timeout for getch() to ensure it does not block indefinitely
         if self.clear_on_start:
             self.stdscr.clear()
             self.clear_on_start = False
@@ -1968,10 +1973,10 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     """ Parse arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
     parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
-    parser.add_argument('--load', '-l', dest='load', type=str, help='File load from list_picker dump.')
+    parser.add_argument('--load', '-l', dest='load', type=str, help='Load file from Picker dump.')
     parser.add_argument('--stdin', dest='stdin', action='store_true', help='Table passed on stdin')
     parser.add_argument('--stdin2', action='store_true', help='Table passed on stdin')
-    parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for list picker.')
+    parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for listpick Picker.')
     parser.add_argument('-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods', 'pkl'], help='Type of file (tsv, csv, json, xlsx, ods)')
     args = parser.parse_args()
@@ -1993,7 +1998,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         input_arg = '--stdin2'
 
     elif args.generate:
-        function_data["refresh_function"] = lambda : generate_list_picker_data(args.generate)
+        function_data["refresh_function"] = lambda : generate_picker_data(args.generate)
         function_data["get_data_startup"] = True
         function_data["get_new_data"] = True
         return args, function_data
@@ -2004,7 +2009,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         return args, function_data
 
     else:
-        print("Error: Please provide input file or use --stdin flag.")
+        # print("Error: Please provide input file or use --stdin flag.")
+        print("No data provided. Loading empty Picker.")
         return args, function_data
         # sys.exit(1)
     
@@ -2054,12 +2060,13 @@ def main():
         
     stdscr = start_curses()
     try:
-        # Run the list picker
+        # Run the Picker
         h, w = stdscr.getmaxyx()
         if (h>8 and w >20):
             curses.init_pair(1, 253, 232)
             stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
-            stdscr.addstr(h//2, (w-len("List picker is loading your data..."))//2, "List picker is loading your data...")
+            s = "Listpick is loading your data..."
+            stdscr.addstr(h//2, (w-len(s))//2, s)
             stdscr.refresh()
 
         app = Picker(stdscr, **function_data)

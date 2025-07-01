@@ -36,16 +36,16 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
 
         try:
             reader = csv.reader(StringIO(data), delimiter=delimiter)
-            return [row for row in reader], []
+            return [row for row in reader]
         except Exception as e:
             print(f"Error reading CSV-like input: {e}")
-            return [], []
+            return []
 
     def csv_string_to_list(csv_string:str) -> list[list[str]]:
         """ Convert csv string to list of lists using csv.reader. """
         f = StringIO(csv_string)
         reader = csv.reader(f, skipinitialspace=True)
-        return [row for row in reader], []
+        return [row for row in reader]
 
     if file_type == 'csv' or delimiter in [',']:
         try:
@@ -56,8 +56,11 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
                 input_data = "\n".join([sys.stdin.readline().strip() for i in range(input_count)])
             else:
                 input_data = read_file_content(input_arg)
+
             table_data = csv_string_to_list(input_data)
             table_data = strip_whitespace(table_data)
+            # table_data = parse_csv_like(input_data, ",")
+            print(table_data)
             return table_data, []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")

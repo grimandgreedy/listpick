@@ -3,52 +3,20 @@ import os
 # import pip
 
 
-full_required = [
-    "setuptools",
-    "dill",
-    "wcwidth",
-    "ipython",
-    "msgpack",
-    "openpyxl",
-    "pandas",
-    # "pyarrow",
-    "pyperclip",
-    "toml",
-    "traitlets",
-]
-
-required = [
-    "dill",
-    "wcwidth",
-    "ipython",
-    "msgpack",
-    "openpyxl",
-    "pandas",
-    # "pyarrow",
-    "pyperclip",
-    "toml",
-    "traitlets",
-]
-# Read the requirements from the requirements.txt file
-# with open('requirements.txt') as f:
-#     required = f.read().splitlines()
-
-# pip.main(['install'] + requires)
-
 with open("README.md", "r", encoding = "utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name = "listpick",
-    version = "0.1.4.12",
+    version = "0.1.4.17",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
-    description = "List Picker is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.",
+    description = "Listpick is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.",
     long_description = long_description,
     long_description_content_type = "text/markdown",
-    url = "https://github.com/grimandgreedy/list_picker",
+    url = "https://github.com/grimandgreedy/listpick",
     project_urls = {
-        "Bug Tracker": "https://github.com/grimandgreedy/list_picker/issues",
+        "Bug Tracker": "https://github.com/grimandgreedy/listpick/issues",
     },
     classifiers = [
         "Programming Language :: Python :: 3",

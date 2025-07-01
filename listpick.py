@@ -3,7 +3,7 @@ from src.listpick.listpick_app import main
 from src.listpick.ui.help_screen import *
 from src.listpick.ui.input_field import *
 from src.listpick.ui.keys import *
-from src.listpick.ui.list_picker_colours import *
+from src.listpick.ui.picker_colours import *
 from src.listpick.utils.clipboard_operations import *
 from src.listpick.utils.dump import *
 from src.listpick.utils.filtering import *

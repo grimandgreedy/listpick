@@ -1,11 +1,11 @@
 #!/bin/python
 import curses
 """
-Define key dictionary for controlling list_picker.
+Define key dictionary for a Picker object.
 
 """
 
-list_picker_keys = {
+picker_keys = {
     "refresh":                          [curses.KEY_F5],
     "help":                             [ord('?')],
     "exit":                             [ord('q'), ord('h')],

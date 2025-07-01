@@ -2,7 +2,7 @@
 import curses
 
 """
-Define colour options for list_picker, help, and notification
+Define colour options for listpick--default, help, and notification colours.
 """
 def get_theme_count() -> int:
     col_list = []
@@ -16,7 +16,7 @@ def get_theme_count() -> int:
 
 
 def get_colours(pick:int=0) -> dict[str, int]:
-    """ Define colour options for list_picker. """
+    """ Define colour options for listpick. """
     colours = [
         ### Green header, green title, green modes, purple selected, blue cursor
     {

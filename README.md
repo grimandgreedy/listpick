@@ -1,12 +1,12 @@
-# list_picker
+# listpick
 
-List Picker is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
+listpick is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
 
 Rows of data can be viewed, selected, generated, saved, loaded, refreshed, modified or copied to the clipboard. Easy to integrate into your project by creating a `menu = Picker(stdscr, items:list[list[str]])` and then the menu will be displayed by running `menu.run()`.
 
 It works great as the backend for a TUI application and can also be used as a standalone data viewer.
 
-**NOTE**: list_picker is still in development.
+**NOTE**: listpick is still in development.
 
 # Quickstart
 
@@ -39,7 +39,7 @@ close_curses(stdscr)
 Use the listpick binary to generate and display rows based on a list of commands:
 
 ```
-wget https://raw.githubusercontent.com/grimandgreedy/list_picker/refs/heads/master/examples/list_files.toml
+wget https://raw.githubusercontent.com/grimandgreedy/listpick/refs/heads/master/examples/list_files.toml
 listpick -g list_files.py
 ```
 
@@ -73,11 +73,11 @@ listpick -g ./examples/video_duplicates.toml
 <div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="70%"> </div>
 
 
-  - [Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using list_picker. This is a good example of how list_picker can be used for menus, data viewing, and active data retrieval.
+  - [Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
 
 <div align="center"> <img src="assets/aria2tui_screenshot.png" alt="Aria2TUI" width="70%"> </div>
 
-  - [lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of list_picker. In 20 minutes and <100 lines of code we made a very basic file manager.
+  - [lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
 
 <div align="center"> <img src="assets/lpfman.png" alt="lpfman" width="70%"> </div>
 
@@ -128,10 +128,10 @@ listpick -g ./examples/video_duplicates.toml
   - Data can be saved so that it can be loaded with the -i flag.
   - This is very helpful if your data generation takes a long time.
 10. **Customisable keybinds:**
-   - The list_picker application takes a key dictionary so that certain functions can easily be changed to a preferred keybind.
+   - The Picker object takes a keys_dict variable which allows all keys to be customised. Default keys can be seen in src/listpick/ui/keys.py.
    - Also allows the restriction of certain functions by not assigning a key.
 11. **Dynamic or manual refresh of data**:
-   - If a refresh_function is passed with auto_refresh=True then list_picker will automatically refresh the data.
+   - If a refresh_function is passed with auto_refresh=True then listpick will automatically refresh the data.
     - If a refresh_function is passed then one can also manually refresh by pressing f5.
 12. Notifications.
    - Supports notifications upon certain events

@@ -1,5 +1,4 @@
 import sys, os
-sys.path.append(os.path.expanduser("../../list_picker/"))
 from listpick.listpick_app import Picker, close_curses, start_curses
 
 l = [["The", "many"], ["words", "of"]]

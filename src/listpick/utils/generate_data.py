@@ -50,9 +50,9 @@ def read_toml(file_path) -> Tuple[dict, list, list]:
     header = [header for header in data['header']]  if 'header' in data else []
     return environment, commands, header
     
-def generate_list_picker_data(file_path: str) -> Tuple[list[list[str]], list[str]]:
+def generate_picker_data(file_path: str) -> Tuple[list[list[str]], list[str]]:
     """
-    Generate data for list picker based upon the toml file commands.
+    Generate data for Picker based upon the toml file commands.
     """
     environment, commands, header = read_toml(file_path)
     lines = commands
