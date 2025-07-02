@@ -1,13 +1,3 @@
-#!/bin/python
-# -*- coding: utf-8 -*-
-"""
-input_field.py
-Function to display an input field within a curses window.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import curses
 from typing import Tuple, Optional, Callable
 

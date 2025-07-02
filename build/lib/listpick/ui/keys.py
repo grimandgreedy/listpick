@@ -1,14 +1,9 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-keys.py
-Define key dictionary for Picker object.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import curses
+"""
+Define key dictionary for a Picker object.
+
+"""
 
 picker_keys = {
     "refresh":                          [curses.KEY_F5],
@@ -69,7 +64,6 @@ picker_keys = {
     "toggle_footer":                    [ord('_')], 
     "notification_toggle":              [ord('z')],
     "redo":                             [ord('.')],
-    "undo":                             [26], # Ctrl+z
 }
 
 

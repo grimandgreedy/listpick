@@ -1,6 +1,14 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+setup.py
+
+Author: GrimAndGreedy
+Created: 2025-06-25
+License: MIT
+"""
+
 import setuptools
-import os
-# import pip
 
 
 with open("README.md", "r", encoding = "utf-8") as fh:
@@ -8,7 +16,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "listpick",
-    version = "0.1.6.0",
+    version = "0.1.7.0",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Listpick is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.",
@@ -20,7 +28,7 @@ setuptools.setup(
     },
     classifiers = [
         "Programming Language :: Python :: 3",
-        # "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: Unix",
     ],
     package_dir = {"": "src"},

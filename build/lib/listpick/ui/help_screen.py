@@ -1,13 +1,7 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
 """
-help_screen.py
 Lines to be displayed on the help screen.
-
-Author: GrimAndGreedy
-License: MIT
 """
-
 help_lines = [
     ['Navigation:',                     ''],
     ['    Up/Down and k/j',              'Move up/down'],
@@ -91,7 +85,7 @@ help_lines = [
     ['    q',                           'Exit menu with no selection.'],
     ['    ?',                           'Show this help page'],
     ['    Ctrl+c',                           'Immediate quit.'],
+    ['    Ctrl+c',                           'Immediate quit.'],
     ['    Ctrl+l',                           'Redraw screen.'],
-    ['    .',                           'Redo setting'],
     ['',                             ''],
 ]

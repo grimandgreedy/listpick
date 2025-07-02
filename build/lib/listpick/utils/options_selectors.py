@@ -1,13 +1,4 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-options_selectors.py
-Handle option specification.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import curses
 from typing import Tuple
 from listpick.ui.input_field import input_field

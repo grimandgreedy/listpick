@@ -59,7 +59,7 @@ The application allows you to:
 ## Examples
 
 
-- Identify video duplicates (./examples/video_duplicates.toml):
+### Identify video duplicates (./examples/video_duplicates.toml):
 ```python 
 listpick -g ./examples/video_duplicates.toml
 ```
@@ -73,11 +73,14 @@ listpick -g ./examples/video_duplicates.toml
 <div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="70%"> </div>
 
 
-  - [Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
+### Aria2TUI
+
+[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
 
 <div align="center"> <img src="assets/aria2tui_screenshot.png" alt="Aria2TUI" width="70%"> </div>
 
-  - [lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
+### lpfman
+[lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
 
 <div align="center"> <img src="assets/lpfman.png" alt="lpfman" width="70%"> </div>
 

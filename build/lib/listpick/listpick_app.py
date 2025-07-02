@@ -1,12 +1,4 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-listpick_app.py
-Set up environment to parse command-line arguments and run a Picker.
-
-Author: GrimAndGreedy
-License: MIT
-"""
 
 import curses
 import re

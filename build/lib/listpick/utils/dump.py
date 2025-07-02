@@ -1,17 +1,7 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-dump.py
-Dump data to file in selected format.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import os
 
 def make_list_unique(l:list) -> list:
-    """ Ensure each of the strings in a list is unique by numbering identical strings. """
     result = []
     for i in l:
         if i not in result:

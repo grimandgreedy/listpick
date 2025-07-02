@@ -1,13 +1,3 @@
-#!/bin/python
-# -*- coding: utf-8 -*-
-"""
-generate_data.py
-Generate data for listpick Picker.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import subprocess
 import os
 from typing import Tuple, Callable

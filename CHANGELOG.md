@@ -1,4 +1,9 @@
 # CHANGELOG.md
+
+## [0.1.7] 2025-07-02
+ - Added row-wise highlighting.
+ - Added MIT license information.
+
 ## [0.1.6] 2025-07-01
 - Fixed footer_string not displaying immediately if passed with a refresh function.
 

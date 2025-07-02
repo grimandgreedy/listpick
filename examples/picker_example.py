@@ -21,6 +21,12 @@ highlights = [
         "field": 1,
         "color": 9,
     },
+    {
+        "match": ".*",
+        "row":   5,
+        "field": 1,
+        "color": 11,
+    },
 ]
 
 stdscr = start_curses()

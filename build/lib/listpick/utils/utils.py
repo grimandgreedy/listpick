@@ -1,12 +1,4 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-utils.py
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 from wcwidth import wcwidth, wcswidth
 from math import log10
 import subprocess

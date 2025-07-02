@@ -1,4 +1,13 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+Parse command-line arguments and run Picker.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
+
 from src.listpick.listpick_app import main
 from src.listpick.ui.help_screen import *
 from src.listpick.ui.input_field import *

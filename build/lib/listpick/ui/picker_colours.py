@@ -1,14 +1,19 @@
 #!/bin/python
-# -*- coding: utf-8 -*-
-"""
-picker_colours.py
-Define colour options for listpick--default, help, and notification colours.
-
-Author: GrimAndGreedy
-License: MIT
-"""
-
 import curses
+
+"""
+Define colour options for listpick--default, help, and notification colours.
+"""
+def get_theme_count() -> int:
+    col_list = []
+    i = 0
+    for i in range(100):
+        x = get_colours(i)
+        if x in col_list:
+            break
+        col_list.append(x)
+    return i
+
 
 def get_colours(pick:int=0) -> dict[str, int]:
     """ Define colour options for listpick. """
@@ -220,7 +225,6 @@ def get_colours(pick:int=0) -> dict[str, int]:
     return colours[pick]
 
 def get_help_colours(pick: int=0) -> dict:
-    """ Define help colour options for listpick. """
     colours = [get_colours(i) for i in range(get_theme_count())]
     for i in range(len(colours)):
         colours[i]['cursor_bg'] = 235
@@ -234,7 +238,6 @@ def get_help_colours(pick: int=0) -> dict:
 
 
 def get_notification_colours(pick:int=0) -> dict:
-    """ Define notification colour options for listpick. """
     colours = [get_colours(i) for i in range(get_theme_count())]
     for i in range(len(colours)):
         colours[i]['background'] = 237
@@ -253,16 +256,3 @@ def get_notification_colours(pick:int=0) -> dict:
     if pick > len(colours) - 1:
         return colours[0]
     return colours[pick]
-
-
-
-def get_theme_count() -> int:
-    """ Get the number of themes. """
-    col_list = []
-    i = 0
-    for i in range(100):
-        x = get_colours(i)
-        if x in col_list:
-            break
-        col_list.append(x)
-    return i
