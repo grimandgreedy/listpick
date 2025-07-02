@@ -1,3 +1,4 @@
+LICENSE.txt
 README.md
 setup.py
 src/listpick/__init__.py
@@ -10,6 +11,7 @@ src/listpick.egg-info/entry_points.txt
 src/listpick.egg-info/requires.txt
 src/listpick.egg-info/top_level.txt
 src/listpick/ui/__init__.py
+src/listpick/ui/build_help.py
 src/listpick/ui/help_screen.py
 src/listpick/ui/input_field.py
 src/listpick/ui/keys.py

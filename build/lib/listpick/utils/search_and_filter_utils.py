@@ -1,3 +1,13 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+search_and_filter_utils.py
+Utilities for searching and filtering.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import re
 
 def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, add_highlights:bool = False, highlights: list=[]) -> bool:

@@ -1,4 +1,12 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+table_to_lists.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import sys
 import csv
 import json

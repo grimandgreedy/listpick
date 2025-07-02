@@ -1,4 +1,13 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+clipboard_operations.py
+Copy selected items in selected format to the clipboard.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import pyperclip
 from typing import Tuple
 

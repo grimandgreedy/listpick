@@ -1,5 +1,13 @@
 #!/bin/python
-import re
+# -*- coding: utf-8 -*-
+"""
+searching.py
+Search list[list[str]] 
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 from typing import Tuple
 from listpick.utils.search_and_filter_utils import apply_filter, tokenise
 

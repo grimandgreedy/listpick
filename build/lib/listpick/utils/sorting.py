@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+sorting.py
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import re
 from datetime import datetime
 from typing import Tuple

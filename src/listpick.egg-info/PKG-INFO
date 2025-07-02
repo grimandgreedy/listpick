@@ -1,15 +1,17 @@
 Metadata-Version: 2.4
 Name: listpick
-Version: 0.1.6.3
+Version: 0.1.7.0
 Summary: Listpick is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.
 Home-page: https://github.com/grimandgreedy/listpick
 Author: Grim
 Author-email: grimandgreedy@protonmail.com
 Project-URL: Bug Tracker, https://github.com/grimandgreedy/listpick/issues
 Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: Unix
 Requires-Python: >=3.0
 Description-Content-Type: text/markdown
+License-File: LICENSE.txt
 Requires-Dist: wcwidth
 Requires-Dist: pyperclip
 Requires-Dist: toml
@@ -30,6 +32,7 @@ Dynamic: classifier
 Dynamic: description
 Dynamic: description-content-type
 Dynamic: home-page
+Dynamic: license-file
 Dynamic: project-url
 Dynamic: provides-extra
 Dynamic: requires-dist
@@ -97,7 +100,7 @@ The application allows you to:
 ## Examples
 
 
-- Identify video duplicates (./examples/video_duplicates.toml):
+### Identify video duplicates (./examples/video_duplicates.toml):
 ```python 
 listpick -g ./examples/video_duplicates.toml
 ```
@@ -111,11 +114,14 @@ listpick -g ./examples/video_duplicates.toml
 <div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="70%"> </div>
 
 
-  - [Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
+### Aria2TUI
+
+[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
 
 <div align="center"> <img src="assets/aria2tui_screenshot.png" alt="Aria2TUI" width="70%"> </div>
 
-  - [lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
+### lpfman
+[lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
 
 <div align="center"> <img src="assets/lpfman.png" alt="lpfman" width="70%"> </div>
 

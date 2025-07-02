@@ -1,4 +1,13 @@
 #!/bin/python
+# -*- coding: utf-8 -*-
+"""
+filtering.py
+Apply filter(s) to a list of lists and return indexed matched rows.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import re
 from typing import Tuple
 from listpick.utils.search_and_filter_utils import apply_filter, tokenise
