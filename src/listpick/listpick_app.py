@@ -579,12 +579,18 @@ class Picker:
                             field_start = sum([width for i, width in enumerate(self.column_widths[:highlight["field"]]) if i not in self.hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in self.hidden_columns])*wcswidth(self.separator)
                             highlight_start = field_start + match.start()
                             highlight_end = match.end() + field_start
+                            if highlight_end - self.leftmost_char < 0:
+                                continue
+
                         else:
                             continue
+                        highlight_start -= self.leftmost_char
+                        highlight_end -= self.leftmost_char
                         color_pair = curses.color_pair(self.colours_start+highlight["color"])  # Selected item
                         if idx == self.cursor_pos:
                             color_pair = curses.color_pair(self.colours_start+highlight["color"])  | curses.A_REVERSE
-                        self.stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w-startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
+                        self.stdscr.addstr(y, max(startx, startx+highlight_start), row_str[max(highlight_start,0):min(w-startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
+                        # self.stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w-startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                     except:
                         pass
             

@@ -68,7 +68,6 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             table_data = csv_string_to_list(input_data)
             table_data = strip_whitespace(table_data)
             # table_data = parse_csv_like(input_data, ",")
-            print(table_data)
             return table_data, []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
