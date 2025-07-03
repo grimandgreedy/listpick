@@ -13,7 +13,7 @@ import curses
 picker_keys = {
     "refresh":                          [curses.KEY_F5],
     "help":                             [ord('?')],
-    "exit":                             [ord('q'), ord('h')],
+    "exit":                             [ord('q')],
     "full_exit":                        [3], # Ctrl+c
     "move_column_left":                 [ord('{')],
     "move_column_right":                [ord('}')],
@@ -32,7 +32,7 @@ picker_keys = {
     "select_none":                      [ord('M'), 18],   # Ctrl-r
     "visual_selection_toggle":          [ord('v')],
     "visual_deselection_toggle":        [ord('V')],
-    "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l')],
+    "enter":                            [ord('\n'), curses.KEY_ENTER],
     "redraw_screen":                    [12], # Ctrl-l
     "cycle_sort_method":                [ord('s')],
     "cycle_sort_method_reverse":        [ord('S')],
@@ -70,6 +70,8 @@ picker_keys = {
     "notification_toggle":              [ord('z')],
     "redo":                             [ord('.')],
     "undo":                             [26], # Ctrl+z
+    "increase_leftmost_char":           [ord('l')],
+    "decrease_leftmost_char":           [ord('h')],
 }
 
 

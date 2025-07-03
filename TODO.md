@@ -84,6 +84,10 @@ ASAP
 > - [ ] Implement command stack.
 >   - [ ] '.' for redo 'u' for undo
 > - [ ] Add footer styles.
+> - [ ] leftmost column 
+> - [ ] Hiding columns when moved to the far right doesn't move us back.
+>   - [ ] Check for leftmost_char when hiding columns
+>   - [ ] Readding columns?
 
 
 

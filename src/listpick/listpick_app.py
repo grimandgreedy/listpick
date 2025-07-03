@@ -112,7 +112,9 @@ class Picker:
         option_functions: list[Callable[..., Tuple[bool, str]]] = [],
         disabled_keys: list=[],
 
+        show_header: bool = False,
         show_footer: bool =True,
+        footer_style: int = 1,
         footer_string: str="",
         footer_string_auto_refresh: bool=False,
         footer_string_refresh_function: Optional[Callable] = None,
@@ -135,6 +137,9 @@ class Picker:
         centre_in_cols: bool = False,
 
         startup_notification:str = "",
+
+        leftmost_column: int = 0,
+        leftmost_char: int = 0,
     ):
         self.stdscr = stdscr
         self.items = items
@@ -202,7 +207,9 @@ class Picker:
         self.option_functions = option_functions
         self.disabled_keys = disabled_keys
 
+        self.show_header = show_header
         self.show_footer = show_footer
+        self.footer_style = footer_style
         self.footer_string = footer_string
         self.footer_string_auto_refresh = footer_string_auto_refresh
         self.footer_string_refresh_function = footer_string_refresh_function
@@ -229,8 +236,11 @@ class Picker:
 
 
         self.registers = {}
+        
         self.SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
         self.command_stack = []
+        self.leftmost_column = leftmost_column
+        self.leftmost_char = leftmost_char
 
         curses.set_escdelay(25)
 
@@ -475,24 +485,37 @@ class Picker:
         if self.header:
             header_str = ""
             up_to_selected_col = ""
+            selected_col_str = ""
             for i in range(len(self.header)):
                 if i == self.sort_column: up_to_selected_col = header_str
                 if i in self.hidden_columns: continue
                 number = f"{i}. " if self.number_columns else ""
                 number = f"{intStringToExponentString(str(i))}. " if self.number_columns else ""
                 header_str += number
-                header_str +=f"{self.header[i]:^{self.column_widths[i]}}"
-                header_str += " "
+                header_str += f"{self.header[i]:^{self.column_widths[i]-len(number)}}"
+                header_str += self.separator
 
+            header_str = header_str[self.leftmost_char:]
             self.stdscr.addstr(top_space, 0, ' '*w, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
             self.stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width+1)], curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
-            if self.sort_column != None and self.sort_column not in self.hidden_columns and len(up_to_selected_col) + 1 < w and len(self.header) > 1: 
-                number = f"{self.sort_column}. " if self.number_columns else ""
-                number = f"{intStringToExponentString(self.sort_column)}. " if self.number_columns else ""
-                self.stdscr.addstr(top_space, startx + len(up_to_selected_col), (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]}}")[:w-len(up_to_selected_col)-startx], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
-
+            try:
+                if self.sort_column != None and self.sort_column not in self.hidden_columns:
+                    if len(up_to_selected_col) + 1 < w or True:
+                        if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < w:
+                                if startx + len(up_to_selected_col) - self.leftmost_char > 0 or True:
+                                    number = f"{self.sort_column}. " if self.number_columns else ""
+                                    number = f"{intStringToExponentString(self.sort_column)}. " if self.number_columns else ""
+                                    startx + len(up_to_selected_col) - self.leftmost_char
+                                    highlighed_col_startx = max(startx, startx + len(up_to_selected_col) - self.leftmost_char)
+                                    highlighted_col_str = (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]-len(number)}}") + self.separator
+                                    end_of_highlighted_col_str = w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > w else len(highlighted_col_str)
+                                    start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
+                                    self.stdscr.addstr(top_space, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+            except:
+                pass
+                
         if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
             top_space += (self.items_per_page - len(self.indexed_items)) //2 
 
@@ -501,7 +524,9 @@ class Picker:
             item = self.indexed_items[idx]
             y = idx - start_index + top_space + int(bool(self.header))
 
-            row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+            row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+            # row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+            # row_str = format_row(item[1][self.leftmost_column:], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
             if idx == self.cursor_pos:
                 self.stdscr.addstr(y, startx, row_str[:min(w-startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             else:
@@ -757,6 +782,8 @@ class Picker:
             "keys_dict":                        self.keys_dict,
             "cancel_is_back":                   self.cancel_is_back,
             "paginate":                         self.paginate,
+            "leftmost_column":                  self.leftmost_column,
+            "leftmost_char":                    self.leftmost_char,
             
         }
         return function_data
@@ -1501,6 +1528,19 @@ class Picker:
                         current_index = self.indexed_items[self.cursor_pos][0]
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                         self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
+            elif self.check_key("increase_leftmost_char", key, self.keys_dict):
+                h, w = self.stdscr.getmaxyx()
+                longest_row_str_len = 0
+                for i in range(len(self.indexed_items)):
+                    item = self.indexed_items[i]
+                    row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+                    if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+
+
+                if longest_row_str_len >= w:
+                    self.leftmost_char = self.leftmost_char+5
+            elif self.check_key("decrease_leftmost_char", key, self.keys_dict):
+                self.leftmost_char = max(self.leftmost_char-5, 0)
             elif self.check_key("col_hide", key, self.keys_dict):
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
                 d = {s:i for i,s in enumerate(")!@#$%^&*(")}

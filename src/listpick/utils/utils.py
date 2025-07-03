@@ -65,7 +65,7 @@ def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_w
     assert len(items) > 0
     widths = [max(wcswidth(str(row[i])) for row in items) for i in range(len(items[0]))]
     if header:
-        header_widths = [wcswidth(str(h))+int(log10(i+1))+3*int(number_columns) for i, h in enumerate(header)]
+        header_widths = [wcswidth(f"{i}. {str(h)}") if number_columns else wcswidth(str(h)) for i, h in enumerate(header)]
         return [min(max_column_width, max(widths[i], header_widths[i])) for i in range(len(header))]
     return [min(max_column_width, width) for width in widths]
 
