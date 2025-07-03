@@ -102,6 +102,10 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "notification_toggle":              "Toggle empty notification.",
         "redo":                             "Redo.",
         "undo":                             "Undo.",
+        "scroll_right":                     "Scroll right.",
+        "scroll_left":                      "Scroll left.",
+        "scroll_far_right":                 "Scroll to the end of the column set.",
+        "scroll_far_left":                  "Scroll to the left home.",
     }
 
     # [[key_name, key_function_description], ...]

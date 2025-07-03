@@ -131,6 +131,7 @@ class Picker:
         display_only: bool = False,
 
         editable_columns: list[int] = [],
+        editable_by_default: bool = True,
         
         centre_in_terminal: bool = False,
         centre_in_terminal_vertical: bool = False,
@@ -227,6 +228,7 @@ class Picker:
         self.display_only = display_only
 
         self.editable_columns = editable_columns
+        self.editable_by_default = editable_by_default
 
         self.centre_in_terminal = centre_in_terminal
         self.centre_in_terminal_vertical = centre_in_terminal_vertical
@@ -300,7 +302,7 @@ class Picker:
         if len(self.items)>0 and len(self.sort_reverse) < len(self.items[0]):
             self.sort_reverse = self.sort_reverse + [False for i in range(len(self.items[0])-len(self.sort_reverse))]
         if len(self.items)>0 and len(self.editable_columns) < len(self.items[0]):
-            self.editable_columns = self.editable_columns + [False for i in range(len(self.items[0])-len(self.editable_columns))]
+            self.editable_columns = self.editable_columns + [self.editable_by_default for i in range(len(self.items[0])-len(self.editable_columns))]
         if len(self.items)>0 and len(self.column_indices) < len(self.items[0]):
             self.column_indices = self.column_indices + [i for i in range(len(self.column_indices), len(self.items[0]))]
 
@@ -490,7 +492,7 @@ class Picker:
                 if i == self.sort_column: up_to_selected_col = header_str
                 if i in self.hidden_columns: continue
                 number = f"{i}. " if self.number_columns else ""
-                number = f"{intStringToExponentString(str(i))}. " if self.number_columns else ""
+                # number = f"{intStringToExponentString(str(i))}. " if self.number_columns else ""
                 header_str += number
                 header_str += f"{self.header[i]:^{self.column_widths[i]-len(number)}}"
                 header_str += self.separator
@@ -502,17 +504,17 @@ class Picker:
             # Highlight sort column
             try:
                 if self.sort_column != None and self.sort_column not in self.hidden_columns:
-                    if len(up_to_selected_col) + 1 < w or True:
-                        if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < w:
-                                if startx + len(up_to_selected_col) - self.leftmost_char > 0 or True:
-                                    number = f"{self.sort_column}. " if self.number_columns else ""
-                                    number = f"{intStringToExponentString(self.sort_column)}. " if self.number_columns else ""
-                                    startx + len(up_to_selected_col) - self.leftmost_char
-                                    highlighed_col_startx = max(startx, startx + len(up_to_selected_col) - self.leftmost_char)
-                                    highlighted_col_str = (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]-len(number)}}") + self.separator
-                                    end_of_highlighted_col_str = w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > w else len(highlighted_col_str)
-                                    start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
-                                    self.stdscr.addstr(top_space, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                    if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < w:
+                        # if len(up_to_selected_col) + 1 < w or True:
+                            # if startx + len(up_to_selected_col) - self.leftmost_char > 0 or True:
+                        number = f"{self.sort_column}. " if self.number_columns else ""
+                        # number = f"{intStringToExponentString(self.sort_column)}. " if self.number_columns else ""
+                        startx + len(up_to_selected_col) - self.leftmost_char
+                        highlighed_col_startx = max(startx, startx + len(up_to_selected_col) - self.leftmost_char)
+                        highlighted_col_str = (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]-len(number)}}") + self.separator
+                        end_of_highlighted_col_str = w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > w else len(highlighted_col_str)
+                        start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
+                        self.stdscr.addstr(top_space, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
             except:
                 pass
                 
@@ -569,10 +571,14 @@ class Picker:
                             continue
                     try:
                         if highlight["field"] == "all":
-                            match = re.search(highlight["match"], row_str, re.IGNORECASE)
+                            full_row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+                            match = re.search(highlight["match"], full_row_str, re.IGNORECASE)
                             if not match: continue
                             highlight_start = match.start()
                             highlight_end = match.end()
+                            if highlight_end - self.leftmost_char < 0:
+                                continue
+
                         elif type(highlight["field"]) == type(4) and highlight["field"] not in self.hidden_columns:
                             match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], self.centre_in_cols), re.IGNORECASE)
                             if not match: continue
@@ -584,11 +590,11 @@ class Picker:
 
                         else:
                             continue
-                        highlight_start -= self.leftmost_char
-                        highlight_end -= self.leftmost_char
                         color_pair = curses.color_pair(self.colours_start+highlight["color"])  # Selected item
                         if idx == self.cursor_pos:
                             color_pair = curses.color_pair(self.colours_start+highlight["color"])  | curses.A_REVERSE
+                        highlight_start -= self.leftmost_char
+                        highlight_end -= self.leftmost_char
                         self.stdscr.addstr(y, max(startx, startx+highlight_start), row_str[max(highlight_start,0):min(w-startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                         # self.stdscr.addstr(y, startx+highlight_start, row_str[highlight_start:min(w-startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                     except:
@@ -975,7 +981,7 @@ class Picker:
                             current_pos = self.indexed_items[self.cursor_pos][0]
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
                         if len(self.indexed_items):
-                            new_pos = [row[0] for row in self.indexed_items].index(self.current_pos)
+                            new_pos = [row[0] for row in self.indexed_items].index(current_pos)
                             self.cursor_pos = new_pos
                 elif setting == "ct":
                     self.centre_in_terminal = not self.centre_in_terminal
@@ -1534,7 +1540,7 @@ class Picker:
                         current_index = self.indexed_items[self.cursor_pos][0]
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                         self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
-            elif self.check_key("increase_leftmost_char", key, self.keys_dict):
+            elif self.check_key("scroll_right", key, self.keys_dict):
                 h, w = self.stdscr.getmaxyx()
                 longest_row_str_len = 0
                 for i in range(len(self.indexed_items)):
@@ -1545,8 +1551,39 @@ class Picker:
 
                 if longest_row_str_len >= w:
                     self.leftmost_char = self.leftmost_char+5
-            elif self.check_key("decrease_leftmost_char", key, self.keys_dict):
+
+            elif self.check_key("scroll_left", key, self.keys_dict):
                 self.leftmost_char = max(self.leftmost_char-5, 0)
+
+            elif self.check_key("scroll_far_left", key, self.keys_dict):
+                self.leftmost_char = 0
+            
+            elif self.check_key("scroll_far_right", key, self.keys_dict):
+                h, w = self.stdscr.getmaxyx()
+                longest_row_str_len = 0
+                for i in range(len(self.indexed_items)):
+                    item = self.indexed_items[i]
+                    row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+                    if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                self.leftmost_char = max(0, longest_row_str_len-w+2)
+
+            elif self.check_key("add_column", key, self.keys_dict):
+                self.items = [row[:self.sort_column]+[""]+row[self.sort_column:] for row in self.items]
+                self.header = self.header[:self.sort_column] + [""] + self.header[self.sort_column:]
+                self.editable_columns = self.editable_columns[:self.sort_column] + [self.editable_by_default] + self.editable_columns[self.sort_column:]
+                self.initialise_variables()
+
+            elif self.check_key("add_row", key, self.keys_dict):
+                row_len = 1
+                if self.header: row_len = len(self.header)
+                elif len(self.items): row_len  = len(self.items[0])
+                if len(self.indexed_items) == 0:
+                    insert_at_pos = 0
+                else:
+                    insert_at_pos = self.indexed_items[self.cursor_pos][0]
+                self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
+                self.initialise_variables()
+
             elif self.check_key("col_hide", key, self.keys_dict):
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
                 d = {s:i for i,s in enumerate(")!@#$%^&*(")}
@@ -1561,6 +1598,26 @@ class Picker:
 
             elif self.check_key("delete", key, self.keys_dict):  # Delete key
                 self.delete_entries()
+
+            elif self.check_key("delete_column", key, self.keys_dict):  # Delete key
+                row_len = 1
+                if self.header: row_len = len(self.header)
+                elif len(self.items): row_len  = len(self.items[0])
+                if row_len > 1:
+                    self.items = [row[:self.sort_column] + row[self.sort_column+1:] for row in self.items]
+                    self.header = self.header[:self.sort_column] + self.header[self.sort_column+1:]
+                    self.editable_columns = self.editable_columns[:self.sort_column] + self.editable_columns[self.sort_column+1:]
+                    self.sort_column = min(self.sort_column, row_len-2)
+                elif row_len == 1:
+                    self.items = [[""] for _ in range(len(self.items))]
+                    self.header = [""] if self.header else []
+                    self.editable_columns = []
+                    self.sort_column = min(self.sort_column, row_len-2)
+                self.initialise_variables()
+
+
+
+
             # elif self.check_key("increase_lines_per_page", key, self.keys_dict):
             #     self.items_per_page += 1
             #     self.draw_screen(self.indexed_items, self.highlights)

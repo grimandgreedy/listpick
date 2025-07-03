@@ -38,6 +38,7 @@ picker_keys = {
     "cycle_sort_method_reverse":        [ord('S')],
     "cycle_sort_order":                 [ord('t')],
     "delete":                           [curses.KEY_DC],
+    "delete_column":                    [383], # Shift+Delete
     "decrease_lines_per_page":          [ord('-')],
     "increase_lines_per_page":          [ord('+')],
     "increase_column_width":            [ord(']')],
@@ -64,14 +65,18 @@ picker_keys = {
     "edit_ipython":                     [5], # Ctrl+e
     "copy":                             [ord('y')],
     "save":                             [19, ord('D')],  # Ctrl+s
-    "load":                             [ord('L'), 15], # Ctrl+o
+    "load":                             [15], # Ctrl+o
     "open":                             [ord('O')], 
     "toggle_footer":                    [ord('_')], 
     "notification_toggle":              [ord('z')],
     "redo":                             [ord('.')],
     "undo":                             [26], # Ctrl+z
-    "increase_leftmost_char":           [ord('l')],
-    "decrease_leftmost_char":           [ord('h')],
+    "scroll_right":                     [ord('l')],
+    "scroll_left":                      [ord('h')],
+    "scroll_far_right":                 [ord('L')],
+    "scroll_far_left":                  [ord('H')],
+    "add_column":                       [ord('+')],
+    "add_row":                          [ord('=')],
 }
 
 

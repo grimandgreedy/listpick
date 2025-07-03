@@ -2,6 +2,7 @@
 
 ## [0.1.8] 2025-07-03
  - Added left-right scrolling using h/l.
+ - Scroll to home/end with H/L.
  - Fixed header columns not being aligned when len(header)>10.
 
 ## [0.1.7] 2025-07-02

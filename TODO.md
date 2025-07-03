@@ -166,6 +166,7 @@ ASAP
 >   - [ ] Follow-entry mode: You are watching a download at the top of the list. It finishes and takes you to the bottom of the download list.
 >   - [ ] Follow-entry mode (not ideal): You are visually selecting the active and paused downloads but when the cursor is on one of the active downloads you are suddenly cast down the list when it finishes.
 > - [x] Footer string doesn't load immediately loading a Picker
+- [x] Use hjkl for movement, rather than h/l for back/accecpt.
 
 
 
