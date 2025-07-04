@@ -7,8 +7,7 @@ Author: GrimAndGreedy
 License: MIT
 """
 
-from keys import picker_keys
-from listpick.listpick_app import Picker, start_curses, close_curses
+from listpick.ui.keys import picker_keys
 
 import curses
 
@@ -69,7 +68,8 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "cycle_sort_method":                "Cycle through sort methods.",
         "cycle_sort_method_reverse":        "Cycle through sort methods (reverse)",
         "cycle_sort_order":                 "Toggle sort order.",
-        "delete":                           "Delete dialaogue.",
+        "delete":                           "Delete row.",
+        "delete_column":                    "Delete column.",
         "decrease_lines_per_page":          "Decrease lines per page.",
         "increase_lines_per_page":          "Increase lines per page.",
         "increase_column_width":            "Increase column width.",
@@ -106,22 +106,67 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "scroll_left":                      "Scroll left.",
         "scroll_far_right":                 "Scroll to the end of the column set.",
         "scroll_far_left":                  "Scroll to the left home.",
+        "add_column":                       "Insert column before cursor.",
+        "add_row":                          "Insert row before cursor.",
+    }
+    sections = {
+        "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_far_right", "scroll_far_left" ],
+        "Selection:": [ "toggle_select", "select_all", "select_none", "visual_selection_toggle", "visual_deselection_toggle", "enter" ],
+        "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle" ],
+        "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
+        "Data manipulation:": [ "delete", "delete_column", "edit", "edit_picker", "edit_ipython", "add_column", "add_row" ],
+        "Filter and sort:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
+        "Settings:": [ "settings_input", "settings_options" ],
+        "Cancel:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
+        "Save, load, and copy:": [ "save", "load", "copy", "open" ],
+        "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right" ],
     }
 
-    # [[key_name, key_function_description], ...]
+    ## Add any keys not in section keys to misc.
+    for key, desc in help_descriptions.items():
+        found = False
+        for section in sections:
+            if key in sections[section]:
+                found = True
+                break
+        if not found:
+            sections["Misc:"].append(key)
+
     items = []
-    for val, keys in keys_dict.items():
-        row = [[chr(int(key)) if key not in special_keys else special_keys[key] for key in keys], help_descriptions[val]]
-        items.append(row)
+    for section_name, section_operations in sections.items():
+        section_rows = []
+        
+        for operation in section_operations:
+            try:
+                keys = [chr(int(key)) if key not in special_keys else special_keys[key] for key in keys_dict[operation]]
+                description = help_descriptions[operation]
+                row = [f"    {str(keys)[1:-1]}", description]
+                section_rows.append(row)
+            except:
+                pass
+        if section_rows:
+            items.append([section_name, ""])
+            items += section_rows
+            items.append(["",""])
+
+    # [[key_name, key_function_description], ...]
+    # for val, keys in keys_dict.items():
+    #     try: 
+    #         row = [[chr(int(key)) if key not in special_keys else special_keys[key] for key in keys], help_descriptions[val]]
+    #         items.append(row)
+    #     except:
+    #         pass
 
     return items
 
-items = build_help_rows(picker_keys)
-stdscr = start_curses()
-x = Picker(
+if __name__ == "__main__":
+    from listpick.listpick_app import Picker, start_curses, close_curses
+    items = build_help_rows(picker_keys)
+    stdscr = start_curses()
+    x = Picker(
         stdscr,
         items=items
-        )
-x.run()
+    )
+    x.run()
 
-close_curses(stdscr)
+    close_curses(stdscr)

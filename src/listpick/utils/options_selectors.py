@@ -33,7 +33,13 @@ def default_option_input(stdscr: curses.window, refresh_screen_function=None, st
     else: return False, starting_value
 
 
+
 def default_option_selector(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_name:str="Opts", registers={}) -> Tuple[bool, str]:
+    """ 
+    *** **** *** ** ** *
+    NOT YET IMPLEMENTED!!
+    *** **** *** ** ** *
+    """
     # notification(stdscr, message=f"opt required for {index}")
     usrtxt = f"{starting_value} " if starting_value else ""
     h, w = stdscr.getmaxyx()

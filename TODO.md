@@ -40,7 +40,7 @@ ASAP
 >   - [x] row highlighted   
 >   - [x] selection indicator (selection char at end of line)
 > - [x] Add help screen
->   - [ ] Generate help screen based on keys dict
+>   - [x] Generate help screen based on keys dict
 > - [ ] add key-chain support. Can use the timeout to clear the key.
 >   - [ ] gg
 >   - [ ] count
@@ -90,6 +90,7 @@ ASAP
 >   - [ ] Readding columns?
 > - [ ] Record data snapshot over time.
 > - [x] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
+> - [ ] Implement default_option_selector (!!!)
 
 
 

@@ -30,6 +30,8 @@ from listpick.ui.help_screen import help_lines
 from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_keys
 from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
+from listpick.ui.build_help import build_help_rows
+
 import threading
 
 try:
@@ -83,6 +85,7 @@ class Picker:
         start_selection: int = -1,
         end_selection: int = -1,
         user_opts : str = "",
+        options_list: list[str] = [],
         user_settings : str = "",
         separator : str = "    ",
         search_query : str = "",
@@ -110,7 +113,9 @@ class Picker:
         modes: list[dict] = [{}],
         display_modes: bool =False,
         require_option: list=[],
+        require_option_default: list=[],
         option_functions: list[Callable[..., Tuple[bool, str]]] = [],
+        default_option_function: Callable[..., Tuple[bool, str]] = default_option_input,
         disabled_keys: list=[],
 
         show_header: bool = False,
@@ -179,6 +184,7 @@ class Picker:
         self.start_selection = start_selection
         self.end_selection = end_selection
         self.user_opts = user_opts
+        self.options_list = options_list
         self.user_settings = user_settings
         self.separator = separator
         self.search_query = search_query
@@ -206,7 +212,9 @@ class Picker:
         self.modes = modes
         self.display_modes = display_modes
         self.require_option = require_option
+        self.require_option_default = require_option_default
         self.option_functions = option_functions
+        self.default_option_function = default_option_function
         self.disabled_keys = disabled_keys
 
         self.show_header = show_header
@@ -308,9 +316,9 @@ class Picker:
             self.selections = {i : False if i not in self.selections else bool(self.selections[i]) for i in range(len(self.items))}
 
         if len(self.require_option) < len(self.items):
-            self.require_option += [False for i in range(len(self.items)-len(self.require_option))]
+            self.require_option += [self.require_option_default for i in range(len(self.items)-len(self.require_option))]
         if len(self.option_functions) < len(self.items):
-            self.option_functions += [None for i in range(len(self.items)-len(self.option_functions))]
+            self.option_functions += [self.default_option_function for i in range(len(self.items)-len(self.option_functions))]
         if len(self.items)>0 and len(self.columns_sort_method) < len(self.items[0]):
             self.columns_sort_method = self.columns_sort_method + [0 for i in range(len(self.items[0])-len(self.columns_sort_method))]
         if len(self.items)>0 and len(self.sort_reverse) < len(self.items[0]):
@@ -757,6 +765,7 @@ class Picker:
             "is_selecting":                     self.is_selecting,
             "is_deselecting":                   self.is_deselecting,
             "user_opts":                        self.user_opts,
+            "options_list":                     self.options_list,
             "user_settings":                    self.user_settings,
             "separator":                        self.separator,
             "search_query":                     self.search_query,
@@ -774,6 +783,7 @@ class Picker:
             "title":                            self.title,
             "display_modes":                    self.display_modes,
             "require_option":                   self.require_option,
+            "require_option_default":           self.require_option_default,
             "option_functions":                 self.option_functions,
             "top_gap":                          self.top_gap,
             "number_columns":                   self.number_columns,
@@ -1356,7 +1366,8 @@ class Picker:
                 self.stdscr.clear()
                 self.stdscr.refresh()
                 help_data = {
-                    "items": help_lines,
+                    # "items": help_lines,
+                    "items": build_help_rows(self.keys_dict),
                     "title": f"{self.title} Help",
                     "colours_start": 150,
                     "colours": help_colours,
@@ -1885,9 +1896,9 @@ class Picker:
                 if return_val:
                     self.user_opts = usrtxt
             elif self.check_key("opts_select", key, self.keys_dict):
-                s, o, f = self.choose_option(self.stdscr)
+                s, o, f = self.choose_option(self.stdscr, self.options_list)
                 if self.user_opts.strip(): self.user_opts += " "
-                self.user_opts += " ".join([x[0] for x in s.values()])
+                self.user_opts += " ".join([x for x in s.values()])
             elif self.check_key("notification_toggle", key, self.keys_dict):
                 self.notification(self.stdscr, colours_end=self.colours_end)
 
