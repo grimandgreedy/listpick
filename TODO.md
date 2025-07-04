@@ -1,4 +1,4 @@
-# TODO for list_picker.py
+# TODO for listpick
 
 
 ASAP
@@ -66,7 +66,7 @@ ASAP
 >     - [x] options
 >     - [x] menu
 > - [x] Add load data dialog
->   - [ ] Open yazi and allow file to be chosen.
+>   - [x] Open yazi and allow file to be chosen.
 >   - [ ] Load full state from running list_picker instance
 >   - [ ] Complete load_function_data function
 >   - [ ] Add more formats:
@@ -88,7 +88,8 @@ ASAP
 > - [ ] Hiding columns when moved to the far right doesn't move us back.
 >   - [ ] Check for leftmost_char when hiding columns
 >   - [ ] Readding columns?
-
+> - [ ] Record data snapshot over time.
+> - [x] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
 
 
 

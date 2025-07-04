@@ -1,5 +1,8 @@
 # CHANGELOG.md
 
+## [0.1.9] 2025-07-04
+ - Added asynchronous data refresh requests using threading.
+
 ## [0.1.8] 2025-07-03
  - Added left-right scrolling using h/l.
  - Scroll to home/end with H/L.
@@ -10,7 +13,7 @@
  - Added MIT license information.
 
 ## [0.1.6] 2025-07-01
-- Fixed footer_string not displaying immediately if passed with a refresh function.
+ - Fixed footer_string not displaying immediately if passed with a refresh function.
 
 ## [0.1.5] 2025-06-29
  - Renamed list_picker listpick.

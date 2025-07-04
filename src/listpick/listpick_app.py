@@ -30,6 +30,7 @@ from listpick.ui.help_screen import help_lines
 from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_keys
 from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
+import threading
 
 try:
     from tmp.data_stuff import test_items, test_highlights, test_header
@@ -244,23 +245,36 @@ class Picker:
         self.leftmost_column = leftmost_column
         self.leftmost_char = leftmost_char
 
+
+        # Refresh function variables
+        self.data_refreshed = False
+        self.refreshing_data = False
+        self.data_lock = threading.Lock()
+        self.data_ready = False
+        self.cursor_pos_id = 0
+        self.ids = []
+
+
+
         curses.set_escdelay(25)
 
 
     def initialise_variables(self, get_data: bool = False) -> None:
         """ Initialise the variables that keep track of the data. """
 
-        tracking, ids, cursor_pos_id = False, [], 0
+        # tracking, self.ids, self.cursor_pos_id = False, [], 0
+        tracking = False
 
+        ## Get data synchronously
         if get_data and self.refresh_function != None:
             if self.track_entries_upon_refresh and len(self.items) > 0:
                 tracking = True
                 selected_indices = get_selected_indices(self.selections)
-                ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
-
+                self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
+        
                 if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
-                    cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
-
+                    self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
+        
             self.items, self.header = self.refresh_function()
 
                     
@@ -352,17 +366,19 @@ class Picker:
         self.cursor_pos = new_pos
 
 
-        if tracking and len(self.items) > 1:
+        # if tracking and len(self.items) > 1:
+        # Ensure that selected indices are tracked upon data refresh
+        if self.track_entries_upon_refresh and (self.data_ready or tracking) and len(self.items) > 1:
             selected_indices = []
             all_ids = [item[self.id_column] for item in self.items]
             self.selections = {i: False for i in range(len(self.items))}
-            for id in ids:
+            for id in self.ids:
                 if id in all_ids:
                     selected_indices.append(all_ids.index(id))
                     self.selections[all_ids.index(id)] = True
 
-            if cursor_pos_id in all_ids:
-                cursor_pos_x = all_ids.index(cursor_pos_id)
+            if self.cursor_pos_id in all_ids:
+                cursor_pos_x = all_ids.index(self.cursor_pos_id)
                 if cursor_pos_x in [i[0] for i in self.indexed_items]:
                     self.cursor_pos = [i[0] for i in self.indexed_items].index(cursor_pos_x)
         
@@ -616,7 +632,10 @@ class Picker:
 
         # Display refresh symbol
         if self.auto_refresh:
-            self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+23) | curses.A_BOLD)
+            if self.refreshing_data:
+                self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
+            else:
+                self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+23) | curses.A_BOLD)
 
         ## Display footer
         if self.show_footer:
@@ -1222,15 +1241,29 @@ class Picker:
         self.registers = {"*": self.indexed_items[self.cursor_pos][1][self.sort_column]} if len(self.indexed_items) and len(self.indexed_items[0][1]) else {}
 
 
+    def fetch_data(self) -> None:
+        """ Refesh data asynchronously. When data has been fetched self.data_ready is set to True. """
+        tmp_items, tmp_header = self.refresh_function()
+        if self.track_entries_upon_refresh:
+            selected_indices = get_selected_indices(self.selections)
+            self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
+
+            if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
+                self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
+        with self.data_lock:
+            self.items, self.header = tmp_items, tmp_header
+            self.data_ready = True
+
     def run(self) -> Tuple[list[int], str, dict]:
-        initial_time = time.time()-self.timer
-        initial_time_footer = time.time()-self.footer_timer
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
             self.footer_string = self.footer_string_refresh_function()
 
         self.initialise_variables(get_data=self.get_data_startup)
 
         self.draw_screen(self.indexed_items, self.highlights)
+
+        initial_time = time.time()
+        initial_time_footer = time.time()-self.footer_timer
 
         if self.startup_notification:
             self.notification(self.stdscr, message=self.startup_notification)
@@ -1239,15 +1272,15 @@ class Picker:
         curses.curs_set(0)
         # stdscr.nodelay(1)  # Non-blocking input
         # stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
-        self.stdscr.timeout(max(min(2000, int(self.timer*1000), int(self.footer_timer*1000)), 20))  # Set a timeout for getch() to ensure it does not block indefinitely
+        self.stdscr.timeout(max(min(2000, int(self.timer*1000)//2, int(self.footer_timer*1000))//2, 20))  # Set a timeout for getch() to ensure it does not block indefinitely
+        
         if self.clear_on_start:
             self.stdscr.clear()
             self.clear_on_start = False
         else:
             self.stdscr.erase()
-        self.stdscr.refresh()
 
-        
+        self.stdscr.refresh()
 
         # Initialize colours
         # Check if terminal supports color
@@ -1266,26 +1299,53 @@ class Picker:
             return [], "", function_data
 
         # Main loop
-        data_refreshed = False
-        
+
         while True:
             key = self.stdscr.getch()
             if key in self.disabled_keys: continue
             clear_screen=True
 
-            if self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) > self.timer):
+            ## Refresh data asyncronously.
+            if self.refreshing_data:
+                with self.data_lock:
+                    if self.data_ready:
+                        self.initialise_variables()
+
+                        initial_time = time.time()
+
+                        self.draw_screen(self.indexed_items, self.highlights, clear=False)
+
+                        self.refreshing_data = False
+                        self.data_ready = False
+
+            elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) >= self.timer):
                 h, w = self.stdscr.getmaxyx()
                 self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
                 self.stdscr.refresh()
                 if self.get_new_data and self.refresh_function:
-                    self.initialise_variables(get_data=True)
+                    self.refreshing_data = True
 
-                    initial_time = time.time()
-                    self.draw_screen(self.indexed_items, self.highlights, clear=False)
+                    t = threading.Thread(target=self.fetch_data)
+                    t.start()
+
                 else:
-
                     function_data = self.get_function_data()
                     return [], "refresh", function_data
+
+            # Refresh data synchronously
+            # if self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) > self.timer):
+            #     h, w = self.stdscr.getmaxyx()
+            #     self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
+            #     self.stdscr.refresh()
+            #     if self.get_new_data and self.refresh_function:
+            #         self.initialise_variables(get_data=True)
+            #
+            #         initial_time = time.time()
+            #         self.draw_screen(self.indexed_items, self.highlights, clear=False)
+            #     else:
+            #
+            #         function_data = self.get_function_data()
+            #         return [], "refresh", function_data
 
             if self.footer_string_auto_refresh and ((time.time() - initial_time_footer) > self.footer_timer):
                 self.footer_string = self.footer_string_refresh_function()
