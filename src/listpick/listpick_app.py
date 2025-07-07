@@ -31,6 +31,7 @@ from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_
 from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
+from listpick.ui.footer import StandardFooter, CompactFooter
 
 import threading
 
@@ -248,7 +249,7 @@ class Picker:
 
         self.registers = {}
         
-        self.SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
+        self.SORT_METHODS = ['Orig', 'lex', 'LEX', 'alnum', 'ALNUM', 'time', 'num', 'size']
         self.command_stack = []
         self.leftmost_column = leftmost_column
         self.leftmost_char = leftmost_char
@@ -647,51 +648,55 @@ class Picker:
 
         ## Display footer
         if self.show_footer:
-            # Fill background
-            self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-            self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-            self.stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(self.colours_start+20)) # Problem with curses that you can't write to the last char
-
-            if self.filter_query:
-                self.stdscr.addstr(h - 2, 2, f" Filter: {self.filter_query} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            if self.search_query:
-                self.stdscr.addstr(h - 3, 2, f" Search: {self.search_query} [{self.search_index}/{self.search_count}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            if self.user_opts:
-                self.stdscr.addstr(h-1, 2, f" Opts: {self.user_opts} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            # Display sort information
-            sort_column_info = f"{self.sort_column if self.sort_column is not None else 'None'}"
-            sort_method_info = f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}" if self.sort_column != None else "NA"
-
-
-            ## RIGHT
-            # Sort status
-            sort_order_info = "Desc." if self.sort_reverse[self.sort_column] else "Asc."
-            sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
-            self.stdscr.addstr(h - 2, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
-
-
-            if self.footer_string:
-                # footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
-                footer_string_width = min(w-1, max(len(self.footer_string), 50))
-                disp_string = f"{self.footer_string[:footer_string_width]:>{footer_string_width-1}} "
-                self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-                self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-            else:
-                # Display cursor mode
-                select_mode = "Cursor"
-                if self.is_selecting: select_mode = "Visual Selection"
-                elif self.is_deselecting: select_mode = "Visual deselection"
-                self.stdscr.addstr(h - 1, w-35, f"{select_mode:>33} ", curses.color_pair(self.colours_start+20))
-            # Display selection count
-            selected_count = sum(self.selections.values())
-            if self.paginate:
-                cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count}"
-                self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-            else:
-                cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count}"
-                self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-
-            self.stdscr.refresh()
+            # footer = StandardFooter(self.stdscr, self.colours_start, self.get_function_data)
+            footer = StandardFooter(self.stdscr, self.colours_start, self.get_function_data)
+            h, w = self.stdscr.getmaxyx()
+            footer.draw(h, w)
+            # # Fill background
+            # self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
+            # self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
+            # self.stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(self.colours_start+20)) # Problem with curses that you can't write to the last char
+            #
+            # if self.filter_query:
+            #     self.stdscr.addstr(h - 2, 2, f" Filter: {self.filter_query} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+            # if self.search_query:
+            #     self.stdscr.addstr(h - 3, 2, f" Search: {self.search_query} [{self.search_index}/{self.search_count}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+            # if self.user_opts:
+            #     self.stdscr.addstr(h-1, 2, f" Opts: {self.user_opts} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+            # # Display sort information
+            # sort_column_info = f"{self.sort_column if self.sort_column is not None else 'None'}"
+            # sort_method_info = f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}" if self.sort_column != None else "NA"
+            #
+            #
+            # ## RIGHT
+            # # Sort status
+            # sort_order_info = "Desc." if self.sort_reverse[self.sort_column] else "Asc."
+            # sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
+            # self.stdscr.addstr(h - 2, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
+            #
+            #
+            # if self.footer_string:
+            #     # footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
+            #     footer_string_width = min(w-1, max(len(self.footer_string), 50))
+            #     disp_string = f"{self.footer_string[:footer_string_width]:>{footer_string_width-1}} "
+            #     self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            #     self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+            # else:
+            #     # Display cursor mode
+            #     select_mode = "Cursor"
+            #     if self.is_selecting: select_mode = "Visual Selection"
+            #     elif self.is_deselecting: select_mode = "Visual deselection"
+            #     self.stdscr.addstr(h - 1, w-35, f"{select_mode:>33} ", curses.color_pair(self.colours_start+20))
+            # # Display selection count
+            # selected_count = sum(self.selections.values())
+            # if self.paginate:
+            #     cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count}"
+            #     self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
+            # else:
+            #     cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count}"
+            #     self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
+            #
+            # self.stdscr.refresh()
         elif self.footer_string:
             footer_string_width = min(w-1, len(self.footer_string)+2)
             disp_string = f" {self.footer_string[:footer_string_width]:>{footer_string_width-2}} "
@@ -761,6 +766,7 @@ class Picker:
             "sort_column":                      self.sort_column,
             "sort_method":                      self.sort_method,
             "sort_reverse":                     self.sort_reverse,
+            "SORT_METHODS":                     self.SORT_METHODS,
             "hidden_columns":                   self.hidden_columns,
             "is_selecting":                     self.is_selecting,
             "is_deselecting":                   self.is_deselecting,

@@ -105,23 +105,23 @@ def time_sort(time_str: str) -> datetime:
 
 def sort_items(indexed_items: list[Tuple[int,list[str]]], sort_method:int=0, sort_column:int=0, sort_reverse:bool=False):
     """ Sort indexed_items based on the sort_method on sort_column. """
-    SORT_METHODS = ['original', 'lexical', 'LEXICAL', 'alphanum', 'ALPHANUM', 'time', 'numerical', 'size']
+    SORT_METHODS = ['Orig', 'lex', 'LEX', 'alnum', 'ALNUM', 'time', 'num', 'size']
     if sort_column is not None:
         try:
-            if SORT_METHODS[sort_method] == 'numerical':
+            if SORT_METHODS[sort_method] == 'num':
                 indexed_items.sort(key=lambda x: parse_numerical(x[1][sort_column]), reverse=sort_reverse)
-            elif SORT_METHODS[sort_method] == 'original':
+            elif SORT_METHODS[sort_method] == 'orig':
                 indexed_items.sort(key=lambda x: x[0], reverse=sort_reverse)
-            elif SORT_METHODS[sort_method] == 'lexical':
+            elif SORT_METHODS[sort_method] == 'lex':
                 # indexed_items.sort(key=lambda x: x[1][sort_column].lower(), reverse=sort_reverse)
                 indexed_items.sort(key=lambda x: (1 if x[1][sort_column].strip() == "" else 0, x[1][sort_column].lower()), reverse=sort_reverse)
-            elif SORT_METHODS[sort_method] == 'LEXICAL':
+            elif SORT_METHODS[sort_method] == 'LEX':
                 indexed_items.sort(key=lambda x: (1 if x[1][sort_column].strip() == "" else 0, x[1][sort_column]), reverse=sort_reverse)
-            elif SORT_METHODS[sort_method] == 'alphanum':
+            elif SORT_METHODS[sort_method] == 'alnum':
                 indexed_items.sort(key=lambda x: (1 if x[1][sort_column].strip() == "" else 0, "".join([chr(ord('z')+ord(c)) if not c.isalnum() else c.lower() for c in x[1][sort_column]])))
             elif SORT_METHODS[sort_method] == 'time':
                 indexed_items.sort(key=lambda x:time_sort(x[1][sort_column]))
-            elif SORT_METHODS[sort_method] == 'ALPHANUM':
+            elif SORT_METHODS[sort_method] == 'ALNUM':
                 indexed_items.sort(key=lambda x: (1 if x[1][sort_column].strip() == "" else 0, "".join([chr(ord('z')+ord(c)) if not c.isalnum() else c for c in x[1][sort_column]])))
             elif SORT_METHODS[sort_method] == 'size':
                 indexed_items.sort(key=lambda x: parse_size(x[1][sort_column]), reverse=sort_reverse)
