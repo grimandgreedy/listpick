@@ -102,6 +102,7 @@ class Picker:
 
         items_per_page : int = -1,
         sort_method : int = 0,
+        SORT_METHODS: list[str] = ['Orig', 'lex', 'LEX', 'alnum', 'ALNUM', 'time', 'num', 'size'],
         sort_reverse: list[bool] = [False],
         sort_column : int = 0,
         columns_sort_method: list[int] = [0],
@@ -249,7 +250,7 @@ class Picker:
 
         self.registers = {}
         
-        self.SORT_METHODS = ['Orig', 'lex', 'LEX', 'alnum', 'ALNUM', 'time', 'num', 'size']
+        self.SORT_METHODS = SORT_METHODS
         self.command_stack = []
         self.leftmost_column = leftmost_column
         self.leftmost_char = leftmost_char
