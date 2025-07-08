@@ -34,12 +34,14 @@ def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, ad
         for col, filter_list in filters.items():
             for filter in filter_list:
                 hcol = "all" if col == -1 else col
-                highlights.append({
+                highlight = {
                     "match": filter,
                     "field": hcol,
                     "color": 10,
                     "type": "search",
-                })
+                }
+                if highlight not in highlights:
+                    highlights.append(highlight)
     
     return True
 

@@ -228,6 +228,8 @@ ASAP
 >   - [x] Removed the search. It seems unnecessary.
 >   - [x] nvim shada on
 > - [x] Visual select still shows selected on empty list
+> - [x] Extremely slow when searching a large number of rows...
+>   - [x] Fixed. Was caused by adding every matched index to the highlights.
 
 
 

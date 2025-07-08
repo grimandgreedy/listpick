@@ -1,4 +1,6 @@
 # CHANGELOG.md
+## [0.1.11] 2025-07-??
+ - Fixed bug where searching with a lot of matches causes slow down.
 
 ## [0.1.10] 2025-07-04
  - Help is now *built* (rather than static rows) using the active keys_dict and so only shows keys that function in the current Picker object. 
