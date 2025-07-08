@@ -39,6 +39,8 @@ def search(query: str, indexed_items: list[Tuple[int, list[str]]], highlights: l
     
     # Clear previous search highlights
 
+    if len(indexed_items) < 1: 
+        return False, cursor_pos, 0, 0, highlights
     highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
 
 

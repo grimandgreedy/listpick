@@ -4,6 +4,7 @@
 ASAP
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Implement default_option_selector and pass the picker options (!!!)
+> - [ ] Make sure that all class initialisation variables are returned in the get_function_variables function.
 
 
 

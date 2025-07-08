@@ -815,6 +815,7 @@ class Picker:
             "auto_refresh":                     self.auto_refresh,
             "get_new_data":                     self.get_new_data,
             "refresh_function":                 self.refresh_function,
+            "timer":                            self.timer,
             "get_data_startup":                 self.get_data_startup,
             "get_footer_string_startup":        self.get_footer_string_startup,
             "editable_columns":                 self.editable_columns,
@@ -1537,7 +1538,7 @@ class Picker:
                     function_data["last_key"] = key
                     return [], "", function_data
                 selected_indices = get_selected_indices(self.selections)
-                if not selected_indices:
+                if not selected_indices and len(self.indexed_items):
                     selected_indices = [self.indexed_items[self.cursor_pos][0]]
                 
                 options_sufficient = True
