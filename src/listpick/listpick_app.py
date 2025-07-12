@@ -864,7 +864,7 @@ class Picker:
             self,
             stdscr: curses.window,
             options: list[list[str]] =[],
-            field_name: str = "Input",
+            title: str = "Choose option",
             x:int=0,
             y:int=0,
             literal:bool=False,
@@ -879,7 +879,7 @@ class Picker:
         ---Arguments
             stdscr: curses screen
             usrtxt (str): text to be edited by the user
-            field_name (str): The text to be displayed at the start of the text input
+            title (str): The text to be displayed at the start of the text option picker
             x (int): prompt begins at (x,y) in the screen given
             y (int): prompt begins at (x,y) in the screen given
             colours_start (bool): start index of curses init_pair.
@@ -899,7 +899,7 @@ class Picker:
             "items": options,
             "colours": notification_colours,
             "colours_start": 50,
-            "title":field_name,
+            "title":title,
             "header":header,
             "hidden_columns":[],
             "require_option":require_option,
@@ -1169,7 +1169,7 @@ class Picker:
             ["Custom separator", "Include hidden"],
         ]
         require_option = [False, False, False, False, False, False, True, True]
-        s, o, f = self.choose_option(self.stdscr, options=options, field_name="Copy selected", header=copy_header, require_option=require_option)
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Copy selected", header=copy_header, require_option=require_option)
 
 
         funcs = [
@@ -1202,7 +1202,7 @@ class Picker:
             ["Save state"]
         ]
         # require_option = [True, True, True, True, True, True, True, True]
-        s, o, f = self.choose_option(self.stdscr, options=options, field_name="Save...", header=dump_header)
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Save...", header=dump_header)
 
 
         funcs = [
@@ -1233,7 +1233,7 @@ class Picker:
         options = [ 
             ["Load data (pickle)."],
         ]
-        s, o, f = self.choose_option(self.stdscr, options=options, field_name="Open file...", header=dump_header)
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Open file...", header=dump_header)
 
 
         funcs = [
@@ -1412,7 +1412,7 @@ class Picker:
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
-                    field_name="Settings",
+                    field_prefix=" Settings: ",
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
@@ -1442,7 +1442,7 @@ class Picker:
 
                 settings_options_header = ["Key", "Setting"]
 
-                s, o, f = self.choose_option(self.stdscr, options=options, field_name="Settings", header=settings_options_header)
+                s, o, f = self.choose_option(self.stdscr, options=options, title="Settings", header=settings_options_header)
                 if s:
                     self.user_settings = " ".join([x[0] for x in s.values()])
                     self.apply_settings()
@@ -1757,7 +1757,7 @@ class Picker:
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
-                    field_name="Filter",
+                    field_prefix=" Filter: ",
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-2,
                     # max_length=field_end,
@@ -1794,7 +1794,7 @@ class Picker:
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
-                    field_name="Search",
+                    field_prefix=" Search: ",
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-3,
                     max_length=field_end_f,
@@ -1894,7 +1894,7 @@ class Picker:
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
-                    field_name="Opts",
+                    field_prefix=" Opts: ",
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
@@ -1954,7 +1954,7 @@ class Picker:
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
-                    field_name="Command",
+                    field_prefix=" Command: ",
                     x=lambda:2,
                     y=lambda: self.stdscr.getmaxyx()[0]-2,
                     literal=True,
@@ -1998,7 +1998,7 @@ class Picker:
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
-                        field_name="Edit value",
+                        field_prefix=" Edit value: ",
                         x=lambda:2,
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,
@@ -2019,7 +2019,7 @@ class Picker:
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
-                        field_name="Edit value",
+                        field_prefix=" Edit value: ",
                         x=lambda:2,
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,

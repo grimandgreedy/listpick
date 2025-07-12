@@ -15,7 +15,7 @@ import os
 def input_field(
     stdscr: curses.window,
     usrtxt:str="",
-    field_name: str = "Input",
+    field_prefix: str = " Input: ",
     x:Callable=lambda:0,
     y:Callable=lambda:0,
     colours_start:int=0,
@@ -36,7 +36,7 @@ def input_field(
     ---Arguments
         stdscr: curses screen
         usrtxt (str): text to be edited by the user
-        field_name (str): The text to be displayed at the start of the text input
+        field_prefix (str): The text to be displayed at the start of the input field
         x (Callable): prompt begins at (x,y) in the screen given. x is callable so that our input_field adapts to terminal resizing and/or text size changes.
         y (Callable): prompt begins at (x,y) in the screen given. y is callable so that our input_field adapts to terminal resizing and/or text size changes.
         colours_start (int): where to start when initialising the colour pairs with curses.
@@ -59,7 +59,7 @@ def input_field(
                         0: user hit escape
                         1: user hit return
     """
-    potential_path = ""
+    potential_path = usrtxt
     word_separator_chars = ["/", " "]
     kill_ring = []
     kill_ring_active = False
@@ -68,30 +68,27 @@ def input_field(
     history_index = len(history)
 
     offscreen_x, offscreen_y = False, False
-    old_x, old_y = x, y
+    orig_x, orig_y = x, y
 
     # Input field loop
     while True:
 
         h, w = stdscr.getmaxyx()
-        # if x() > w or y() > h: return None
 
         if refresh_screen_function != None:
             refresh_screen_function()
 
-        if offscreen_x: x = old_x
-        if offscreen_y: x = old_y
-
-        offscreen_x, offscreen_y = x() >= w, y() >= h
-
-        if offscreen_x: x = lambda: 0
-        if offscreen_y: y = lambda: 0
+        # If the beggining of the input field starts offscreen (i.e., x>=w or y>=h) then set x=0 or y=0
+        if orig_x() >= w or orig_x() < 0: x = lambda: 0
+        else: x = orig_x
+        if orig_y() >= h or orig_y() < 0: y = lambda: 0
+        else: y = orig_y
 
 
         field_end = min(w, x()+max_length())       # Last character of terminal that can be written to
         field_y = min(h-1, y())                    
-        field_x = min(h-1, x())
         max_field_length = field_end - x()         # Maximum length of the string displayed
+
         # We can't write to the last char of the last row of the terminal in curses
         if field_y == h-1 and field_end == w:
             max_field_length -= 1
@@ -101,24 +98,23 @@ def input_field(
         stdscr.refresh()
 
         if literal:
-            field_string_length = len(repr(usrtxt)) + len(f" {field_name}: ")
+            field_string_length = len(repr(usrtxt)) + len(field_prefix)
         else:
-            field_string_length = len(usrtxt) + len(f" {field_name}: ")
+            field_string_length = len(usrtxt) + len(field_prefix)
 
         ## Display the field name and current usrtxt
         if literal:
             # If usrtxt overspills the length of the input field then clip the usrtxt before setting the disp_string
             if field_string_length > max_field_length:
-                disp_string = f" {field_name}: {repr(usrtxt)[-(cursor+max_field_length-len(f' {field_name}: ')):]}"[:max_field_length]
+                disp_string = f"{field_prefix}{repr(usrtxt)[-(cursor+max_field_length-len(field_prefix)):]}"[:max_field_length]
             else:
-                disp_string = f"{field_name}: {repr(usrtxt)}"[:max_field_length]
+                disp_string = f"{field_prefix}{repr(usrtxt)}"[:max_field_length]
         else:
             # If usrtxt overspills the length of the input field then clip the usrtxt before setting the disp_string
             if field_string_length >= max_field_length:
-                # disp_string = f" {field_name}: {usrtxt[-(cursor+max_field_length-len(field_name))+3+1:]}"[:max_field_length]
-                disp_string = f" {field_name}: {usrtxt[-(cursor+max_field_length-len(f' {field_name}: ')-1):]}"[:max_field_length]
+                disp_string = f"{field_prefix}{usrtxt[-(cursor+max_field_length-len(field_prefix)-1):]}"[:max_field_length]
             else:
-                disp_string = f" {field_name}: {usrtxt}"[:max_field_length]
+                disp_string = f"{field_prefix}{usrtxt}"[:max_field_length]
         stdscr.addstr(field_y, x(), disp_string, curses.color_pair(colours_start+colour_pair_text) | curses.A_BOLD)
 
         ## Display cursor 
