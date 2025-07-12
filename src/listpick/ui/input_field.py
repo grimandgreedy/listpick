@@ -15,7 +15,7 @@ import os
 def input_field(
     stdscr: curses.window,
     usrtxt:str="",
-    field_name:str="Input",
+    field_name: str = "Input",
     x:Callable=lambda:0,
     y:Callable=lambda:0,
     colours_start:int=0,
@@ -67,70 +67,90 @@ def input_field(
     prev_usrtxt = ""
     history_index = len(history)
 
+    offscreen_x, offscreen_y = False, False
+    old_x, old_y = x, y
+
     # Input field loop
     while True:
 
         h, w = stdscr.getmaxyx()
+        # if x() > w or y() > h: return None
 
         if refresh_screen_function != None:
             refresh_screen_function()
 
-        field_end = min(w-3, max_length())
-        field_y = min(h-1, y())
+        if offscreen_x: x = old_x
+        if offscreen_y: x = old_y
+
+        offscreen_x, offscreen_y = x() >= w, y() >= h
+
+        if offscreen_x: x = lambda: 0
+        if offscreen_y: y = lambda: 0
+
+
+        field_end = min(w, x()+max_length())       # Last character of terminal that can be written to
+        field_y = min(h-1, y())                    
         field_x = min(h-1, x())
+        max_field_length = field_end - x()         # Maximum length of the string displayed
+        # We can't write to the last char of the last row of the terminal in curses
+        if field_y == h-1 and field_end == w:
+            max_field_length -= 1
 
         # Clear background to end of the input field
-        stdscr.addstr(field_y, x(), " "*(field_end-x()), curses.color_pair(colours_start+colour_pair_bg))
+        stdscr.addstr(field_y, x(), " "*(max_field_length), curses.color_pair(colours_start+colour_pair_bg))
         stdscr.refresh()
+
+        if literal:
+            field_string_length = len(repr(usrtxt)) + len(f" {field_name}: ")
+        else:
+            field_string_length = len(usrtxt) + len(f" {field_name}: ")
 
         ## Display the field name and current usrtxt
         if literal:
             # If usrtxt overspills the length of the input field then clip the usrtxt before setting the disp_string
-            if len(usrtxt) + len(f" {field_name}: ") + 1 > field_end:
-                disp_string = f" {field_name}: {repr(usrtxt)[-(cursor+min(field_end, max_length())-len(field_name))+3:]}   "[:field_end]
+            if field_string_length > max_field_length:
+                disp_string = f" {field_name}: {repr(usrtxt)[-(cursor+max_field_length-len(f' {field_name}: ')):]}"[:max_field_length]
             else:
-                disp_string = f"{field_name}: {repr(usrtxt)}   "[:field_end]
-            stdscr.addstr(field_y, x(), disp_string, curses.color_pair(colours_start+colour_pair_text) | curses.A_BOLD)
-            field_length=len(f"{field_name}: {repr(usrtxt)}   ")
+                disp_string = f"{field_name}: {repr(usrtxt)}"[:max_field_length]
         else:
             # If usrtxt overspills the length of the input field then clip the usrtxt before setting the disp_string
-            if len(usrtxt) + len(f" {field_name}: ") > min(field_end, max_length()):
-                disp_string = f" {field_name}: {usrtxt[-(cursor+min(field_end, max_length())-len(field_name))+3:]}   "[:field_end]
+            if field_string_length >= max_field_length:
+                # disp_string = f" {field_name}: {usrtxt[-(cursor+max_field_length-len(field_name))+3+1:]}"[:max_field_length]
+                disp_string = f" {field_name}: {usrtxt[-(cursor+max_field_length-len(f' {field_name}: ')-1):]}"[:max_field_length]
             else:
-                disp_string = f" {field_name}: {usrtxt}   "[:field_end]
-            stdscr.addstr(field_y, x(), disp_string, curses.color_pair(colours_start+colour_pair_text) | curses.A_BOLD)
-            field_length=len(f" {field_name}: {usrtxt}   ")
+                disp_string = f" {field_name}: {usrtxt}"[:max_field_length]
+        stdscr.addstr(field_y, x(), disp_string, curses.color_pair(colours_start+colour_pair_text) | curses.A_BOLD)
 
         ## Display cursor 
         # If the whole of usrtxt fits within the input field
-        if field_length -1 < field_end:
+        cursor_x_pos, cursor_char = x(), " "
+        if field_string_length < max_field_length:
             if not literal:
-                cursor_x_pos = x()+len(usrtxt)-cursor+len(f" {field_name}: ")
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(field_y, cursor_x_pos, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
-                else:
-                    stdscr.addstr(field_y, cursor_x_pos, f" ", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+                cursor_x_pos = min(field_string_length + x() - cursor, w-1)
+                if usrtxt and cursor != 0: cursor_char = f"{usrtxt[-(cursor)]}"
+                else: cursor_char = " "
             elif literal:
-                cursor_x_pos = x()+len(repr(usrtxt))-cursor+len(f" {field_name}: ")-2
-                stdscr.addstr(field_y, cursor_x_pos, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
-        # If usrtxt is longer than the length of the input field and the cursor position is in the first `field_length` characters.
-        elif field_length - cursor - 3 < field_end:
+                cursor_x_pos = min(field_string_length + x()-cursor-2, w-1)
+                cursor_char = repr(usrtxt)[-(cursor+1)]
+        # If usrtxt is longer than the length of the input field and the cursor position is in the first `max_field_length` characters.
+        elif field_string_length >= max_field_length and field_string_length - cursor < max_field_length:
             if not literal:
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(field_y, field_length - cursor - 1, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
-                else:
-                    stdscr.addstr(field_y, field_length - cursor - 1, f" ", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+                cursor_x_pos = min(field_string_length + x() - cursor, w-1)
+                cursor_char = f"{usrtxt[-(cursor)]}"
             elif literal:
-                stdscr.addstr(field_y, field_length - cursor - 2, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
-        # If usrtxt is longer than the length of the input field and the cursor is positioned after field_length characters then the cursor will be at the end of the input field
+                cursor_x_pos = min(field_string_length + x() - cursor - 1, w-1)
+                cursor_char = repr(usrtxt)[-(cursor+1)]
+        # If usrtxt is longer than the length of the input field and the cursor is positioned after field_string_length characters then the cursor will be at the end of the input field
         else:
             if not literal:
-                if usrtxt and cursor != 0:
-                    stdscr.addstr(field_y, field_end+2, f"{usrtxt[-(cursor)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
-                else:
-                    stdscr.addstr(field_y, field_end+2, f" ", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+                cursor_x_pos = max_field_length+x()-1
+                cursor_char = f" "
             elif literal:
-                stdscr.addstr(field_y, field_end, f"{repr(usrtxt)[-(cursor+1)]}", curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+                cursor_char = repr(usrtxt)[-(cursor+1)]
+                cursor_x_pos = max_field_length+x()-1
+
+        stdscr.addstr(field_y, cursor_x_pos, cursor_char, curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+
 
         key = stdscr.getch()
 
@@ -423,6 +443,7 @@ def input_field(
             if val:
                 potential_path = usrtxt
             kill_ring_active = False
+        stdscr.clear()
 
 
 def autocomplete_path(partial_path: str) -> list:
