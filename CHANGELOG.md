@@ -1,9 +1,25 @@
 # CHANGELOG.md
-## [0.1.11] 2025-07-??
+## [0.1.11] 2025-07-13
+ - Greatly improved the input_field
+   - Implemented path auto-completion with tab/shift+tab
+   - History can be passed to the input field
+   - Implemented a kill-ring
+   - Can paste into the input_field
+   - Implemented more readline keybinds:
+     - Alt+w: delete to word-separator character (' ' or '/')
+     - Alt+f: forwards one word
+     - Alt+b: backwards one word
+     - Ctrl+g: exit
+     - Ctrl+y: Yank from the top of the kill ring
+     - Alt+y: Yank from the kill ring. As is typical, this only works after a yank.
+     - Ctrl+n: Cycle forwards through history
+     - Ctrl+p: Cycle backwards through history
+   - Now accepts curses colour pair to set colours.
  - Fixed bug where searching with a lot of matches causes slow down.
+ - 
 
 ## [0.1.10] 2025-07-04
- - Help is now *built* (rather than static rows) using the active keys_dict and so only shows keys that function in the current Picker object. 
+ - Help is now *built* (rather than simply displaying help text) using the active keys_dict and so only shows keys that function in the current Picker object. 
 
 ## [0.1.9] 2025-07-04
  - Added asynchronous data refresh requests using threading.

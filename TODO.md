@@ -93,6 +93,8 @@ ASAP
 > - [ ] Record data snapshot over time.
 > - [x] Make data requests asynchronous so that the data is still refreshed with a spotty connection.
 > - [ ] Implement default_option_selector (!!!)
+> - [ ] Implement macros
+>   - [ ] e.g., ctrl+shift+r turns off auto refresh
 
 
 
@@ -170,8 +172,10 @@ ASAP
 >   - [ ] Follow-entry mode: You are watching a download at the top of the list. It finishes and takes you to the bottom of the download list.
 >   - [ ] Follow-entry mode (not ideal): You are visually selecting the active and paused downloads but when the cursor is on one of the active downloads you are suddenly cast down the list when it finishes.
 > - [x] Footer string doesn't load immediately loading a Picker
-- [x] Use hjkl for movement, rather than h/l for back/accecpt.
-
+> - [x] Use hjkl for movement, rather than h/l for back/accecpt.
+> - [ ] Increase max_column_width when the full width of the terminal is not taken up but the data of some columns is truncated.
+> - [ ] Numerical sort has blank rows at the top when we sort by ascending order.
+>   - [ ] Is this the way it should be??? They will be sorted to the top in either asc. or desc. ...
 
 
 > [!Bug] Bugs

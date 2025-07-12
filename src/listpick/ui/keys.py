@@ -71,8 +71,8 @@ picker_keys = {
     "notification_toggle":              [ord('z')],
     "redo":                             [ord('.')],
     "undo":                             [26], # Ctrl+z
-    "scroll_right":                     [ord('l')],
-    "scroll_left":                      [ord('h')],
+    "scroll_right":                     [ord('l'), curses.KEY_RIGHT],
+    "scroll_left":                      [ord('h'), curses.KEY_LEFT],
     "scroll_far_right":                 [ord('L')],
     "scroll_far_left":                  [ord('H')],
     "add_column":                       [ord('+')],

@@ -11,6 +11,7 @@ from wcwidth import wcwidth, wcswidth
 from math import log10
 import subprocess
 import tempfile
+import os
 
 def truncate_to_display_width(text: str, max_column_width: int, centre=False) -> str:
     """ 
