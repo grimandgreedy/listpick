@@ -30,6 +30,7 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
             curses.KEY_ENTER: "RETURN",
             ord('\n'): "\n",
             curses.KEY_DC: "Delete",
+            383: "Shift+Delete",
     }
 
     # Ctrl + [a-z]

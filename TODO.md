@@ -128,7 +128,20 @@ ASAP
 > - [ ] input_field
 >      - [ ] implement readline keybinds
 >          - [x] ctrl-f, ctrl-b
->      - [ ] add variable max display length
+>          - [x] alt-f, alt-b
+>          - [x] ctrl-w, alt-w
+>          - [x] ctrl-d
+>          - [x] ctrl-a, ctrl-e
+>          - [x] ctrl-y, alt-y
+>          - [x] ctrl-n, alt-p
+>          - [x] ctrl-g, ctrl-c
+>          - [x] alt-Backspace
+>          - [ ] alt-.
+>      - [x] implement kill ring
+>      - [x] path completion with tab
+>      - [x] history support
+>      - [x] add variable max display length
+>      - [x] Fix variable x,y position
 > - [ ] Highlights
 >   - [ ] (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
 >     - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches

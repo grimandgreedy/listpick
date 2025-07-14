@@ -13,7 +13,7 @@ import curses
 def get_colours(pick:int=0) -> dict[str, int]:
     """ Define colour options for listpick. """
     colours = [
-        ### Green header, green title, green modes, purple selected, blue cursor
+        ### (0) Green header, green title, green modes, purple selected, blue cursor
     {
         'background': 232,
         'normal_fg': 253,
@@ -60,7 +60,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_string_bg': 28,
         'footer_string_fg': 253,
     },
-        ### Black and white
+        ### (1) Black and white
     {
         'background': 232,
         'normal_fg': 253,
@@ -107,7 +107,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_string_bg': 253,
         'footer_string_fg': 232,
     },
-        ### Blue header, blue title, blue modes, purple selected, green cursor
+        ### (2) Blue header, blue title, blue modes, purple selected, green cursor
     {
         'background': 232,
         'normal_fg': 253,
@@ -154,7 +154,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_string_bg': 25,
         'footer_string_fg': 253,
     },
-        ### Purple header, purple title, white modes, green selected, blue cursor
+        ### (3) Purple header, purple title, white modes, green selected, blue cursor
     {
         'background': 232,
         'normal_fg': 253,
@@ -201,6 +201,53 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_string_bg': 57,
         'footer_string_fg': 253,
     },
+        ## (4) 3-bit colours
+    {
+        'background': curses.COLOR_BLACK,
+        'normal_fg': curses.COLOR_WHITE,
+        'unselected_bg': curses.COLOR_BLACK,
+        'unselected_fg': curses.COLOR_WHITE,
+        'cursor_bg': curses.COLOR_WHITE,
+        'cursor_fg': curses.COLOR_BLACK,
+        'selected_bg': curses.COLOR_WHITE,
+        'selected_fg': curses.COLOR_BLACK,
+        'header_bg': curses.COLOR_WHITE,
+        'header_fg': curses.COLOR_BLACK,
+        'error_bg': curses.COLOR_BLACK,
+        'error_fg': curses.COLOR_WHITE,
+        'complete_bg': curses.COLOR_BLACK,
+        'complete_fg': curses.COLOR_WHITE,
+        'waiting_bg': curses.COLOR_BLACK,
+        'waiting_fg': curses.COLOR_WHITE,
+        'active_bg': curses.COLOR_BLACK,
+        'active_fg': curses.COLOR_WHITE,
+        'paused_bg': curses.COLOR_BLACK,
+        'paused_fg': curses.COLOR_WHITE,
+        'search_bg': curses.COLOR_WHITE,
+        'search_fg': curses.COLOR_BLACK,
+        'active_input_bg': curses.COLOR_BLACK,
+        'active_input_fg': curses.COLOR_WHITE,
+        'modes_selected_bg': curses.COLOR_WHITE,
+        'modes_selected_fg': curses.COLOR_BLACK,
+        'modes_unselected_bg': curses.COLOR_BLACK,
+        'modes_unselected_fg': curses.COLOR_WHITE,
+        'title_bar': curses.COLOR_BLACK,
+        'title_bg': curses.COLOR_WHITE,
+        'title_fg': curses.COLOR_BLACK,
+        'scroll_bar_bg': curses.COLOR_WHITE,
+        'selected_header_column_bg': curses.COLOR_BLACK,
+        'selected_header_column_fg': curses.COLOR_WHITE,
+        'footer_bg': curses.COLOR_WHITE,
+        'footer_fg': curses.COLOR_BLACK,
+        'refreshing_bg': curses.COLOR_WHITE,
+        'refreshing_fg': curses.COLOR_BLACK,
+        'refreshing_inactive_bg': curses.COLOR_BLACK,
+        'refreshing_inactive_fg': curses.COLOR_WHITE,
+        '40pc_bg': curses.COLOR_BLACK,
+        '40pc_fg': curses.COLOR_WHITE,
+        'footer_string_bg': curses.COLOR_WHITE,
+        'footer_string_fg': curses.COLOR_BLACK,
+    },
     ]
     for colour in colours:
         colour["20pc_bg"] = colour["background"]
@@ -221,40 +268,57 @@ def get_colours(pick:int=0) -> dict[str, int]:
 
 def get_help_colours(pick: int=0) -> dict:
     """ Define help colour options for listpick. """
-    colours = [get_colours(i) for i in range(get_theme_count())]
-    for i in range(len(colours)):
-        colours[i]['cursor_bg'] = 235
-        colours[i]['cursor_fg'] = 253
-        colours[i]['selected_bg'] = 25
-        colours[i]['selected_fg'] = 253
+    colours = get_colours(pick)
+    # colours = [get_colours(i) for i in range(get_theme_count())]
+    # for i in range(len(colours)):
 
-    if pick > len(colours) - 1:
-        return colours[0]
-    return colours[pick]
+    # 3-bit colours
+    colours_3_bit = [4]
+    if pick in colours_3_bit:
+        colours['cursor_bg'] = curses.COLOR_WHITE
+        colours['cursor_fg'] = curses.COLOR_BLACK
+        colours['selected_bg'] = curses.COLOR_WHITE
+        colours['selected_fg'] = curses.COLOR_BLACK
+    else:
+        colours['cursor_bg'] = 235
+        colours['cursor_fg'] = 253
+        colours['selected_bg'] = 25
+        colours['selected_fg'] = 253
+
+    return colours
 
 
 def get_notification_colours(pick:int=0) -> dict:
     """ Define notification colour options for listpick. """
-    colours = [get_colours(i) for i in range(get_theme_count())]
-    for i in range(len(colours)):
-        colours[i]['background'] = 237
-        colours[i]['unselected_bg'] = 237
-        colours[i]['cursor_bg'] = 237
-        colours[i]['selected_bg'] = 237
+    colours = get_colours(pick)
 
     # Black and white
-    colours[1]['background'] = 237
-    colours[1]['unselected_bg'] = 237
-    colours[1]['cursor_bg'] = 237
-    colours[1]['cursor_fg'] = 253
-    colours[1]['selected_bg'] = 237
-    colours[1]['selected_fg'] = 253
+    if pick == 1:
+        colours['background'] = 237
+        colours['unselected_bg'] = 237
+        colours['cursor_bg'] = 237
+        colours['cursor_fg'] = 253
+        colours['selected_bg'] = 237
+        colours['selected_fg'] = 253
 
-    if pick > len(colours) - 1:
-        return colours[0]
-    return colours[pick]
+    # 3-bit colours
+    elif pick == 4:
+        colours['background'] = curses.COLOR_BLACK
+        colours['unselected_bg'] = curses.COLOR_BLACK
+        colours['cursor_bg'] = curses.COLOR_WHITE
+        colours['cursor_fg'] = curses.COLOR_BLACK
+        colours['selected_bg'] = curses.COLOR_WHITE
+        colours['selected_fg'] = curses.COLOR_BLACK
+    else:
+        colours['background'] = 237
+        colours['unselected_bg'] = 237
+        colours['cursor_bg'] = 237
+        colours['selected_bg'] = 237
 
+    return colours
 
+def get_fallback_colours() -> dict:
+    get_colours(4)
 
 def get_theme_count() -> int:
     """ Get the number of themes. """

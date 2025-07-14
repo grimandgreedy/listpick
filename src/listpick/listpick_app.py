@@ -17,7 +17,7 @@ import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 
-from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count
+from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
 from listpick.utils.table_to_list_of_lists import *
 from listpick.utils.utils import *
@@ -265,6 +265,14 @@ class Picker:
         self.ids = []
 
 
+        if curses.COLOR_PAIRS > 150:
+            self.colours_start = 0
+            self.notification_colours_start = 50
+            self.help_colours_start = 100
+        else:
+            self.colours_start = 0
+            self.notification_colours_start = 0
+            self.help_colours_start = 0
 
         curses.set_escdelay(25)
 
@@ -480,7 +488,6 @@ class Picker:
         ## Display title (if applicable)
         if self.title:
             padded_title = f" {self.title.strip()} "
-            # self.stdscr.addstr(self.top_gap, 0, f"{' ':^{w}}", curses.color_pair(self.colours_start+16) | curses.A_UNDERLINE)
             self.stdscr.addstr(self.top_gap, 0, f"{' ':^{w}}", curses.color_pair(self.colours_start+16))
             title_x = (w-wcswidth(padded_title))//2
             # title = f"{title:^{w}}"
@@ -736,7 +743,7 @@ class Picker:
             infobox_data = {
                 "items": submenu_items,
                 "colours": notification_colours,
-                "colours_start": 50,
+                "colours_start": self.notification_colours_start,
                 "disabled_keys": [ord('z'), ord('c')],
                 "show_footer": False,
                 "top_gap": 0,
@@ -898,7 +905,7 @@ class Picker:
         option_picker_data = {
             "items": options,
             "colours": notification_colours,
-            "colours_start": 50,
+            "colours_start": self.notification_colours_start,
             "title":title,
             "header":header,
             "hidden_columns":[],
@@ -912,7 +919,7 @@ class Picker:
 
             choose_opts_widths = get_column_widths(options)
             window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
-            window_height = min(h//2, max(6, len(options)+2))
+            window_height = min(h//2, max(6, len(options)+100))
 
             submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
             submenu_win.keypad(True)
@@ -947,7 +954,7 @@ class Picker:
             notification_data = {
                 "items": submenu_items,
                 "title": title,
-                "colours_start": 50,
+                "colours_start": self.notification_colours_start,
                 "show_footer": False,
                 "centre_in_terminal": True,
                 "centre_in_terminal_vertical": True,
@@ -1377,7 +1384,7 @@ class Picker:
                     # "items": help_lines,
                     "items": build_help_rows(self.keys_dict),
                     "title": f"{self.title} Help",
-                    "colours_start": 150,
+                    "colours_start": self.help_colours_start,
                     "colours": help_colours,
                     "show_footer": True,
                     "max_selected": 1,
@@ -1946,7 +1953,8 @@ class Picker:
                         # Re-sort self.items after applying filter
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("pipe_input", key, self.keys_dict):
-                usrtxt = "xargs -d '\n' -I{}  "
+                # usrtxt = "xargs -d '\n' -I{}  "
+                usrtxt = "xargs "
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
@@ -1970,8 +1978,20 @@ class Picker:
                     full_values = [format_row_full(self.items[i], self.hidden_columns) for i in selected_indices]  # Use format_row_full for full data
                     full_values = [self.items[i][self.sort_column] for i in selected_indices]
                     if full_values:
-                        process = subprocess.Popen(usrtxt, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        process.communicate(input='\n'.join(full_values).encode('utf-8'))
+                        command = usrtxt.split()
+                        try:
+                            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                            if process.stdin != None:
+                                for value in full_values:
+                                    process.stdin.write((repr(value) + '\n').encode())
+
+                                process.stdin.close()
+
+                                self.notification(self.stdscr, message=f"{len(full_values)} strings piped to {repr(usrtxt)}")
+                        except Exception as e:
+                            self.notification(self.stdscr, message=f"{e}")
+
 
             elif self.check_key("open", key, self.keys_dict):
                 selected_indices = get_selected_indices(self.selections)
@@ -2065,14 +2085,23 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
     if help_colours == {}: help_colours = get_help_colours(0)
     if COLOURS_SET: return None
     if start == None: start = 0
+    
 
-    colours = get_colours(pick)
-    notification_colours = get_notification_colours(pick)
-    help_colours = get_help_colours(pick)
+    if curses.COLORS > 255:
+        colours = get_colours(pick)
+        notification_colours = get_notification_colours(pick)
+        help_colours = get_help_colours(pick)
+        standard_colours_start, help_colours_start, notification_colours_start = 0, 50, 100
+    else:
+        colours = get_fallback_colours()
+        notification_colours = get_fallback_colours()
+        help_colours = get_fallback_colours()
+        standard_colours_start, help_colours_start, notification_colours_start = 0, 0, 0
 
     if not colours: return 0
 
     try:
+        start = standard_colours_start
         curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
         curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
         curses.init_pair(start+3, colours['normal_fg'], colours['background'])
@@ -2102,33 +2131,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
         # notifications 50, infobox 100, help 150
         # Notification colours
         colours = notification_colours
-        start = 50
-        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
-
-        # Infobox
-        colours = notification_colours
-        start = 100
+        start = notification_colours_start
         curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
         curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
         curses.init_pair(start+3, colours['normal_fg'], colours['background'])
@@ -2154,7 +2157,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
 
         # Help
         colours = help_colours
-        start = 150
+        start = help_colours_start
         curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
         curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
         curses.init_pair(start+3, colours['normal_fg'], colours['background'])
@@ -2271,12 +2274,13 @@ def main():
     except:
         pass
         
+    function_data["colour_theme_number"] = 4
     stdscr = start_curses()
     try:
         # Run the Picker
         h, w = stdscr.getmaxyx()
         if (h>8 and w >20):
-            curses.init_pair(1, 253, 232)
+            curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
             stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
             s = "Listpick is loading your data..."
             stdscr.addstr(h//2, (w-len(s))//2, s)

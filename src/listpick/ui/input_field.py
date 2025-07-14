@@ -28,6 +28,7 @@ def input_field(
     cursor: int = 0,
     path_auto_complete: bool = True,
     history: list[str] = [],
+    clear_screen: bool = True,
         
 ) -> Tuple[str, bool]:
     """
@@ -50,6 +51,7 @@ def input_field(
         cursor (int): the starting position of the cursor.
         path_auto_complete (bool): whether tab (or shift+tab) should trigger path autocomplete
         history (list[str]): list of history to by cycled through with ctrl+n/ctrl+p
+        clear_screen (bool): whether to clear the screen each time a key is pressed or getch timeout is reached.
 
 
     ---Returns
@@ -439,7 +441,8 @@ def input_field(
             if val:
                 potential_path = usrtxt
             kill_ring_active = False
-        stdscr.clear()
+        if clear_screen:
+            stdscr.erase()
 
 
 def autocomplete_path(partial_path: str) -> list:

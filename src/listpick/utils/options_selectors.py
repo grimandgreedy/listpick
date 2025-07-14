@@ -13,7 +13,7 @@ from typing import Tuple
 from listpick.ui.input_field import input_field
 from listpick.utils.utils import dir_picker
 
-def default_option_input(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_name:str="Opts", registers={}) -> Tuple[bool, str]:
+def default_option_input(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_prefix:str="Opts", registers={}) -> Tuple[bool, str]:
     # notification(stdscr, message=f"opt required for {index}")
     usrtxt = f"{starting_value} " if starting_value else ""
     h, w = stdscr.getmaxyx()
@@ -23,7 +23,7 @@ def default_option_input(stdscr: curses.window, refresh_screen_function=None, st
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
-        field_name=field_name,
+        field_prefix=field_prefix,
         x=lambda:2,
         y=lambda: stdscr.getmaxyx()[0]-1,
         max_length=field_end_f,
@@ -34,7 +34,7 @@ def default_option_input(stdscr: curses.window, refresh_screen_function=None, st
 
 
 
-def default_option_selector(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_name:str="Opts", registers={}) -> Tuple[bool, str]:
+def default_option_selector(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_prefix:str=" Opts: ", registers={}) -> Tuple[bool, str]:
     """ 
     *** **** *** ** ** *
     NOT YET IMPLEMENTED!!
@@ -49,7 +49,7 @@ def default_option_selector(stdscr: curses.window, refresh_screen_function=None,
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
-        field_name=field_name,
+        field_prefix=field_prefix,
         x=lambda:2,
         y=lambda: stdscr.getmaxyx()[0]-1,
         max_length=field_end_f,
@@ -72,7 +72,7 @@ def output_file_option_selector(stdscr:curses.window, refresh_screen_function, r
     usrtxt, return_val = input_field(
         stdscr,
         usrtxt=usrtxt,
-        field_name="Save as",
+        field_prefix=" Save as: ",
         x=lambda:2,
         y=lambda: stdscr.getmaxyx()[0]-1,
         max_length=field_end_f,
