@@ -643,6 +643,7 @@ class Picker:
             else:
                 scroll_bar_start = int(((self.cursor_pos)/len(self.indexed_items))*self.items_per_page)+top_space+int(bool(self.header)) - scroll_bar_length//2
             scroll_bar_length = min(scroll_bar_length, h - scroll_bar_start-1)
+            scroll_bar_length = max(1, scroll_bar_length)
             for i in range(scroll_bar_length):
                 v = max(top_space+int(bool(self.header)), scroll_bar_start-scroll_bar_length//2)
                 self.stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(self.colours_start+18))
@@ -1042,13 +1043,17 @@ class Picker:
                 elif setting.startswith("cwd="):
                     os.chdir(os.path.expandvars(os.path.expanduser(setting[len("cwd="):])))
                 elif setting == "th":
-                    global COLOURS_SET
-                    COLOURS_SET = False
-                    self.colour_theme_number = (self.colour_theme_number + 1)%get_theme_count()
-                    # self.colour_theme_number = int(not bool(self.colour_theme_number))
-                    set_colours(self.colour_theme_number)
-                    self.draw_screen(self.indexed_items, self.highlights)
-                    self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
+                    if curses.COLORS < 255:
+                        self.notification(self.stdscr, message=f"Theme 4 applied.")
+                    else:
+
+                        global COLOURS_SET
+                        COLOURS_SET = False
+                        self.colour_theme_number = (self.colour_theme_number + 1)%get_theme_count()
+                        # self.colour_theme_number = int(not bool(self.colour_theme_number))
+                        set_colours(self.colour_theme_number)
+                        self.draw_screen(self.indexed_items, self.highlights)
+                        self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
                 else:
                     self.user_settings = ""
                     return None
