@@ -1,4 +1,8 @@
 # CHANGELOG.md
+## [0.1.12] 2025-??
+ - Fixed instacrash when a terminal doesn't have 8bit colour support.
+ - Created a fallback colour theme for terminals with < 256 colours available.
+ - Fixed bug when scrollbar doesn't show with several thousand entries. Ensured it is always at least 1 character high.
 ## [0.1.11] 2025-07-13
  - Greatly improved the input_field
    - Implemented path auto-completion with tab/shift+tab

@@ -2279,7 +2279,7 @@ def main():
     except:
         pass
         
-    function_data["colour_theme_number"] = 4
+    # function_data["colour_theme_number"] = 4
     stdscr = start_curses()
     try:
         # Run the Picker

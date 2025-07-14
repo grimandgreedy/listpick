@@ -241,7 +241,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'footer_fg': curses.COLOR_BLACK,
         'refreshing_bg': curses.COLOR_GREEN,
         'refreshing_fg': curses.COLOR_BLACK,
-        'refreshing_inactive_bg': curses.COLOR_BLACK,
+        'refreshing_inactive_bg': curses.COLOR_GREEN,
         'refreshing_inactive_fg': curses.COLOR_WHITE,
         '40pc_bg': curses.COLOR_BLACK,
         '40pc_fg': curses.COLOR_YELLOW,
