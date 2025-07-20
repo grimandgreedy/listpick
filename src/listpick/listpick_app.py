@@ -16,6 +16,8 @@ import argparse
 import time
 from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
+import json
+import threading
 
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
@@ -33,7 +35,6 @@ from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
 from listpick.ui.footer import StandardFooter, CompactFooter
 
-import threading
 
 try:
     from tmp.data_stuff import test_items, test_highlights, test_header
@@ -149,6 +150,13 @@ class Picker:
 
         leftmost_column: int = 0,
         leftmost_char: int = 0,
+
+
+        history_filter_and_search: list[str] = [],
+        history_opts: list[str] = [],
+        history_settings: list[str] = [],
+        history_edits: list[str] = [],
+        history_pipes: list[str] = [],
     ):
         self.stdscr = stdscr
         self.items = items
@@ -264,15 +272,13 @@ class Picker:
         self.cursor_pos_id = 0
         self.ids = []
 
+        # History variables
+        self.history_filter_and_search = history_filter_and_search
+        self.history_pipes = history_pipes
+        self.history_opts = history_opts
+        self.history_settings = history_settings
+        self.history_edits = history_edits
 
-        if curses.COLOR_PAIRS > 150:
-            self.colours_start = 0
-            self.notification_colours_start = 50
-            self.help_colours_start = 100
-        else:
-            self.colours_start = 0
-            self.notification_colours_start = 0
-            self.help_colours_start = 0
 
         curses.set_escdelay(25)
 
@@ -841,15 +847,24 @@ class Picker:
             "paginate":                         self.paginate,
             "leftmost_column":                  self.leftmost_column,
             "leftmost_char":                    self.leftmost_char,
-            
+            "history_filter_and_search" :       self.history_filter_and_search,
+            "history_pipes" :                   self.history_pipes,
+            "history_opts" :                    self.history_opts,
+            "history_edits" :                   self.history_edits,
+            "history_settings":                 self.history_settings,
         }
         return function_data
 
     def set_function_data(self, function_data: dict) -> None:
         """ Set variables from state dict containing core variables."""
+        variables = self.get_function_data().keys()
 
-        if "items" in function_data: self.items = function_data["items"]
-        if "header" in function_data: self.header = function_data["header"]
+        for var in variables:
+            if var in function_data:
+                setattr(self, var, function_data[var])
+                
+        # if "items" in function_data: self.items = function_data["items"]
+        # if "header" in function_data: self.header = function_data["header"]
         self.indexed_items = function_data["indexed_items"] if "indexed_items" in function_data else []
 
 
@@ -920,7 +935,7 @@ class Picker:
 
             choose_opts_widths = get_column_widths(options)
             window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
-            window_height = min(h//2, max(6, len(options)+100))
+            window_height = min(h//2, max(6, len(options)+3))
 
             submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
             submenu_win.keypad(True)
@@ -1042,6 +1057,32 @@ class Picker:
 
                 elif setting.startswith("cwd="):
                     os.chdir(os.path.expandvars(os.path.expanduser(setting[len("cwd="):])))
+                elif setting.startswith("hl"):
+                    hl_list = setting.split(",")
+                    if len(hl_list) > 1:
+                        hl_list = hl_list[1:]
+                        match = hl_list[0]
+                        if len(hl_list) > 1: 
+                            field = hl_list[1]
+                            if field.isnumeric() and field != "-1":
+                                field = int(field)
+                            else:
+                                field = "all"
+                        else:
+                            field = "all"
+                        if len(hl_list) > 2 and hl_list[2].isnumeric():
+                            colour_pair = int(hl_list[2])
+                        else:
+                            colour_pair = 10
+
+                        highlight = {
+                            "match": match,
+                            "field": field,
+                            "color": colour_pair
+                        }
+                        self.highlights.append(highlight)
+                        
+                        
                 elif setting == "th":
                     if curses.COLORS < 255:
                         self.notification(self.stdscr, message=f"Theme 4 applied.")
@@ -1284,7 +1325,62 @@ class Picker:
             self.items, self.header = tmp_items, tmp_header
             self.data_ready = True
 
+    def save_input_history(self, file_path: str) -> bool:
+        """ Save command history. Returns True if successful save. """
+        file_path = os.path.expanduser(file_path)
+        history_dict = {
+            "history_filter_and_search" :       self.history_filter_and_search,
+            "history_pipes" :                   self.history_pipes,
+            "history_opts" :                    self.history_opts,
+            "history_edits" :                   self.history_edits,
+            "history_settings":                 self.history_settings,
+        }
+        with open(file_path, 'w') as f:
+            json.dump(history_dict, f)
+
+        return True
+
+    def load_input_history(self, file_path:str) -> bool:
+        """ Load command history. Returns true if successful load. """
+        file_path = os.path.expanduser(file_path)
+        if not os.path.exists(file_path):
+            return False
+        try:
+            with open(file_path, 'r') as f:
+                history_dict = json.load(f)
+
+            if "history_filter_and_search" in history_dict:
+                self.history_filter_and_search = history_dict["history_filter_and_search"]
+            if "history_pipes" in history_dict:
+                self.history_pipes = history_dict["history_pipes"]
+            if "history_opts" in history_dict:
+                self.history_opts = history_dict["history_opts"]
+            if "history_edits" in history_dict:
+                self.history_edits = history_dict["history_edits"]
+            if "history_settings" in history_dict:
+                self.history_settings = history_dict["history_settings"]
+
+        except:
+            return False
+
+        return True
+
+
+
     def run(self) -> Tuple[list[int], str, dict]:
+        if curses.has_colors() and self.colours != None:
+            # raise Exception("Terminal does not support color")
+            curses.start_color()
+            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+            if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
+                self.colours_start = self.colours_start
+                self.notification_colours_start = self.colours_start+50
+                self.help_colours_start = self.colours_start+100
+            else:
+                self.colours_start = 0
+                self.notification_colours_start = 0
+                self.help_colours_start = 0
+
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
             self.footer_string = self.footer_string_refresh_function()
 
@@ -1314,10 +1410,6 @@ class Picker:
 
         # Initialize colours
         # Check if terminal supports color
-        if curses.has_colors() and self.colours != None:
-            # raise Exception("Terminal does not support color")
-            curses.start_color()
-            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
 
         # Set terminal background color
         self.stdscr.bkgd(' ', curses.color_pair(self.colours_start+3))  # Apply background color
@@ -1429,11 +1521,13 @@ class Picker:
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
                     registers=self.registers,
-                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                    history=self.history_settings,
                 )
                 if return_val:
                     self.user_settings = usrtxt
                     self.apply_settings()
+                    self.history_settings.append(usrtxt)
                     self.user_settings = ""
             elif self.check_key("toggle_footer", key, self.keys_dict):
                 self.user_settings = "footer"
@@ -1775,10 +1869,12 @@ class Picker:
                     # max_length=field_end,
                     max_length=field_end_f,
                     registers=self.registers,
-                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                    history=self.history_filter_and_search,
                 )
                 if return_val:
                     self.filter_query = usrtxt
+                    self.history_filter_and_search.append(usrtxt)
 
                     # If the current mode filter has been changed then go back to the first mode
                     if "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] not in self.filter_query:
@@ -1811,10 +1907,12 @@ class Picker:
                     y=lambda: self.stdscr.getmaxyx()[0]-3,
                     max_length=field_end_f,
                     registers=self.registers,
-                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                    history=self.history_filter_and_search,
                 )
                 if return_val:
                     self.search_query = usrtxt
+                    self.history_filter_and_search.append(usrtxt)
                     return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
                         query=self.search_query,
                         indexed_items=self.indexed_items,
@@ -1911,10 +2009,12 @@ class Picker:
                     y=lambda: self.stdscr.getmaxyx()[0]-1,
                     max_length=field_end_f,
                     registers=self.registers,
-                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                    history=self.history_opts,
                 )
                 if return_val:
                     self.user_opts = usrtxt
+                    self.history_opts.append(usrtxt)
             elif self.check_key("opts_select", key, self.keys_dict):
                 s, o, f = self.choose_option(self.stdscr, self.options_list)
                 if self.user_opts.strip(): self.user_opts += " "
@@ -1973,10 +2073,12 @@ class Picker:
                     literal=True,
                     max_length=field_end_f,
                     registers=self.registers,
-                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                    refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                    history=self.history_pipes,
                 )
                 if return_val:
                     selected_indices = get_selected_indices(self.selections)
+                    self.history_pipes.append(usrtxt)
                     if not selected_indices:
                         selected_indices = [self.indexed_items[self.cursor_pos][0]]
 
@@ -2028,10 +2130,12 @@ class Picker:
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,
                         registers=self.registers,
-                        refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                        refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                        history = self.history_edits,
                     )
                     if return_val:
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
+                        self.history_edits.append(usrtxt)
 
             elif self.check_key("edit_picker", key, self.keys_dict):
                 if len(self.indexed_items) > 0 and self.sort_column >=0 and self.editable_columns[self.sort_column]:
@@ -2049,10 +2153,12 @@ class Picker:
                         y=lambda: self.stdscr.getmaxyx()[0]-2,
                         max_length=field_end_f,
                         registers=self.registers,
-                        refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                        refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                        history = self.history_edits,
                     )
                     if return_val:
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
+                        self.history_edits.append(usrtxt)
             elif self.check_key("edit_ipython", key, self.keys_dict):
                 import IPython
                 self.stdscr.clear()
@@ -2083,20 +2189,19 @@ class Picker:
             self.draw_screen(self.indexed_items, self.highlights, clear=clear_screen)
 
 
+
 def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
     """ Initialise curses colour pairs using dictionary with colour keys. """
     global COLOURS_SET, notification_colours, help_colours
-    if notification_colours == {}: notification_colours = get_notification_colours(0)
-    if help_colours == {}: help_colours = get_help_colours(0)
     if COLOURS_SET: return None
     if start == None: start = 0
     
 
-    if curses.COLORS > 255:
+    if curses.COLORS >= 255:
         colours = get_colours(pick)
         notification_colours = get_notification_colours(pick)
         help_colours = get_help_colours(pick)
-        standard_colours_start, help_colours_start, notification_colours_start = 0, 50, 100
+        standard_colours_start, notification_colours_start, help_colours_start = 0, 50, 100
     else:
         colours = get_fallback_colours()
         notification_colours = get_fallback_colours()
@@ -2243,6 +2348,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
 def start_curses() -> curses.window:
     stdscr = curses.initscr()
     curses.start_color()
+    curses.use_default_colors()
     curses.noecho()  # Turn off automatic echoing of keys to the screen
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
     stdscr.keypad(True)
@@ -2268,7 +2374,7 @@ def unrestrict_curses(stdscr: curses.window) -> None:
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
     stdscr.keypad(True)
 
-def main():
+def main() -> None:
     args, function_data = parse_arguments()
 
     try:
@@ -2279,7 +2385,7 @@ def main():
     except:
         pass
         
-    # function_data["colour_theme_number"] = 4
+    function_data["colour_theme_number"] = 3
     stdscr = start_curses()
     try:
         # Run the Picker
@@ -2292,14 +2398,15 @@ def main():
             stdscr.refresh()
 
         app = Picker(stdscr, **function_data)
+        app.load_input_history("~/.config/listpick/cmdhist.json")
         app.run()
+
+        app.save_input_history("~/.config/listpick/cmdhist.json")
     except Exception as e:
         print(e)
 
     # Clean up
     close_curses(stdscr)
-
-
 
 if __name__ == '__main__':
     main()

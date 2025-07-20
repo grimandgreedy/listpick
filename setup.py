@@ -16,7 +16,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "listpick",
-    version = "0.1.11.4",
+    version = "0.1.11.8",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Listpick is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.",
@@ -33,7 +33,7 @@ setuptools.setup(
     ],
     package_dir = {"": "src"},
     packages = setuptools.find_packages(where="src"),
-    python_requires = ">=3.0",
+    python_requires = ">=3.9",
 
     entry_points={
         'console_scripts': [

@@ -9,8 +9,10 @@ License: MIT
 """
 
 import curses
+from typing import Dict
 
-def get_colours(pick:int=0) -> dict[str, int]:
+
+def get_colours(pick:int=0) -> Dict[str, int]:
     """ Define colour options for listpick. """
     colours = [
         ### (0) Green header, green title, green modes, purple selected, blue cursor
@@ -160,7 +162,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'normal_fg': 253,
         'unselected_bg': 232,
         'unselected_fg': 253,
-        'cursor_bg': 57,
+        'cursor_bg': 54,
         'cursor_fg': 253,
         'selected_bg': 135,
         'selected_fg': 253,
@@ -207,7 +209,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'normal_fg': curses.COLOR_WHITE,
         'unselected_bg': curses.COLOR_BLACK,
         'unselected_fg': curses.COLOR_WHITE,
-        'cursor_bg': curses.COLOR_WHITE,
+        'cursor_bg': curses.COLOR_BLUE,
         'cursor_fg': curses.COLOR_BLACK,
         'selected_bg': curses.COLOR_MAGENTA,
         'selected_fg': curses.COLOR_BLACK,
@@ -216,21 +218,21 @@ def get_colours(pick:int=0) -> dict[str, int]:
         'error_bg': curses.COLOR_BLACK,
         'error_fg': curses.COLOR_RED,
         'complete_bg': curses.COLOR_BLACK,
-        'complete_fg': curses.COLOR_BLUE,
+        'complete_fg': curses.COLOR_GREEN,
         'waiting_bg': curses.COLOR_BLACK,
         'waiting_fg': curses.COLOR_YELLOW,
         'active_bg': curses.COLOR_BLACK,
-        'active_fg': curses.COLOR_CYAN,
+        'active_fg': curses.COLOR_BLUE,
         'paused_bg': curses.COLOR_BLACK,
         'paused_fg': curses.COLOR_WHITE,
         'search_bg': curses.COLOR_WHITE,
         'search_fg': curses.COLOR_MAGENTA,
         'active_input_bg': curses.COLOR_BLACK,
         'active_input_fg': curses.COLOR_WHITE,
-        'modes_selected_bg': curses.COLOR_WHITE,
+        'modes_selected_bg': curses.COLOR_GREEN,
         'modes_selected_fg': curses.COLOR_BLACK,
-        'modes_unselected_bg': curses.COLOR_BLACK,
-        'modes_unselected_fg': curses.COLOR_WHITE,
+        'modes_unselected_bg': curses.COLOR_WHITE,
+        'modes_unselected_fg': curses.COLOR_BLACK,
         'title_bar': curses.COLOR_BLACK,
         'title_bg': curses.COLOR_GREEN,
         'title_fg': curses.COLOR_BLACK,
@@ -266,7 +268,7 @@ def get_colours(pick:int=0) -> dict[str, int]:
         return colours[0]
     return colours[pick]
 
-def get_help_colours(pick: int=0) -> dict:
+def get_help_colours(pick: int=0) -> Dict[str, int]:
     """ Define help colour options for listpick. """
     colours = get_colours(pick)
     # colours = [get_colours(i) for i in range(get_theme_count())]
@@ -288,7 +290,7 @@ def get_help_colours(pick: int=0) -> dict:
     return colours
 
 
-def get_notification_colours(pick:int=0) -> dict:
+def get_notification_colours(pick:int=0) -> Dict[str, int]:
     """ Define notification colour options for listpick. """
     colours = get_colours(pick)
 
@@ -317,8 +319,8 @@ def get_notification_colours(pick:int=0) -> dict:
 
     return colours
 
-def get_fallback_colours() -> dict:
-    get_colours(4)
+def get_fallback_colours() -> Dict[str, int]:
+    return get_colours(4)
 
 def get_theme_count() -> int:
     """ Get the number of themes. """

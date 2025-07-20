@@ -95,6 +95,8 @@ ASAP
 > - [ ] Implement default_option_selector (!!!)
 > - [ ] Implement macros
 >   - [ ] e.g., ctrl+shift+r turns off auto refresh
+> - [ ] Implement config loading
+>   - [ ] Allow config to be passed as an argument.
 
 
 
