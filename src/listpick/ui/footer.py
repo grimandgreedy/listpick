@@ -72,7 +72,7 @@ class Footer:
         self.stdscr = stdscr
         self.colours_start = colours_start
         self.get_state = get_state_function
-        self.height = 3
+        self.height = 0
 
     def draw(self, h, w):
         """
@@ -147,6 +147,7 @@ class CompactFooter(Footer):
         self.colours_start = colours_start
         self.get_state = get_state_function
         self.height = 2
+
     def draw(self, h, w):
         state = self.get_state()
 
@@ -175,7 +176,14 @@ class CompactFooter(Footer):
             disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-            self.stdscr.addstr(h - 2, w-right_width, f"{cursor_disp_str:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
+            # self.stdscr.addstr(h - 2, w-right_width, f"{disp_string:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
+            selected_count = sum(state["selections"].values())
+            if state["paginate"]:
+                cursor_disp_str = f" {state['cursor_pos']+1}/{len(state['indexed_items'])}  Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])}  Selected {selected_count}"
+            else:
+                cursor_disp_str = f"{sort_disp_str} [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])}"
+            self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
+            self.stdscr.addstr(h-2, w-right_width, f"{cursor_disp_str:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
         else:
             # Cursor & selection info
             selected_count = sum(state["selections"].values())
@@ -186,3 +194,22 @@ class CompactFooter(Footer):
             self.stdscr.addstr(h - 1, w-right_width, f"{cursor_disp_str:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
 
         self.stdscr.refresh()
+
+class NoFooter(Footer):
+    def __init__(self, stdscr, colours_start, get_state_function):
+        """
+        stdscr: curses screen object
+        colours_start: base colour pair index
+        get_state_callback: function that returns a dict with all required data for rendering
+        """
+        self.stdscr = stdscr
+        self.colours_start = colours_start
+        self.get_state = get_state_function
+        self.height = 0
+    def draw(self, h, w):
+        state = self.get_state()
+        if state["footer_string"]:
+            footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
+            disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))

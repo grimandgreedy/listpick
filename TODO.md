@@ -191,6 +191,8 @@ ASAP
 > - [ ] Increase max_column_width when the full width of the terminal is not taken up but the data of some columns is truncated.
 > - [ ] Numerical sort has blank rows at the top when we sort by ascending order.
 >   - [ ] Is this the way it should be??? They will be sorted to the top in either asc. or desc. ...
+> - Settings:
+>  - settings are split by spaces so we currently can't do, say, 'th 3', because it separates 'th' from '3' and applies them separately.
 
 
 > [!Bug] Bugs

@@ -33,7 +33,7 @@ from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_
 from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
-from listpick.ui.footer import StandardFooter, CompactFooter
+from listpick.ui.footer import StandardFooter, CompactFooter, NoFooter
 
 
 try:
@@ -235,6 +235,7 @@ class Picker:
         self.footer_string_refresh_function = footer_string_refresh_function
         self.footer_timer = footer_timer
         self.get_footer_string_startup = get_footer_string_startup,
+        self.footer = CompactFooter(self.stdscr, colours_start, self.get_function_data)
 
 
         self.colours_start = colours_start
@@ -281,6 +282,44 @@ class Picker:
 
 
         curses.set_escdelay(25)
+        if curses.has_colors() and self.colours != None:
+            # raise Exception("Terminal does not support color")
+            curses.start_color()
+            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+            if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
+                self.colours_start = self.colours_start
+                self.notification_colours_start = self.colours_start+50
+                self.help_colours_start = self.colours_start+100
+            else:
+                self.colours_start = 0
+                self.notification_colours_start = 0
+                self.help_colours_start = 0
+
+
+    def calculate_section_sizes(self):
+        """
+        Calculte the following for the Picker:
+        self.items_per_page: the number of entry rows displayed
+        self.bottom_space: the size of the footer + the bottom buffer space
+        self.top_space: the size of the space at the top of the picker: title + modes + header + top_gap
+        """
+        h, w = self.stdscr.getmaxyx()
+        self.top_space = self.top_gap
+        if self.title: self.top_space+=1
+        if self.display_modes: self.top_space+=1
+        if self.header: self.top_space += 1
+
+        self.bottom_space = self.footer.height if self.show_footer else 0
+
+        self.items_per_page = h - self.top_space - self.bottom_space
+        if not self.show_footer and self.footer_string: self.items_per_page-=1
+        self.items_per_page = min(h-self.top_space-1, self.items_per_page)
+
+
+        if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
+            self.top_space += (self.items_per_page - len(self.indexed_items)) //2 
+
+
 
 
     def initialise_variables(self, get_data: bool = False) -> None:
@@ -315,15 +354,8 @@ class Picker:
 
         # Constants
         # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
-        top_space = self.top_gap
-        if self.title: top_space+=1
-        if self.display_modes: top_space+=1
 
-        h, w = self.stdscr.getmaxyx()
-
-        self.items_per_page = h - top_space-int(bool(self.header)) - 3*int(bool(self.show_footer))
-        if not self.show_footer and self.footer_string: self.items_per_page-=1
-        self.items_per_page = min(h-top_space-2, self.items_per_page)
+        self.calculate_section_sizes()
 
 
 
@@ -456,14 +488,11 @@ class Picker:
             self.stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
             return None
 
-        top_space = self.top_gap
-        if self.title: top_space+=1
-        if self.display_modes: top_space+=1
+        # top_space = self.top_gap
+        # if self.title: top_space+=1
+        # if self.display_modes: top_space+=1
 
-        self.items_per_page = h - top_space-int(bool(self.header)) - 3*int(bool(self.show_footer))
-        if not self.show_footer and self.footer_string: self.items_per_page-=1
-        self.items_per_page = min(h-top_space-2, self.items_per_page)
-
+        self.calculate_section_sizes()
 
         # Determine which rows are to be displayed on the current screen
         ## Paginate
@@ -489,7 +518,7 @@ class Picker:
         if visible_columns_total_width < w and self.centre_in_terminal:
             startx += (w - visible_columns_total_width) // 2
         
-        top_space = self.top_gap
+        # top_space = self.top_gap
 
         ## Display title (if applicable)
         if self.title:
@@ -498,11 +527,11 @@ class Picker:
             title_x = (w-wcswidth(padded_title))//2
             # title = f"{title:^{w}}"
             self.stdscr.addstr(self.top_gap, title_x, padded_title, curses.color_pair(self.colours_start+16) | curses.A_BOLD)
-            top_space += 1
+            # top_space += 1
 
         ## Display modes
         if self.display_modes and self.modes not in [[{}], []]:
-            self.stdscr.addstr(top_space, 0, ' '*w, curses.A_REVERSE)
+            self.stdscr.addstr(self.top_gap+1, 0, ' '*w, curses.A_REVERSE)
             modes_list = [f"{mode['name']}" if 'name' in mode else f"{i}. " for i, mode in enumerate(self.modes)]
             # mode_colours = [mode["colour"] for mode ]
             mode_widths = get_mode_widths(modes_list)
@@ -515,12 +544,12 @@ class Picker:
                     mode_str = f"{mode:^{mode_widths[i]+split_space}}"
                 # current mode
                 if i == self.mode_index:
-                    self.stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(self.colours_start+14) | curses.A_BOLD)
+                    self.stdscr.addstr(self.top_gap+1, xmode, mode_str, curses.color_pair(self.colours_start+14) | curses.A_BOLD)
                 # other modes
                 else:
-                    self.stdscr.addstr(top_space, xmode, mode_str, curses.color_pair(self.colours_start+15) | curses.A_UNDERLINE)
+                    self.stdscr.addstr(self.top_gap+1, xmode, mode_str, curses.color_pair(self.colours_start+15) | curses.A_UNDERLINE)
                 xmode += split_space+mode_widths[i]
-            top_space += 1
+            # top_space += 1
 
         ## Display header
         if self.header:
@@ -537,8 +566,9 @@ class Picker:
                 header_str += self.separator
 
             header_str = header_str[self.leftmost_char:]
-            self.stdscr.addstr(top_space, 0, ' '*w, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
-            self.stdscr.addstr(top_space, startx, header_str[:min(w-startx, visible_columns_total_width+1)], curses.color_pair(self.colours_start+4) | curses.A_BOLD)
+            header_ypos = self.top_gap + bool(self.title) + bool(self.display_modes)
+            self.stdscr.addstr(header_ypos, 0, ' '*w, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
+            self.stdscr.addstr(header_ypos, startx, header_str[:min(w-startx, visible_columns_total_width+1)], curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
             try:
@@ -553,17 +583,15 @@ class Picker:
                         highlighted_col_str = (number+f"{self.header[self.sort_column]:^{self.column_widths[self.sort_column]-len(number)}}") + self.separator
                         end_of_highlighted_col_str = w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > w else len(highlighted_col_str)
                         start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
-                        self.stdscr.addstr(top_space, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                        self.stdscr.addstr(header_ypos, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
             except:
                 pass
                 
-        if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
-            top_space += (self.items_per_page - len(self.indexed_items)) //2 
 
         ## Display rows and highlights
         for idx in range(start_index, end_index):
             item = self.indexed_items[idx]
-            y = idx - start_index + top_space + int(bool(self.header))
+            y = idx - start_index + self.top_space
 
             row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
             # row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
@@ -643,15 +671,15 @@ class Picker:
         if self.scroll_bar and len(self.indexed_items) and len(self.indexed_items) > (self.items_per_page):
             scroll_bar_length = int(self.items_per_page*self.items_per_page/len(self.indexed_items))
             if self.cursor_pos <= self.items_per_page//2:
-                scroll_bar_start=top_space+int(bool(self.header))
+                scroll_bar_start=self.top_space
             elif self.cursor_pos + self.items_per_page//2 >= len(self.indexed_items):
                 scroll_bar_start = h - int(bool(self.show_footer))*3 - scroll_bar_length
             else:
-                scroll_bar_start = int(((self.cursor_pos)/len(self.indexed_items))*self.items_per_page)+top_space+int(bool(self.header)) - scroll_bar_length//2
+                scroll_bar_start = int(((self.cursor_pos)/len(self.indexed_items))*self.items_per_page)+self.top_space+int(bool(self.header)) - scroll_bar_length//2
             scroll_bar_length = min(scroll_bar_length, h - scroll_bar_start-1)
             scroll_bar_length = max(1, scroll_bar_length)
             for i in range(scroll_bar_length):
-                v = max(top_space+int(bool(self.header)), scroll_bar_start-scroll_bar_length//2)
+                v = max(self.top_space+int(bool(self.header)), scroll_bar_start-scroll_bar_length//2)
                 self.stdscr.addstr(scroll_bar_start+i, w-1, ' ', curses.color_pair(self.colours_start+18))
 
         # Display refresh symbol
@@ -663,10 +691,10 @@ class Picker:
 
         ## Display footer
         if self.show_footer:
-            # footer = StandardFooter(self.stdscr, self.colours_start, self.get_function_data)
-            footer = StandardFooter(self.stdscr, self.colours_start, self.get_function_data)
+            # self.footer = NoFooter(self.stdscr, self.colours_start, self.get_function_data)
             h, w = self.stdscr.getmaxyx()
-            footer.draw(h, w)
+            self.footer.draw(h, w)
+
             # # Fill background
             # self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
             # self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
@@ -773,6 +801,8 @@ class Picker:
         function_data = {
             "selections":                       self.selections,
             "items_per_page":                   self.items_per_page,
+            "self.top_space":                   self.top_space,
+            "self.bottom_space":                self.bottom_space,
             "current_row":                      self.current_row,
             "current_page":                     self.current_page,
             "cursor_pos":                       self.cursor_pos,
@@ -880,6 +910,8 @@ class Picker:
         self.items = [item for i, item in enumerate(self.items) if i not in selected_indices]
         self.indexed_items = [(i, item) for i, item in enumerate(self.items)]
         self.selections = {i:False for i in range(len(self.indexed_items))}
+        self.cursor_pos = min(self.cursor_pos, len(self.indexed_items)-1)
+        self.initialise_variables()
         self.draw_screen(self.indexed_items, self.highlights)
 
 
@@ -1083,18 +1115,30 @@ class Picker:
                         self.highlights.append(highlight)
                         
                         
-                elif setting == "th":
+                elif setting.startswith("th"):
+                    global COLOURS_SET
                     if curses.COLORS < 255:
                         self.notification(self.stdscr, message=f"Theme 4 applied.")
-                    else:
 
-                        global COLOURS_SET
+                    elif setting[2:].strip().isnumeric():
+                        COLOURS_SET = False
+                        try:
+                            theme_number = int(setting[2:].strip())
+                            self.colour_theme_number = min(get_theme_count()-1, theme_number)
+                            set_colours(self.colour_theme_number)
+                            self.draw_screen(self.indexed_items, self.highlights)
+                            self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
+                        except:
+                            pass
+                    else:
                         COLOURS_SET = False
                         self.colour_theme_number = (self.colour_theme_number + 1)%get_theme_count()
                         # self.colour_theme_number = int(not bool(self.colour_theme_number))
                         set_colours(self.colour_theme_number)
                         self.draw_screen(self.indexed_items, self.highlights)
                         self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
+
+
                 else:
                     self.user_settings = ""
                     return None
@@ -1365,21 +1409,11 @@ class Picker:
 
         return True
 
+    def loading_screen(self, text: str):
+        pass
 
 
     def run(self) -> Tuple[list[int], str, dict]:
-        if curses.has_colors() and self.colours != None:
-            # raise Exception("Terminal does not support color")
-            curses.start_color()
-            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
-            if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
-                self.colours_start = self.colours_start
-                self.notification_colours_start = self.colours_start+50
-                self.help_colours_start = self.colours_start+100
-            else:
-                self.colours_start = 0
-                self.notification_colours_start = 0
-                self.help_colours_start = 0
 
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
             self.footer_string = self.footer_string_refresh_function()
@@ -1829,14 +1863,8 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif key == curses.KEY_RESIZE:  # Terminal resize signal
-                top_space = self.top_gap
-                h, w = self.stdscr.getmaxyx()
-                if self.title: top_space+=1
-                if self.display_modes: top_space+=1
 
-                self.items_per_page = h - top_space-int(bool(self.header)) - 3*int(bool(self.show_footer))
-                if not self.show_footer and self.footer_string: self.items_per_page-=1
-                self.items_per_page = max(min(h-top_space-2, self.items_per_page), 0)
+                self.calculate_section_sizes()
                 self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
 
                 self.draw_screen(self.indexed_items, self.highlights)
@@ -1844,12 +1872,7 @@ class Picker:
 
             elif key == ord('r'):
                 # Refresh
-                top_space = self.top_gap +  int(bool(self.display_modes)) + int(bool(self.title)) + int(bool(self.header))
-                bottom_space = 3*int(bool(self.show_footer))
-                self.items_per_page = os.get_terminal_size().lines - top_space
-
-                h, w = self.stdscr.getmaxyx()
-                self.items_per_page = h - top_space - bottom_space
+                self.calculate_section_sizes()
                 self.stdscr.refresh()
 
             elif self.check_key("filter_input", key, self.keys_dict):
@@ -2076,6 +2099,7 @@ class Picker:
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_pipes,
                 )
+
                 if return_val:
                     selected_indices = get_selected_indices(self.selections)
                     self.history_pipes.append(usrtxt)
@@ -2086,6 +2110,10 @@ class Picker:
                     full_values = [self.items[i][self.sort_column] for i in selected_indices]
                     if full_values:
                         command = usrtxt.split()
+                        # command = ['xargs', '-d' , '"\n"' '-I', '{}', 'mpv', '{}']
+                        # command = ['xargs', '-d' , '"\n"' '-I', '{}', 'mpv', '{}']
+                        # command = "xargs -d '\n' -I{} mpv {}"
+
                         try:
                             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -2191,7 +2219,8 @@ class Picker:
 
 
 def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
-    """ Initialise curses colour pairs using dictionary with colour keys. """
+    """ Initialise curses colour pairs from dictionary. """
+
     global COLOURS_SET, notification_colours, help_colours
     if COLOURS_SET: return None
     if start == None: start = 0
@@ -2296,7 +2325,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
     return start+21
 
 def parse_arguments() -> Tuple[argparse.Namespace, dict]:
-    """ Parse arguments. """
+    """ Parse command line arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
     parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
     parser.add_argument('--load', '-l', dest='load', type=str, help='Load file from Picker dump.')
@@ -2346,17 +2375,19 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     return args, function_data
 
 def start_curses() -> curses.window:
+    """ Initialise curses and return curses window. """
     stdscr = curses.initscr()
     curses.start_color()
-    curses.use_default_colors()
+    curses.use_default_colors() # For terminal theme-recolouring
     curses.noecho()  # Turn off automatic echoing of keys to the screen
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
-    stdscr.keypad(True)
-    curses.raw()
+    stdscr.keypad(True) # Ensures that arrow and function keys are received as one key by getch
+    curses.raw() # Disable control keys (ctrl-c, ctrl-s, ctrl-q, etc.)
 
     return stdscr
 
 def close_curses(stdscr: curses.window) -> None:
+    """ Close curses. """
     stdscr.keypad(False)
     curses.nocbreak()
     curses.noraw()
@@ -2364,17 +2395,20 @@ def close_curses(stdscr: curses.window) -> None:
     curses.endwin()
 
 def restrict_curses(stdscr: curses.window) -> None:
+    """ Restrict curses for normal input. Used when dropping to ipython. """
     stdscr.keypad(False)
     curses.nocbreak()
     curses.noraw()
     curses.echo()
 
 def unrestrict_curses(stdscr: curses.window) -> None:
+    """ Unrestrict curses for terminal input. Used after dropping to ipython. """
     curses.noecho()  # Turn off automatic echoing of keys to the screen
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
     stdscr.keypad(True)
 
 def main() -> None:
+    """ Main function when listpick is executed. Deals with command line arguments and starts a Picker. """
     args, function_data = parse_arguments()
 
     try:

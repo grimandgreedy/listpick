@@ -157,8 +157,8 @@ listpick -g ./examples/video_duplicates.toml
    - Toggle highlights
 
 15. Pipe the data from the selected rows in the focussed column to a bash command ('|')
-   - By default when you press '|' it will fill the input field with `xargs -d '\n' -I {} `. You can remove this if you like (^U).
-   - If you add `notify-send {}` to this it will display notifications containing the data from the current column 
+   - By default when you press '|' it will fill the input field with `xargs `. You can remove this if you like (^U).
+   - For example, if you run `xargs -d '\n' -I {} notify-send {}` to this it will display notifications containing the data from the current column 
    - Useful for:
        - Opening files with a specific application `xargs -d \n -I{} mpv {}` will open the files in mpv
        - Dumping data. `xargs -d \n -I{} echo {} > ~/stuff.txt`

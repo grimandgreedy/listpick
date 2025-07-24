@@ -1,15 +1,20 @@
 # CHANGELOG.md
-## [0.1.12] 2025-??
+## [0.1.12] 2025-07-25
+ - The Picker now supports different footer options. Three options have been added:
+   - StandardFooter
+   - CompactFooter
+   - NoFooter
+ - Added input field history for search and filter, pipe, settings, and opts. 
  - Fixed instacrash when a terminal doesn't have 8bit colour support.
  - Created a fallback colour theme for terminals with < 256 colours available.
  - Fixed bug when scrollbar doesn't show with several thousand entries. Ensured it is always at least 1 character high.
- - Added input field history for search and filter, pipe, settings, and opts. 
+ - Fixed colour configuration errors on some terminals by setting curses.use_default_colours().
  - Added save and load history functions.
  - Can now load full Picker from pickled save state.
  - Fixed size of option-picker dialogue.
  - Added the ability to add highlights from the settings input.
    - hl,.*,3,8: highlight field 3
- - Fixed colour configuration errors on some terminals by setting curses.use_default_colours().
+ - Can now select theme with th# in settings; th still cycles as before.
 
 ## [0.1.11] 2025-07-13
  - Greatly improved the input_field
