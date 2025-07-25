@@ -122,7 +122,7 @@ class Picker:
         disabled_keys: list=[],
 
         show_header: bool = True,
-        show_row_header: bool = True,
+        show_row_header: bool = False,
         show_footer: bool =True,
         footer_style: int = 0,
         footer_string: str="",
@@ -314,6 +314,9 @@ class Picker:
         self.bottom_space: the size of the footer + the bottom buffer space
         self.top_space: the size of the space at the top of the picker: title + modes + header + top_gap
         """
+        # self.bottom_space
+        self.bottom_space = self.footer.height if self.show_footer else 0
+
         ## self.top_space
         h, w = self.stdscr.getmaxyx()
         self.top_space = self.top_gap
@@ -321,10 +324,7 @@ class Picker:
         if self.display_modes: self.top_space+=1
         if self.header: self.top_space += 1
         if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
-            self.top_space += (self.items_per_page - len(self.indexed_items)) //2 
-
-        # self.bottom_space
-        self.bottom_space = self.footer.height if self.show_footer else 0
+            self.top_space = ((h-(self.top_space+self.top_space))-len(self.indexed_items))//2
 
         # self.items_per_page
         self.items_per_page = h - self.top_space - self.bottom_space

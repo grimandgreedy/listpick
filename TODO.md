@@ -153,6 +153,7 @@ ASAP
 >      - [x] history support
 >      - [x] add variable max display length
 >      - [x] Fix variable x,y position
+>   - [ ] Add auto-complete popup list.
 > - [ ] Highlights
 >   - [ ] (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
 >     - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
