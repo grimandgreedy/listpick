@@ -1827,9 +1827,7 @@ class Picker:
                     self.leftmost_char = sum(visible_column_widths[:self.sort_column+1])+len(self.separator)*(self.sort_column+1) - (w-self.startx)
                 elif sum(visible_column_widths[:self.sort_column+1])+len(self.separator)*self.sort_column - self.leftmost_char < 0:
                     self.leftmost_char = sum(visible_column_widths[:self.sort_column])+len(self.separator)*self.sort_column
-                self.leftmost_char = min(sum(visible_column_widths)+len(self.separator)*len(visible_column_widths) - w + self.startx, self.leftmost_char)
-                # if sum(visible_column_widths[:self.sort_column+1])-self.leftmost_char >= w - self.startx:
-                #     self.leftmost_char = sum(visible_column_widths[:self.sort_column])
+                self.leftmost_char = max(0, min(sum(visible_column_widths)+len(self.separator)*len(visible_column_widths) - w + self.startx, self.leftmost_char))
 
             elif self.check_key("col_select_prev", key, self.keys_dict):
                 if len(self.items) > 0 and len(self.items[0]) > 0:
@@ -1852,7 +1850,7 @@ class Picker:
                     self.leftmost_char = sum(visible_column_widths[:self.sort_column])+len(self.separator)*self.sort_column
                 elif sum(visible_column_widths[:self.sort_column+1])+len(self.separator)*self.sort_column - self.leftmost_char <= 0:
                     self.leftmost_char = sum(visible_column_widths[:self.sort_column])+len(self.separator)*self.sort_column
-                self.leftmost_char = min(sum(visible_column_widths)+len(self.separator)*len(visible_column_widths) - w + self.startx, self.leftmost_char)
+                self.leftmost_char = max(0, min(sum(visible_column_widths)+len(self.separator)*len(visible_column_widths) - w + self.startx, self.leftmost_char))
 
             elif self.check_key("scroll_right", key, self.keys_dict):
                 h, w = self.stdscr.getmaxyx()

@@ -203,7 +203,8 @@ ASAP
 >   - [ ] Is this the way it should be??? They will be sorted to the top in either asc. or desc. ...
 > - Settings:
 >  - settings are split by spaces so we currently can't do, say, 'th 3', because it separates 'th' from '3' and applies them separately.
-> - [ ] Scroll to left/right when selected column moves off screen.
+> - [x] Scroll to left/right when selected column moves off screen.
+>   - [ ] Buggy when we have hidden columns.
 
 
 > [!Bug] Bugs
