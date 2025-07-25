@@ -114,11 +114,23 @@ class StandardFooter(Footer):
         self.stdscr.addstr(h - 2, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
 
         if state["footer_string"]:
-            footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
-            footer_string = state['footer_string'][:footer_string_width-1]
-            disp_string = f"{footer_string:>{footer_string_width-1}} "
+            # footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
+            # disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
+            # self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            # self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+
+            # disp_string = f"{footer_string:>{footer_string_width-1}} "
+            # self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            # self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+
+            footer_string_width = min(w-1, len(state["footer_string"])+2)
+
+            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f" {disp_string:>{footer_string_width-2}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+        
+
         else:
             select_mode = "Cursor"
             if state["is_selecting"]: select_mode = "Visual Selection"
@@ -178,11 +190,12 @@ class CompactFooter(Footer):
         # self.stdscr.addstr(h - 2, w-right_width, f"{sort_disp_str:>{right_width-1}}", curses.color_pair(self.colours_start+20))
 
         if state["footer_string"]:
-            footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
-            disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
+            footer_string_width = min(w-1, len(state["footer_string"])+2)
+
+            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f" {disp_string:>{footer_string_width-2}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-            # self.stdscr.addstr(h - 2, w-right_width, f"{disp_string:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
             selected_count = sum(state["selections"].values())
             if state["paginate"]:
                 cursor_disp_str = f" {state['cursor_pos']+1}/{len(state['indexed_items'])}  Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])}  Selected {selected_count}"
@@ -213,12 +226,6 @@ class NoFooter(Footer):
         self.height = 0
     def draw(self, h, w):
         state = self.get_state()
-        if state["footer_string"]:
-            footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
-            disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
-            self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-            self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-            self.height = 1
 
         if state["search_query"]: self.height = 3
         elif state["filter_query"]: self.height = 2
@@ -236,3 +243,11 @@ class NoFooter(Footer):
         if state["search_query"]:
             self.stdscr.addstr(h - 3, 2, f" Search: {state['search_query']} [{state['search_index']}/{state['search_count']}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
             self.height = 3
+
+
+        if state["footer_string"]:
+            footer_string_width = min(w-1, len(state["footer_string"])+2)
+            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f" {disp_string:>{footer_string_width-2}} "
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))

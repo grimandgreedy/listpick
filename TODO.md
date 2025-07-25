@@ -104,6 +104,8 @@ ASAP
 > - [ ] Implement config loading
 >   - [ ] Allow config to be passed as an argument.
 > - [ ] Make aria2tui compatible with windows.
+> - [ ] Add different highlight styles:
+>   - [ ] highlight cell
 
 
 
@@ -200,6 +202,7 @@ ASAP
 >   - [ ] Is this the way it should be??? They will be sorted to the top in either asc. or desc. ...
 > - Settings:
 >  - settings are split by spaces so we currently can't do, say, 'th 3', because it separates 'th' from '3' and applies them separately.
+> - [ ] Scroll to left/right when selected column moves off screen.
 
 
 > [!Bug] Bugs
@@ -244,13 +247,14 @@ ASAP
 > - [x] (!!!) When search has no matches it still shows the previous matched search numbers ([3/8])
 > - [ ] When the number of items in the infobox display is longer than the infobox there is a crash.
 >   - [x] Limited the number of lines displayed so that there will not be a crash, but still not entirely sure why it happens.
-> - [ ] Resizing when footer is hidden causes issues.
+> - [x] Resizing when footer is hidden causes issues.
 >   - [x] This is largely fixed but still sometimes when the number of lines is decreased there is still an issue and even occasionally we get a crash.
+>   - [x] Fixed. No resizing issues for several versions.
 >   - [x] The issue was not setting the number of lines correctly after key=curses.KEY_RESIZE was detected.
 > - [ ] Importing IPython causes errors with registering keys.
 >   - [x] Limited the damage by only importing when the edit_python key is pressed.
 > - [ ] When adding torrents/opening nvim sometimes there are still artifacts after we return to the Picker.
->  - [ ] Add a clear_on_start flag to Picker(), if not true then simply erase
+>  - [x] Add a clear_on_start flag to Picker(), if not true then simply erase
 > - [ ] Sometimes the scroll wheel scrolls up in the terminal.
 > - [x] nvim shows search error sometimes
 >   - [x] Removed the search. It seems unnecessary.

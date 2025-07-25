@@ -2,6 +2,8 @@
 ## [0.1.13] 2025-??
  - Added footer_style class variable which can be given to select the footer style. Currently supports StandardFooter, CompactFooter, and NoFooter.
  - Fixed bug which showed a distorted footer when the footer string was one char longer than the width of the terminal.
+ - Can now display a left-justified column indicating the row numbers (show_row_header)
+ - Selecting column to the left or right now scrolls the selected column into view.
 
 ## [0.1.12] 2025-07-25
  - The Picker now supports different footer options. Three options have been added:
