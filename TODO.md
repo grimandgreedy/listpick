@@ -80,12 +80,18 @@ ASAP
 >     - [ ] json
 > - [ ] Merge data sets/look at two datasets at once
 > - [ ] Add the ability to add tooltips
+>   - [ ] Such as??
 > - [ ] Add the ability to edit the data
 >   - [x] Edit focused cell.
 >   - [x] Open ipython console.
-> - [ ] Implement command stack.
+> - [x] Implement command stack.
 >   - [ ] '.' for redo 'u' for undo
-> - [ ] Add footer styles.
+>     - [x] Implemented for settings
+> - [x] Add footer styles.
+>   - [x] StandardFooter
+>   - [x] CompactFooter
+>     - [ ] Search and Filter input fields look weird with the compact footer...
+>   - [x] NoFooter
 > - [ ] leftmost column 
 > - [ ] Hiding columns when moved to the far right doesn't move us back.
 >   - [ ] Check for leftmost_char when hiding columns
@@ -97,6 +103,7 @@ ASAP
 >   - [ ] e.g., ctrl+shift+r turns off auto refresh
 > - [ ] Implement config loading
 >   - [ ] Allow config to be passed as an argument.
+> - [ ] Make aria2tui compatible with windows.
 
 
 

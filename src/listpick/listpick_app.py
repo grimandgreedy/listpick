@@ -123,7 +123,7 @@ class Picker:
 
         show_header: bool = False,
         show_footer: bool =True,
-        footer_style: int = 1,
+        footer_style: int = 0,
         footer_string: str="",
         footer_string_auto_refresh: bool=False,
         footer_string_refresh_function: Optional[Callable] = None,
@@ -235,7 +235,13 @@ class Picker:
         self.footer_string_refresh_function = footer_string_refresh_function
         self.footer_timer = footer_timer
         self.get_footer_string_startup = get_footer_string_startup,
-        self.footer = CompactFooter(self.stdscr, colours_start, self.get_function_data)
+
+        # self.footer_options = [StandardFooter, CompactFooter, NoFooter]
+        # self.footer = self.footer_options[self.footer_style](self.stdscr, colours_start, self.get_function_data)
+        self.footer_options = [StandardFooter(self.stdscr, colours_start, self.get_function_data), CompactFooter(self.stdscr, colours_start, self.get_function_data), NoFooter(self.stdscr, colours_start, self.get_function_data)]
+        self.footer = self.footer_options[self.footer_style]
+
+        # self.footer = CompactFooter(self.stdscr, colours_start, self.get_function_data)
 
 
         self.colours_start = colours_start
@@ -281,7 +287,11 @@ class Picker:
         self.history_edits = history_edits
 
 
-        curses.set_escdelay(25)
+        # No set_escdelay function on windows.
+        try:
+            curses.set_escdelay(25)
+        except:
+            pass
         if curses.has_colors() and self.colours != None:
             # raise Exception("Terminal does not support color")
             curses.start_color()
@@ -693,7 +703,10 @@ class Picker:
         if self.show_footer:
             # self.footer = NoFooter(self.stdscr, self.colours_start, self.get_function_data)
             h, w = self.stdscr.getmaxyx()
-            self.footer.draw(h, w)
+            try:
+                self.footer.draw(h, w)
+            except:
+                pass
 
             # # Fill background
             # self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
@@ -801,8 +814,6 @@ class Picker:
         function_data = {
             "selections":                       self.selections,
             "items_per_page":                   self.items_per_page,
-            "self.top_space":                   self.top_space,
-            "self.bottom_space":                self.bottom_space,
             "current_row":                      self.current_row,
             "current_page":                     self.current_page,
             "cursor_pos":                       self.cursor_pos,
@@ -849,6 +860,7 @@ class Picker:
             "footer_string_auto_refresh":       self.footer_string_auto_refresh,
             "footer_string_refresh_function":   self.footer_string_refresh_function,
             "footer_timer":                     self.footer_timer,
+            "footer_style":                     self.footer_style,
             "colours_start":                    self.colours_start,
             "colours_end":                      self.colours_end,
             "display_only":                     self.display_only,
@@ -1085,6 +1097,17 @@ class Picker:
                     cols = setting[1:].split(",")
                 elif setting == "footer":
                     self.show_footer = not self.show_footer
+                    self.initialise_variables()
+
+                elif setting.startswith("ft"):
+                    if len(setting) > 2 and setting[2:].isnumeric():
+                        
+                        num = int(setting[2:])
+                        self.footer_style = max(len(self.footer_options)-1, num)
+                        self.footer = self.footer_options[self.footer_style]
+                    else:
+                        self.footer_style = (self.footer_style+1)%len(self.footer_options)
+                        self.footer = self.footer_options[self.footer_style]
                     self.initialise_variables()
 
                 elif setting.startswith("cwd="):
@@ -1544,7 +1567,7 @@ class Picker:
             elif self.check_key("settings_input", key, self.keys_dict):
                 usrtxt = f"{self.user_settings.strip()} " if self.user_settings else ""
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
@@ -1574,9 +1597,10 @@ class Picker:
                     options += [["ct", "Centre column-set in terminal"]]
                     options += [["cc", "Centre values in cells"]]
                     options += [["!r", "Toggle auto-refresh"]]
-                    options += [["th", "Cycle between themes"]]
+                    options += [["th", "Cycle between themes. (accepts th#)"]]
                     options += [["nohl", "Toggle highlights"]]
                     options += [["footer", "Toggle footer"]]
+                    options += [["ft", "Cycle through footer styles (accepts ft#)"]]
                     options += [[f"s{i}", f"Select col. {i}"] for i in range(len(self.items[0]))]
                     options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(self.items[0]))]
 
@@ -1880,7 +1904,7 @@ class Picker:
                 usrtxt = f"{self.filter_query} " if self.filter_query else ""
                 h, w = self.stdscr.getmaxyx()
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
@@ -1919,7 +1943,7 @@ class Picker:
                 usrtxt = f"{self.search_query} " if self.search_query else ""
                 h, w = self.stdscr.getmaxyx()
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                if self.show_footer and self.footer.height >= 3: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
@@ -2021,7 +2045,7 @@ class Picker:
             elif self.check_key("opts_input", key, self.keys_dict):
                 usrtxt = f"{self.user_opts} " if self.user_opts else ""
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                if self.show_footer and self.footer.height >= 1: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
@@ -2084,7 +2108,7 @@ class Picker:
                 # usrtxt = "xargs -d '\n' -I{}  "
                 usrtxt = "xargs "
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
@@ -2147,7 +2171,7 @@ class Picker:
                     current_val = self.indexed_items[self.cursor_pos][1][self.sort_column]
                     usrtxt = f"{current_val}"
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                    if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                     self.set_registers()
                     usrtxt, return_val = input_field(
@@ -2170,7 +2194,7 @@ class Picker:
                     current_val = self.indexed_items[self.cursor_pos][1][self.sort_column]
                     usrtxt = f"{current_val}"
                     field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                    if self.show_footer: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
+                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                     self.set_registers()
                     usrtxt, return_val = input_field(

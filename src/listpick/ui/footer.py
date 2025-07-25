@@ -115,7 +115,8 @@ class StandardFooter(Footer):
 
         if state["footer_string"]:
             footer_string_width = min(w-1, max(len(state["footer_string"]), 50))
-            disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
+            footer_string = state['footer_string'][:footer_string_width-1]
+            disp_string = f"{footer_string:>{footer_string_width-1}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
         else:
@@ -146,21 +147,26 @@ class CompactFooter(Footer):
         self.stdscr = stdscr
         self.colours_start = colours_start
         self.get_state = get_state_function
-        self.height = 2
+        self.height = 1
 
     def draw(self, h, w):
         state = self.get_state()
 
         # Fill background
-        for i in range(1):
+        if state["search_query"]: self.height = 3
+        elif state["filter_query"]: self.height = 2
+        elif state["user_opts"]: self.height = 1
+        elif state["footer_string"]: self.height = 2
+        else: self.height = 1
+        for i in range(self.height):
             self.stdscr.addstr(h-(i+1), 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
 
+        if state["user_opts"]:
+            self.stdscr.addstr(h - 1, 2, f" Opts: {state['user_opts']} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
         if state["filter_query"]:
             self.stdscr.addstr(h - 2, 2, f" Filter: {state['filter_query']} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
         if state["search_query"]:
             self.stdscr.addstr(h - 3, 2, f" Search: {state['search_query']} [{state['search_index']}/{state['search_count']}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-        if state["user_opts"]:
-            self.stdscr.addstr(h - 1, 2, f" Opts: {state['user_opts']} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
 
         right_width = 40
         # Sort info
@@ -182,7 +188,6 @@ class CompactFooter(Footer):
                 cursor_disp_str = f" {state['cursor_pos']+1}/{len(state['indexed_items'])}  Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])}  Selected {selected_count}"
             else:
                 cursor_disp_str = f"{sort_disp_str} [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])}"
-            self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
             self.stdscr.addstr(h-2, w-right_width, f"{cursor_disp_str:>{right_width-2}}"[:right_width-1], curses.color_pair(self.colours_start+20))
         else:
             # Cursor & selection info
@@ -213,3 +218,21 @@ class NoFooter(Footer):
             disp_string = f"{state['footer_string'][:footer_string_width]:>{footer_string_width-1}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+            self.height = 1
+
+        if state["search_query"]: self.height = 3
+        elif state["filter_query"]: self.height = 2
+        elif state["user_opts"]: self.height = 1
+        elif state["footer_string"]: self.height = 1
+        else: self.height = 0
+
+        for i in range(self.height):
+            self.stdscr.addstr(h-(i+1), 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
+
+        if state["user_opts"]:
+            self.stdscr.addstr(h - 1, 2, f" Opts: {state['user_opts']} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+        if state["filter_query"]:
+            self.stdscr.addstr(h - 2, 2, f" Filter: {state['filter_query']} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+        if state["search_query"]:
+            self.stdscr.addstr(h - 3, 2, f" Search: {state['search_query']} [{state['search_index']}/{state['search_count']}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
+            self.height = 3

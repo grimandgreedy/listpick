@@ -1,4 +1,8 @@
 # CHANGELOG.md
+## [0.1.13] 2025-??
+ - Added footer_style class variable which can be given to select the footer style. Currently supports StandardFooter, CompactFooter, and NoFooter.
+ - Fixed bug which showed a distorted footer when the footer string was one char longer than the width of the terminal.
+
 ## [0.1.12] 2025-07-25
  - The Picker now supports different footer options. Three options have been added:
    - StandardFooter
