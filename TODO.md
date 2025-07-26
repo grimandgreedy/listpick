@@ -105,7 +105,9 @@ ASAP
 >   - [ ] Allow config to be passed as an argument.
 > - [ ] Make aria2tui compatible with windows.
 > - [ ] Add different highlight styles:
->   - [ ] highlight cell
+>   - [x] highlight cell
+>    - [x] Doesn't work properly when centered in cell.
+>     - [x] Fixed.
 > - [x] Add popup list when auto-completing in the input_field.
 
 
@@ -219,7 +221,11 @@ ASAP
 >   - [ ] Add list of commands to word autocomplete.
 > - [x] Scroll to left/right when selected column moves off screen.
 >   - [ ] Buggy when we have hidden columns.
-
+> - [ ] Should H/L not only scroll to the end but also select the first/last column?
+>   - [ ] Should we allow a key to perform more than one function?
+> - [ ] Add cell-wise visual selection (cell_cursor):
+>   - [ ] remember column when visual selection starts
+>   - [ ] Display each highlighted in draw_screen()
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active
@@ -279,6 +285,8 @@ ASAP
 > - [x] Extremely slow when searching a large number of rows...
 >   - [x] Fixed. Was caused by adding every matched index to the highlights.
 > - [ ] Problem with resizing after entering ipython interactive mode.
+> - [ ] Adding row when there are no columns causes a crash.
+> - [ ] centre_in_cols doesn't seem to centre the values properly. They are to the left of the cell.
 
 
 

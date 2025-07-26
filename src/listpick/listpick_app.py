@@ -2649,6 +2649,7 @@ def main() -> None:
     ]
     function_data["cell_cursor"] = True
     function_data["display_modes"] = True
+    function_data["centre_in_cols"] = True
     # function_data["highlight_full_row"] = True
     stdscr = start_curses()
     try:
