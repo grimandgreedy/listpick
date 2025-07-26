@@ -101,7 +101,7 @@ class Picker:
 
         selections: dict = {},
         highlight_full_row: bool =False,
-        cell_cursor: bool = True,
+        cell_cursor: bool = False,
 
         items_per_page : int = -1,
         sort_method : int = 0,
@@ -652,7 +652,10 @@ class Picker:
                     try:
                         if self.startx <= cell_pos <= w:
                             self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], curses.color_pair(self.colours_start+5))
-                            cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column] + self.separator
+                            if self.centre_in_cols:
+                                cell_value = f"{self.indexed_items[self.cursor_pos][1][self.sort_column]:^{cell_width}}" + self.separator
+                            else:
+                                cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column] + self.separator
                             cell_value = cell_value[:min(cell_width, cell_max_width)]
                             self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+5) | curses.A_BOLD)
                         elif self.startx <= cell_pos+cell_width <= w:
@@ -2644,6 +2647,7 @@ def main() -> None:
             'name': 'mp4',
         },
     ]
+    function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     # function_data["highlight_full_row"] = True
     stdscr = start_curses()
