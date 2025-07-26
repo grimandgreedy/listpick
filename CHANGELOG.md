@@ -13,6 +13,7 @@
      - Will allow formulae filling at a later date.
    - Can now edit input_field string in nvim by pressing ctrl+x
  - Added cell_cursor option which displays a highlighted cursor on a cell (rather than the whole row being highlighted).
+ - Added functionality to add rows after the cursor and add columns after the cursor.
 
 ## [0.1.12] 2025-07-25
  - The Picker now supports different footer options. Three options have been added:

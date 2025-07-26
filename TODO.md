@@ -287,6 +287,7 @@ ASAP
 > - [ ] Problem with resizing after entering ipython interactive mode.
 > - [ ] Adding row when there are no columns causes a crash.
 > - [ ] centre_in_cols doesn't seem to centre the values properly. They are to the left of the cell.
+> - [ ] Crash when we delete the last row
 
 
 

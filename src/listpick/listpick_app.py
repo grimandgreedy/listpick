@@ -160,6 +160,7 @@ class Picker:
         history_settings: list[str] = [],
         history_edits: list[str] = [],
         history_pipes: list[str] = [],
+
     ):
         self.stdscr = stdscr
         self.items = items
@@ -1950,22 +1951,65 @@ class Picker:
                 # self.notification(self.stdscr, f"{longest_row_str_len}")
                 self.leftmost_char = max(0, longest_row_str_len-w+2+self.startx)
 
-            elif self.check_key("add_column", key, self.keys_dict):
+            elif self.check_key("add_column_before", key, self.keys_dict):
                 self.items = [row[:self.sort_column]+[""]+row[self.sort_column:] for row in self.items]
                 self.header = self.header[:self.sort_column] + [""] + self.header[self.sort_column:]
                 self.editable_columns = self.editable_columns[:self.sort_column] + [self.editable_by_default] + self.editable_columns[self.sort_column:]
+                self.sort_column += 1
+                current_cursor_pos = self.cursor_pos
                 self.initialise_variables()
+                self.cursor_pos = current_cursor_pos
 
-            elif self.check_key("add_row", key, self.keys_dict):
-                row_len = 1
-                if self.header: row_len = len(self.header)
-                elif len(self.items): row_len  = len(self.items[0])
-                if len(self.indexed_items) == 0:
-                    insert_at_pos = 0
-                else:
-                    insert_at_pos = self.indexed_items[self.cursor_pos][0]
-                self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
+            elif self.check_key("add_column_after", key, self.keys_dict):
+                self.items = [row[:self.sort_column+1]+[""]+row[self.sort_column+1:] for row in self.items]
+                self.header = self.header[:self.sort_column+1] + [""] + self.header[self.sort_column+1:]
+                self.editable_columns = self.editable_columns[:self.sort_column+1] + [self.editable_by_default] + self.editable_columns[self.sort_column+1:]
+                current_cursor_pos = self.cursor_pos
                 self.initialise_variables()
+                self.cursor_pos = current_cursor_pos
+
+            elif self.check_key("add_row_before", key, self.keys_dict):
+                if self.items != [[]]:
+                    row_len = 1
+                    if self.header: row_len = len(self.header)
+                    elif len(self.items): row_len  = len(self.items[0])
+                    if len(self.indexed_items) == 0:
+                        insert_at_pos = 0
+                    else:
+                        insert_at_pos = self.indexed_items[self.cursor_pos][0]
+                    self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
+                    # We are adding a row before so we have to move the cursor down
+                    # If there is a filter then we know that an empty row doesn't match
+                    if not self.filter_query:
+                        self.cursor_pos +=1
+                    current_cursor_pos = self.cursor_pos
+                    self.initialise_variables()
+                    self.cursor_pos = current_cursor_pos
+                else:
+                    self.items = [[""]]
+                    self.initialise_variables()
+
+
+            elif self.check_key("add_row_after", key, self.keys_dict):
+                if self.items != [[]]:
+                    row_len = 1
+                    if self.header: row_len = len(self.header)
+                    elif len(self.items): row_len  = len(self.items[0])
+
+
+                    if self.cursor_pos == len(self.items)-1:
+                        self.items.append(["" for x in range(row_len)])
+                    else:
+                        insert_at_pos = self.indexed_items[self.cursor_pos][0]
+                        self.items = self.items[:insert_at_pos+1] + [["" for x in range(row_len)]] + self.items[insert_at_pos+1:]
+                    # We are adding a row before so we have to move the cursor down
+                    # If there is a filter then we know that an empty row doesn't match
+                    current_cursor_pos = self.cursor_pos
+                    self.initialise_variables()
+                    self.cursor_pos = current_cursor_pos
+                else:
+                    self.items = [[""]]
+                    self.initialise_variables()
 
             elif self.check_key("col_hide", key, self.keys_dict):
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
@@ -2650,6 +2694,9 @@ def main() -> None:
     function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     function_data["centre_in_cols"] = True
+    function_data["show_row_header"] = True
+    function_data["keys_dict"] = picker_keys
+    function_data["id_column"] = -1
     # function_data["highlight_full_row"] = True
     stdscr = start_curses()
     try:

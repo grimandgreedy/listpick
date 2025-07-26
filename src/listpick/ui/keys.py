@@ -75,8 +75,10 @@ picker_keys = {
     "scroll_left":                      [ord('h'), curses.KEY_LEFT],
     "scroll_far_right":                 [ord('L')],
     "scroll_far_left":                  [ord('H')],
-    "add_column":                       [ord('+')],
-    "add_row":                          [ord('=')],
+    # "add_column_before":                       [ord('+')],
+    "add_column_after":                       [ord('+')],
+    # "add_row_before":                          [ord('=')],
+    "add_row_after":                          [ord('=')],
 }
 
 
