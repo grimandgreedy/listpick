@@ -278,6 +278,7 @@ ASAP
 > - [x] Visual select still shows selected on empty list
 > - [x] Extremely slow when searching a large number of rows...
 >   - [x] Fixed. Was caused by adding every matched index to the highlights.
+> - [ ] Problem with resizing after entering ipython interactive mode.
 
 
 

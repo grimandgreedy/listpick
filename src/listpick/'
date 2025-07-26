@@ -1807,8 +1807,8 @@ class Picker:
                 self.stdscr.refresh()
 
                 h1, w1 = self.stdscr.getmaxyx()
-                w, h = os.get_terminal_size()
-                os.system(f"notify-send '{h}, {w}, ({h1}, {w1})'")
+                h, w = os.get_terminal_size()
+                os.system(f"notify-send '{h}, {w}, ({h1}, {w2})'")
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("cycle_sort_method", key, self.keys_dict):

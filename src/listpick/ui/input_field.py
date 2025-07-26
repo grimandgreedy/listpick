@@ -13,7 +13,6 @@ from typing import Tuple, Optional, Callable
 import os
 import tempfile
 from datetime import datetime
-import pyperclip
 
 def input_field(
     stdscr: curses.window,
@@ -99,7 +98,6 @@ def input_field(
     else:
         words = auto_complete_words
     words = [word for word in words if word != ""]
-        # pyperclip.copy(words)
 
     offscreen_x, offscreen_y = False, False
     orig_x, orig_y = x, y
@@ -466,7 +464,6 @@ def input_field(
                 completions = match_prefix(completion_string, words)
                 if active_string in completions and len(completions)>1:
                     index = completions.index(active_string)
-                    pyperclip.copy(index)
                     usrtxt = usrtxt[:-len(active_string)] + completions[(index+1)%len(completions)]
                 elif len(completions):
                     if len(active_string):
