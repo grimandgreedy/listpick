@@ -101,6 +101,7 @@ class Picker:
 
         selections: dict = {},
         highlight_full_row: bool =False,
+        cell_cursor: bool = True,
 
         items_per_page : int = -1,
         sort_method : int = 0,
@@ -209,6 +210,7 @@ class Picker:
 
         self.selections = selections
         self.highlight_full_row = highlight_full_row
+        self.cell_cursor = cell_cursor
 
         self.items_per_page = items_per_page
         self.sort_method = sort_method
@@ -640,7 +642,28 @@ class Picker:
             # row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
             # row_str = format_row(item[1][self.leftmost_column:], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
             if idx == self.cursor_pos:
-                self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
+                if self.cell_cursor:
+                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
+
+                    cell_pos = sum(visible_column_widths[:self.sort_column])+self.sort_column*len(self.separator)-self.leftmost_char + self.startx
+                    # cell_width = self.column_widths[self.sort_column]
+                    cell_width = visible_column_widths[self.sort_column] + len(self.separator)
+                    cell_max_width = w-cell_pos
+                    try:
+                        if self.startx <= cell_pos <= w:
+                            self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], curses.color_pair(self.colours_start+5))
+                            cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column] + self.separator
+                            cell_value = cell_value[:min(cell_width, cell_max_width)]
+                            self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+5) | curses.A_BOLD)
+                        elif self.startx <= cell_pos+cell_width <= w:
+                            cell_start = self.startx - cell_pos
+                            self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+5))
+                            cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column][cell_start:visible_column_widths[self.sort_column]]
+                            self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+5) | curses.A_BOLD)
+                    except:
+                        pass
+                else:
+                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             else:
                 self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
             # Highlight the whole string of the selected rows
@@ -914,6 +937,7 @@ class Picker:
             "centre_in_terminal_vertical":      self.centre_in_terminal_vertical,
             "centre_in_cols":                   self.centre_in_cols,
             "highlight_full_row":               self.highlight_full_row,
+            "cell_cursor":                      self.cell_cursor,
             "column_widths":                    self.column_widths,
             "track_entries_upon_refresh":       self.track_entries_upon_refresh,
             "id_column":                        self.id_column,
@@ -1806,9 +1830,6 @@ class Picker:
                 self.stdscr.clear()
                 self.stdscr.refresh()
 
-                h1, w1 = self.stdscr.getmaxyx()
-                w, h = os.get_terminal_size()
-                os.system(f"notify-send '{h}, {w}, ({h1}, {w1})'")
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("cycle_sort_method", key, self.keys_dict):
@@ -1890,11 +1911,16 @@ class Picker:
 
             elif self.check_key("scroll_right", key, self.keys_dict):
                 h, w = self.stdscr.getmaxyx()
+                rows = self.get_visible_rows()
                 longest_row_str_len = 0
-                for i in range(len(self.indexed_items)):
-                    item = self.indexed_items[i]
-                    row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+                for i in range(len(rows)):
+                    item = rows[i]
+                    row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
                     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                # for i in range(len(self.indexed_items)):
+                #     item = self.indexed_items[i]
+                #     row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
 
 
                 if longest_row_str_len >= w-self.startx:
@@ -1909,10 +1935,16 @@ class Picker:
             elif self.check_key("scroll_far_right", key, self.keys_dict):
                 h, w = self.stdscr.getmaxyx()
                 longest_row_str_len = 0
-                for i in range(len(self.indexed_items)):
-                    item = self.indexed_items[i]
-                    row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+                rows = self.get_visible_rows()
+                for i in range(len(rows)):
+                    item = rows[i]
+                    row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
                     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                # for i in range(len(self.indexed_items)):
+                #     item = self.indexed_items[i]
+                #     row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                # self.notification(self.stdscr, f"{longest_row_str_len}")
                 self.leftmost_char = max(0, longest_row_str_len-w+2+self.startx)
 
             elif self.check_key("add_column", key, self.keys_dict):
