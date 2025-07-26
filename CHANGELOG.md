@@ -4,6 +4,14 @@
  - Fixed bug which showed a distorted footer when the footer string was one char longer than the width of the terminal.
  - Can now display a left-justified column indicating the row numbers (show_row_header)
  - Selecting column to the left or right now scrolls the selected column into view.
+ - Input field autocompletion significantly improved.
+   - Now shows popup list showing the next autocomplete suggestions
+   - Supports auto-completing any words passed to the auto_complete_words argument of the input_field function
+     - Search and filter autocomplete any words in the items of the picker by default.
+   - Supports auto-complete functions %time and %date
+   - Supports auto-complete formulae.
+     - Will allow formulae filling at a later date.
+   - Can now edit input_field string in nvim by pressing ctrl+x
 
 ## [0.1.12] 2025-07-25
  - The Picker now supports different footer options. Three options have been added:

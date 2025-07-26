@@ -18,6 +18,7 @@ from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple
 import json
 import threading
+import string
 
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
@@ -1470,6 +1471,28 @@ class Picker:
     def loading_screen(self, text: str):
         pass
 
+    def get_word_list(self) -> list[str]:
+        translator = str.maketrans('', '', string.punctuation)
+        
+        words = []
+        # Extract words from lists
+        for row in [x[1] for x in self.indexed_items]:
+            for i, cell in enumerate(row):
+                if i != self.id_column:
+                # Split the item into words and strip punctuation from each word
+                    words.extend(word.strip(string.punctuation) for word in cell.split())
+        for cell in self.header:
+            # Split the item into words and strip punctuation from each word
+            words.extend(word.strip(string.punctuation) for word in cell.split())
+        def key_f(s):
+            if len(s):
+                starts_with_char = s[0].isalpha()
+            else:
+                starts_with_char = False
+            return (not starts_with_char, s.lower())
+        # key = lambda s: (s != "" or not s[0].isalpha(), s)
+        words = sorted(list(set(words)), key=key_f)
+        return words
 
     def run(self) -> Tuple[list[int], str, dict]:
 
@@ -1487,7 +1510,7 @@ class Picker:
             self.notification(self.stdscr, message=self.startup_notification)
             self.startup_notification = ""
 
-        curses.curs_set(0)
+        # curses.curs_set(0)
         # stdscr.nodelay(1)  # Non-blocking input
         # stdscr.timeout(2000)  # Set a timeout for getch() to ensure it does not block indefinitely
         self.stdscr.timeout(max(min(2000, int(self.timer*1000)//2, int(self.footer_timer*1000))//2, 20))  # Set a timeout for getch() to ensure it does not block indefinitely
@@ -1615,6 +1638,11 @@ class Picker:
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_settings,
+                    path_auto_complete=True,
+                    formula_auto_complete=False,
+                    function_auto_complete=False,
+                    word_auto_complete=True,
+                    auto_complete_words=["ft", "ct", "cv"]
                 )
                 if return_val:
                     self.user_settings = usrtxt
@@ -1976,6 +2004,7 @@ class Picker:
                 if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
+                words = self.get_word_list()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -1987,6 +2016,11 @@ class Picker:
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_filter_and_search,
+                    path_auto_complete=True,
+                    formula_auto_complete=False,
+                    function_auto_complete=False,
+                    word_auto_complete=True,
+                    auto_complete_words=words,
                 )
                 if return_val:
                     self.filter_query = usrtxt
@@ -2015,6 +2049,7 @@ class Picker:
                 if self.show_footer and self.footer.height >= 3: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
+                words = self.get_word_list()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -2025,6 +2060,11 @@ class Picker:
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_filter_and_search,
+                    path_auto_complete=True,
+                    formula_auto_complete=False,
+                    function_auto_complete=False,
+                    word_auto_complete=True,
+                    auto_complete_words=words,
                 )
                 if return_val:
                     self.search_query = usrtxt
@@ -2127,6 +2167,10 @@ class Picker:
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_opts,
+                    path_auto_complete=True,
+                    formula_auto_complete=False,
+                    function_auto_complete=True,
+                    word_auto_complete=True,
                 )
                 if return_val:
                     self.user_opts = usrtxt
@@ -2180,6 +2224,15 @@ class Picker:
                 if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                 else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                 self.set_registers()
+                
+                # Get list of available shell commands
+                try:
+                    # result = subprocess.run(['compgen', '-c'], capture_output=True, text=True, check=True)
+                    # shell_commands = result.stdout.splitlines()
+                    result = subprocess.run(['ls', '/usr/bin'], capture_output=True, text=True, check=True)
+                    shell_commands = result.stdout.splitlines()
+                except:
+                    shell_commands = []
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
@@ -2191,6 +2244,11 @@ class Picker:
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                     history=self.history_pipes,
+                    path_auto_complete=True,
+                    formula_auto_complete=False,
+                    function_auto_complete=False,
+                    word_auto_complete=True,
+                    auto_complete_words=shell_commands,
                 )
 
                 if return_val:
@@ -2243,6 +2301,7 @@ class Picker:
                     if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                     self.set_registers()
+                    words = self.get_word_list()
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
@@ -2253,6 +2312,11 @@ class Picker:
                         registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                         history = self.history_edits,
+                        path_auto_complete=True,
+                        formula_auto_complete=True,
+                        function_auto_complete=True,
+                        word_auto_complete=True,
+                        auto_complete_words=words,
                     )
                     if return_val:
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
@@ -2266,6 +2330,7 @@ class Picker:
                     if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
                     else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
                     self.set_registers()
+                    words = self.get_word_list()
                     usrtxt, return_val = input_field(
                         self.stdscr,
                         usrtxt=usrtxt,
@@ -2276,6 +2341,11 @@ class Picker:
                         registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
                         history = self.history_edits,
+                        path_auto_complete=True,
+                        formula_auto_complete=True,
+                        function_auto_complete=True,
+                        word_auto_complete=True,
+                        auto_complete_words=words,
                     )
                     if return_val:
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
@@ -2476,6 +2546,7 @@ def start_curses() -> curses.window:
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
     stdscr.keypad(True) # Ensures that arrow and function keys are received as one key by getch
     curses.raw() # Disable control keys (ctrl-c, ctrl-s, ctrl-q, etc.)
+    curses.curs_set(False)
 
     return stdscr
 
@@ -2492,6 +2563,7 @@ def restrict_curses(stdscr: curses.window) -> None:
     stdscr.keypad(False)
     curses.nocbreak()
     curses.noraw()
+    curses.curs_set(True)
     curses.echo()
 
 def unrestrict_curses(stdscr: curses.window) -> None:
@@ -2499,6 +2571,8 @@ def unrestrict_curses(stdscr: curses.window) -> None:
     curses.noecho()  # Turn off automatic echoing of keys to the screen
     curses.cbreak()  # Interpret keystrokes immediately (without requiring Enter)
     stdscr.keypad(True)
+    curses.raw() # Disable control keys (ctrl-c, ctrl-s, ctrl-q, etc.)
+    curses.curs_set(False)
 
 def main() -> None:
     """ Main function when listpick is executed. Deals with command line arguments and starts a Picker. """

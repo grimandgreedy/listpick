@@ -11,6 +11,9 @@ License: MIT
 import curses
 from typing import Tuple, Optional, Callable
 import os
+import tempfile
+from datetime import datetime
+import pyperclip
 
 def input_field(
     stdscr: curses.window,
@@ -27,6 +30,10 @@ def input_field(
     refresh_screen_function:Optional[Callable]=None,
     cursor: int = 0,
     path_auto_complete: bool = True,
+    word_auto_complete: bool = True,
+    formula_auto_complete: bool = True,
+    function_auto_complete: bool = True,
+    auto_complete_words: list[str] = [],
     history: list[str] = [],
     clear_screen: bool = True,
         
@@ -62,12 +69,37 @@ def input_field(
                         1: user hit return
     """
     potential_path = usrtxt
-    word_separator_chars = ["/", " "]
+    word_separator_chars = ["/", " ", "="]
     kill_ring = []
     kill_ring_active = False
     kill_ring_index = 0
     prev_usrtxt = ""
     history_index = len(history)
+    show_completions = True
+    completions = []
+
+    if auto_complete_words == []:
+        words = ["the", "be", "to", "of", "and", "in", "have", "for", "not", "on",
+       "that", "he", "with", "from", "they", "as", "you", "do", "at", "this",
+       "but", "his", "by", "say", "her", "she", "or", "will", "my", "we",
+       "all", "would", "so", "their", "time", "one", "what", "make", "like",
+       "which", "see", "are", "out", "other", "there", "than", "think", "after",
+       "been", "have", "was", "how", "than", "about", "never", "can",
+       "also", "what's", "so", "now", "come", "know", "could", "go", "write",
+       "did", "more", "day", "get", "over", "new", "take", "use", "year", "been",
+       "wouldn't", "make", "its", "called", "become", "than", "haven't", "ain't",
+       "anybody", "anyone", "anything", "each", "few", "far", "fifth", "first",
+       "former", "forth", "followed", "from", "hadn't", "hardly", "hundred",
+       "initial", "inner", "international", "longer", "might", "moment",
+       "mustn't", "nearly", "otherwise", "quite", "rather", "really", "seem",
+       "shouldn't", "such", "than", "themselves", "then", "therefore", "these",
+       "those", "though", "through", "thus", "under", "unless", "until",
+       "various", "very", "want", "wasn't", "weather", "when", "where", "whom",
+       "why", "william", "would", "yours", "yourself"]
+    else:
+        words = auto_complete_words
+    words = [word for word in words if word != ""]
+        # pyperclip.copy(words)
 
     offscreen_x, offscreen_y = False, False
     orig_x, orig_y = x, y
@@ -148,6 +180,28 @@ def input_field(
                 cursor_x_pos = max_field_length+x()-1
 
         stdscr.addstr(field_y, cursor_x_pos, cursor_char, curses.color_pair(colours_start+colour_pair_text) | curses.A_REVERSE | curses.A_BOLD)
+
+        ## Display completions
+        if show_completions and completions:
+
+            match_word, left_ptr, right_ptr = get_partially_complete_word(usrtxt, cursor, [" ", "/", "="])
+
+            if match_word in completions:
+                # os.system(f"notify-send '{completions[0]}'")
+                index = completions.index(match_word)
+                if index == len(completions) - 1: index = -1
+                completions_disp_str = str(completions[index:])[:max_field_length]
+                completions_str = " | ".join(completions[index:])
+                completions_disp_str = f" {completions_str[:max_field_length]} "
+
+                try:
+                    stdscr.addstr(field_y-1, x(), completions_disp_str, curses.color_pair(colours_start+colour_pair_bg) | curses.A_REVERSE)
+
+                    active_completion_str = f" {completions[index]} "
+                    stdscr.addstr(field_y-1, x(), active_completion_str, curses.color_pair(colours_start+colour_pair_bg) | curses.A_REVERSE | curses.A_BOLD)
+                    stdscr.refresh()
+                except:
+                    pass
 
 
         key = stdscr.getch()
@@ -268,6 +322,7 @@ def input_field(
                 usrtxt = usrtxt[:-(cursor+1)] + usrtxt[-cursor:]
             potential_path = usrtxt
             kill_ring_active = False
+            completions = []
 
         elif key in [curses.KEY_LEFT, 2]:                                       # CTRL+B
             # Go back one character
@@ -352,58 +407,154 @@ def input_field(
             pass
         elif key == 9:                                                      # Tab key
             # Cycle forwards through path completions (if applicable)
-            completions = autocomplete_path(potential_path)
-            if completions:
-                dir, file = os.path.split(potential_path)
-                
-                middle = "" if not dir else "/"
-                index = 0
-                try:
-                    dir2, file2 = os.path.split(usrtxt)
-                    index = (completions.index(file2) + 1)%len(completions)
-                except:
-                    pass
-                usrtxt = dir + middle + completions[index]
-                # If there is only one completion option then set this to the potential_path
-                if len(completions) == 1:
+            completion_string, left_ptr, right_ptr = get_partially_complete_word(potential_path, cursor, [" ", "="])
+            active_string, left_ptr, right_ptr = get_partially_complete_word(usrtxt, cursor, [" ", "="])
+            dir2, file2 = os.path.split(usrtxt)
+
+            if path_auto_complete and completion_string.startswith(("~", "/")):
+                completions = autocomplete_path(completion_string)
+
+                if completions:
+                    dir, file = os.path.split(completion_string)
+                    
+                    middle = "" if not dir else "/"
+                    index = 0
+                    try:
+                        dir2, file2 = os.path.split(usrtxt)
+                        index = (completions.index(file2) + 1)%len(completions)
+                    except:
+                        pass
+                    usrtxt = dir2 + middle + completions[index]
+                    # If there is only one completion option then set this to the potential_path
+                    if len(completions) == 1:
+                        potential_path = usrtxt
+                if potential_path.startswith("//"):
+                    potential_path = potential_path[1:]
+                if usrtxt.startswith("//"):
+                    usrtxt = usrtxt[1:]
+
+            elif formula_auto_complete and completion_string.startswith("$"):
+                formulae_list = ["$SUM", "$SUMPRODUCT", "$INDEX"]
+                completions = match_prefix(completion_string, formulae_list)
+                if active_string in completions:
+                    index = completions.index(active_string)
+                    usrtxt = usrtxt[:-len(active_string)] + completions[(index+1)%len(completions)]
+                elif len(completions):
+                    usrtxt = usrtxt[:-len(active_string)] + completions[0]
+
+            elif function_auto_complete and completion_string.startswith("%"):
+                formulae_list = ["%date", "%time"]
+                completions = match_prefix(completion_string, formulae_list)
+                if active_string in completions and len(completions) == 1:
+                    subs_str = ""
+                    if active_string == "%date":
+                        subs_str = str(datetime.date(datetime.now()))
+                    elif active_string == "%time":
+                        subs_str = str(datetime.time(datetime.now())).split(".")[0]
+                    usrtxt = usrtxt[:-len(active_string)] + subs_str
                     potential_path = usrtxt
-            if potential_path.startswith("//"):
-                potential_path = potential_path[1:]
-            if usrtxt.startswith("//"):
-                usrtxt = usrtxt[1:]
+                elif active_string in completions:
+                    index = completions.index(active_string)
+                    usrtxt = usrtxt[:-len(active_string)] + completions[(index+1)%len(completions)]
+                elif len(completions):
+                    usrtxt = usrtxt[:-len(active_string)] + completions[0]
+
+            elif word_auto_complete:
+                # words = sorted(list(set(words)))
+                # words = words
+
+                completions = match_prefix(completion_string, words)
+                if active_string in completions and len(completions)>1:
+                    index = completions.index(active_string)
+                    pyperclip.copy(index)
+                    usrtxt = usrtxt[:-len(active_string)] + completions[(index+1)%len(completions)]
+                elif len(completions):
+                    if len(active_string):
+                        usrtxt = usrtxt[:-len(active_string)] + completions[0]
+                    else:
+                        usrtxt = usrtxt + completions[0]
+
             kill_ring_active = False
 
         elif key == 353:                                            # Shift+Tab key
             # Cycle backwards through path completions (if applicable)
-            completions = autocomplete_path(potential_path)
-            if completions:
-                dir, file = os.path.split(potential_path)
-                
-                middle = "" if file else "/"
-                index = 0
-                try:
-                    dir2, file2 = os.path.split(usrtxt)
-                    index = (completions.index(file2) - 1)%len(completions)
-                except:
-                    pass
-                usrtxt = dir + "/" + completions[index]
-                # If there is only one completion option then set this to the potential_path
-                if len(completions) == 1:
+            completion_string, left_ptr, right_ptr = get_partially_complete_word(potential_path, cursor, [" "])
+            active_string, left_ptr, right_ptr = get_partially_complete_word(usrtxt, cursor, [" ", "="])
+            dir2, file2 = os.path.split(usrtxt)
+
+            if path_auto_complete and completion_string.startswith(("~", "/")):
+                completions = autocomplete_path(completion_string)
+
+                if completions:
+                    dir, file = os.path.split(completion_string)
+                    
+                    middle = "" if not dir else "/"
+                    index = 0
+                    try:
+                        dir2, file2 = os.path.split(usrtxt)
+                        index = (completions.index(file2) - 1)%len(completions)
+                    except:
+                        pass
+                    usrtxt = dir2 + middle + completions[index]
+                    # If there is only one completion option then set this to the potential_path
+                    if len(completions) == 1:
+                        potential_path = usrtxt
+                if potential_path.startswith("//"):
+                    potential_path = potential_path[1:]
+                if usrtxt.startswith("//"):
+                    usrtxt = usrtxt[1:]
+
+            elif formula_auto_complete and completion_string.startswith("$"):
+                completions = ["$SUM", "$SUMPRODUCT", "$INDEX"]
+                matches = match_prefix(completion_string, completions)
+                if active_string in matches:
+                    index = matches.index(active_string)
+                    usrtxt = usrtxt[:-len(active_string)] + matches[(index-1)%len(matches)]
+                elif len(matches):
+                    usrtxt = usrtxt[:-len(active_string)] + matches[0]
+
+            elif function_auto_complete and completion_string.startswith("%"):
+                formulae_list = ["%date", "%time"]
+                completions = match_prefix(completion_string, formulae_list)
+                if active_string in completions and len(completions) == 1:
+                    subs_str = ""
+                    if active_string == "%date":
+                        subs_str = str(datetime.date(datetime.now()))
+                    elif active_string == "%time":
+                        subs_str = str(datetime.time(datetime.now())).split(".")[0]
+                    usrtxt = usrtxt[:-len(active_string)] + subs_str
                     potential_path = usrtxt
-            if potential_path.startswith("//"):
-                potential_path = potential_path[1:]
-            if usrtxt.startswith("//"):
-                usrtxt = usrtxt[1:]
+                elif active_string in completions:
+                    index = completions.index(active_string)
+                    usrtxt = usrtxt[:-len(active_string)] + completions[(index-1)%len(completions)]
+                elif len(completions):
+                    usrtxt = usrtxt[:-len(active_string)] + completions[0]
+
+            elif word_auto_complete:
+                # words = sorted(list(set(words)))
+
+                completions = match_prefix(completion_string, words)
+                if active_string in completions and len(completions)>1:
+                    index = completions.index(active_string)
+                    usrtxt = usrtxt[:-len(active_string)] + completions[(index-1)%len(completions)]
+                elif len(completions):
+                    if len(active_string):
+                        usrtxt = usrtxt[:-len(active_string)] + completions[0]
+                    else:
+                        usrtxt = usrtxt + completions[0]
+
             kill_ring_active = False
 
         elif key == 25:                                         # Ctrl+y
             # Yank from the top of the kill ring
             if len(kill_ring) > 0:
+                usrtxt_pre_kill_ring = usrtxt
                 kill_ring_index = 0
                 if cursor == 0:
                     usrtxt += kill_ring[kill_ring_index]
                 else:
                     usrtxt = usrtxt[:-cursor] + kill_ring[kill_ring_index] + usrtxt[-cursor:]
+                
                 kill_ring_active = True
         elif key in [14, curses.KEY_DOWN, 258]:                 # Ctrl+n
             # Cycle forwards through history
@@ -421,10 +572,26 @@ def input_field(
                     prev_usrtxt = usrtxt
                 history_index = max(0, history_index-1)
                 usrtxt = history[history_index]
+
+        elif key in [26]:                 # Ctrl+z
+            # Undo auto complete or kill_ring
+            
+            usrtxt = potential_path
+            if kill_ring_active:
+                usrtxt = usrtxt_pre_kill_ring
+
         elif key == 24:                     # Ctrl+x 
             # Edit with nvim
-            pass
+            tmp_file = tempfile.NamedTemporaryFile(delete=False)
+            with open(tmp_file.name, 'w') as f:
+                f.write(usrtxt)
+            os.system(f"nvim {tmp_file.name}")
+            with open(tmp_file.name, 'r') as f:
+                usrtxt = f.read().strip()
+            stdscr.clear()
 
+        elif key == 12:                 # Ctrl+l
+            stdscr.clear()
 
         else:
             # Try to add representatio of keycode to usrtxt
@@ -440,9 +607,45 @@ def input_field(
                 usrtxt = usrtxt[:-cursor] + val + usrtxt[-cursor:]
             if val:
                 potential_path = usrtxt
+                completions = []
             kill_ring_active = False
         if clear_screen:
             stdscr.erase()
+
+
+def get_partially_complete_word(usrtxt: str, cursor: int, word_separator_chars: list[str]):
+    """
+
+    word_separator_chars = [' ', '/', '=']
+        /home/user/fa -> fa
+    word_separator_chars = [' ']
+        /home/user/fa -> /home/user/fa
+    """
+    search_txt = usrtxt[:-cursor] if cursor > 0 else usrtxt
+    right_ptr = len(usrtxt)-cursor+1
+    index = -1
+    match_word = ""
+    for c in word_separator_chars:
+        tmp_index = search_txt[::-1].find(c)
+        if tmp_index > -1:
+            if index == -1:
+                index = tmp_index
+            else:
+                index = min(index, tmp_index)
+        if index == -1:
+            if cursor == 0:
+                match_word = search_txt
+            else:
+                match_word = search_txt[:-cursor]
+        elif index == 0:
+            match_word = ""
+        else:
+            if cursor == 0:
+                match_word = search_txt[-index:]
+            else:
+                match_word = search_txt[-index:-cursor]
+    left_ptr = right_ptr - len(match_word)
+    return match_word, left_ptr, right_ptr
 
 
 def autocomplete_path(partial_path: str) -> list:
@@ -468,3 +671,19 @@ def autocomplete_path(partial_path: str) -> list:
         except FileNotFoundError:
             pass
     return sorted(completions, key=lambda x: x.lower())
+
+def match_prefix(prefix: str, options: list[str]) -> list[str]:
+    matches = []
+    for option in options:
+        if option.startswith(prefix):
+            matches.append(option)
+    # def key_f(s):
+    #     if len(s):
+    #         starts_with_char = s[0].isalpha()
+    #     else:
+    #         starts_with_char = False
+    #     return (not starts_with_char, s)
+    # key = lambda s: (s != "" or not s[0].isalpha(), s)
+    # matches = sorted(list(set(matches)), key=key_f)
+    return matches
+

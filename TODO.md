@@ -106,6 +106,7 @@ ASAP
 > - [ ] Make aria2tui compatible with windows.
 > - [ ] Add different highlight styles:
 >   - [ ] highlight cell
+> - [x] Add popup list when auto-completing in the input_field.
 
 
 
@@ -153,7 +154,18 @@ ASAP
 >      - [x] history support
 >      - [x] add variable max display length
 >      - [x] Fix variable x,y position
->   - [ ] Add auto-complete popup list.
+>   - [ ] Add auto-complete for:
+>     - [x] A given word list
+>     - [x] Functions
+>       - [x] %time
+>       - [x] %date
+>     - [x] Formulae:
+>       - [x] $SUM
+>       - [x] $SUMPRODUCT
+>     - [ ] Settings input bar list
+>   - [x] Allow autocomplete not at the beginning of the string
+>   - [ ] A bug when doing autocompleting when cursor!=0
+>   - [x] Add auto-complete popup list.
 > - [ ] Highlights
 >   - [ ] (!!!) there is a difference between search matches and highlights because the highlights operate on what is displayed
 >     - [ ]  - e.g., wmv$ shows no matches but --3 wmv$ shows matches
@@ -172,8 +184,9 @@ ASAP
 > - [ ] (?) adjust default column width based on current page?
 > - [ ] Need to set environment variables somehow.
 >   - [x] cwd
-> - [ ] Make time sort work with formats like: 
->   - [ ] '42 min 40 s'
+> - [ ] Sort:
+>   - [ ] Make time sort work with formats like: 
+>     - [ ] '42 min 40 s'
 > - [ ] Add no-select mode which will look better for notifications, options and menus
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Create list of errors encountered when generating data and output to file if user requests...
@@ -203,6 +216,7 @@ ASAP
 >   - [ ] Is this the way it should be??? They will be sorted to the top in either asc. or desc. ...
 > - Settings:
 >  - settings are split by spaces so we currently can't do, say, 'th 3', because it separates 'th' from '3' and applies them separately.
+>   - [ ] Add list of commands to word autocomplete.
 > - [x] Scroll to left/right when selected column moves off screen.
 >   - [ ] Buggy when we have hidden columns.
 
