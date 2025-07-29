@@ -64,6 +64,7 @@ picker_keys = {
     "edit_picker":                      [ord('E')],
     "edit_ipython":                     [5], # Ctrl+e
     "copy":                             [ord('y')],
+    "paste":                             [ord('p')],
     "save":                             [19, ord('D')],  # Ctrl+s
     "load":                             [15], # Ctrl+o
     "open":                             [ord('O')], 

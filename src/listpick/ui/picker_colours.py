@@ -61,6 +61,8 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         '40pc_fg': 166,
         'footer_string_bg': 28,
         'footer_string_fg': 253,
+        'selected_cell_bg': 237,
+        'selected_cell_fg': 253,
     },
         ### (1) Black and white
     {
@@ -108,6 +110,10 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         '40pc_fg': 253,
         'footer_string_bg': 253,
         'footer_string_fg': 232,
+        'selected_cell_bg': 237,
+        'selected_cell_fg': 253,
+        'deselecting_cell_bg': 162,
+        'deselecting_cell_fg': 253,
     },
         ### (2) Blue header, blue title, blue modes, purple selected, green cursor
     {
@@ -155,6 +161,10 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         '40pc_fg': 166,
         'footer_string_bg': 25,
         'footer_string_fg': 253,
+        'selected_cell_bg': 237,
+        'selected_cell_fg': 253,
+        'deselecting_cell_bg': 162,
+        'deselecting_cell_fg': 253,
     },
         ### (3) Purple header, purple title, white modes, green selected, blue cursor
     {
@@ -202,6 +212,10 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         '40pc_fg': 166,
         'footer_string_bg': 57,
         'footer_string_fg': 253,
+        'selected_cell_bg': 135,
+        'selected_cell_fg': 232,
+        'deselecting_cell_bg': 162,
+        'deselecting_cell_fg': 253,
     },
         ## (4) 3-bit colours
     {
@@ -249,6 +263,10 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         '40pc_fg': curses.COLOR_YELLOW,
         'footer_string_bg': curses.COLOR_GREEN,
         'footer_string_fg': curses.COLOR_BLACK,
+        'selected_cell_bg': 237,
+        'selected_cell_fg': 253,
+        'deselecting_cell_bg': curses.COLOR_MAGENTA,
+        'deselecting_cell_fg': curses.COLOR_WHITE,
     },
     ]
     for colour in colours:

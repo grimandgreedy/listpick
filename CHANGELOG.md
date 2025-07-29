@@ -1,5 +1,14 @@
 # CHANGELOG.md
-## [0.1.13] 2025-??
+## [0.1.14] 2025-07-28
+ - Fixed display bug when cells are centred vertically.
+
+## [0.1.13] 2025-07-28
+ - Cell-based picker is now supported.
+   - Cell-wise navigation.
+   - Cell-wise selection.
+   - Cell-wise copying.
+   - Cell-wise pasting.
+ - Pasting cells a picker is now supported
  - Added footer_style class variable which can be given to select the footer style. Currently supports StandardFooter, CompactFooter, and NoFooter.
  - Fixed bug which showed a distorted footer when the footer string was one char longer than the width of the terminal.
  - Can now display a left-justified column indicating the row numbers (show_row_header)
@@ -12,8 +21,7 @@
    - Supports auto-complete formulae.
      - Will allow formulae filling at a later date.
    - Can now edit input_field string in nvim by pressing ctrl+x
- - Added cell_cursor option which displays a highlighted cursor on a cell (rather than the whole row being highlighted).
- - Added functionality to add rows after the cursor and add columns after the cursor.
+ - Added functionality to add (empty) rows after the cursor and add (empty) columns after the cursor.
 
 ## [0.1.12] 2025-07-25
  - The Picker now supports different footer options. Three options have been added:

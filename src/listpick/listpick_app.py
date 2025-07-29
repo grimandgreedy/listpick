@@ -15,7 +15,7 @@ import subprocess
 import argparse
 import time
 from wcwidth import wcswidth
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Dict
 import json
 import threading
 import string
@@ -28,6 +28,7 @@ from listpick.utils.sorting import *
 from listpick.utils.filtering import *
 from listpick.ui.input_field import *
 from listpick.utils.clipboard_operations import *
+from listpick.utils.paste_operations import *
 from listpick.utils.searching import search
 from listpick.ui.help_screen import help_lines
 from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_keys
@@ -86,6 +87,7 @@ class Picker:
         is_selecting : bool = False,
         is_deselecting : int = False,
         start_selection: int = -1,
+        start_selection_col: int = -1,
         end_selection: int = -1,
         user_opts : str = "",
         options_list: list[str] = [],
@@ -100,6 +102,7 @@ class Picker:
         scroll_bar : int = True,
 
         selections: dict = {},
+        cell_selections: dict[tuple[int,int], bool] = {},
         highlight_full_row: bool =False,
         cell_cursor: bool = False,
 
@@ -196,6 +199,7 @@ class Picker:
         self.is_selecting = is_selecting
         self.is_deselecting = is_deselecting
         self.start_selection = start_selection
+        self.start_selection_col = start_selection_col
         self.end_selection = end_selection
         self.user_opts = user_opts
         self.options_list = options_list
@@ -210,6 +214,7 @@ class Picker:
         self.scroll_bar = scroll_bar
 
         self.selections = selections
+        self.cell_selections = cell_selections
         self.highlight_full_row = highlight_full_row
         self.cell_cursor = cell_cursor
 
@@ -284,6 +289,8 @@ class Picker:
         self.data_ready = False
         self.cursor_pos_id = 0
         self.ids = []
+        self.ids_tuples = []
+        self.selected_cells_by_row = {}
 
         # History variables
         self.history_filter_and_search = history_filter_and_search
@@ -328,7 +335,7 @@ class Picker:
         if self.display_modes: self.top_space+=1
         if self.header: self.top_space += 1
         if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
-            self.top_space = ((h-(self.top_space+self.top_space))-len(self.indexed_items))//2
+            self.top_space += ((h-(self.top_space+self.bottom_space))-len(self.indexed_items))//2
 
         # self.items_per_page
         self.items_per_page = h - self.top_space - self.bottom_space
@@ -378,7 +385,9 @@ class Picker:
             if self.track_entries_upon_refresh and len(self.items) > 0:
                 tracking = True
                 selected_indices = get_selected_indices(self.selections)
+                self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
                 self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
+                self.ids_tuples = [(i, item[self.id_column]) for i, item in enumerate(self.items) if i in selected_indices]
         
                 if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
                     self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
@@ -405,6 +414,11 @@ class Picker:
         # Initial states
         if len(self.selections) != len(self.items):
             self.selections = {i : False if i not in self.selections else bool(self.selections[i]) for i in range(len(self.items))}
+
+        if len(self.items) and len(self.cell_selections) != len(self.items)*len(self.items[0]):
+            self.cell_selections = {(i, j) : False if (i, j) not in self.cell_selections else self.cell_selections[(i, j)] for i in range(len(self.items)) for j in range(len(self.items[0]))}
+        elif len(self.items) == 0:
+            self.cell_selections = {}
 
         if len(self.require_option) < len(self.items):
             self.require_option += [self.require_option_default for i in range(len(self.items)-len(self.require_option))]
@@ -471,10 +485,24 @@ class Picker:
             selected_indices = []
             all_ids = [item[self.id_column] for item in self.items]
             self.selections = {i: False for i in range(len(self.items))}
+            if len(self.items) > 0:
+                self.cell_selections = {(i, j): False for i in range(len(self.items)) for j in range(len(self.items[0]))}
+            else:
+                self.cell_selections = {}
+
             for id in self.ids:
                 if id in all_ids:
                     selected_indices.append(all_ids.index(id))
                     self.selections[all_ids.index(id)] = True
+
+            rows_with_selected_cells = []
+            for i, id in self.ids_tuples:
+                if id in all_ids:
+                    # rows_with_selected_cells
+                    for j in self.selected_cells_by_row[i]:
+                        self.cell_selections[(all_ids.index(id), j)] = True
+
+
 
             if self.cursor_pos_id in all_ids:
                 cursor_pos_x = all_ids.index(self.cursor_pos_id)
@@ -516,25 +544,31 @@ class Picker:
         # Update current column index
         self.sort_column = new_index
 
+    def test_screen_size(self):
+        h, w = self.stdscr.getmaxyx()
+        ## Terminal too small to display Picker
+        if h<3 or w<len("Terminal"): return False
+        if (self.show_footer or self.footer_string) and (h<12 or w<35) or (h<12 and w<10):
+            self.stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
+            self.stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
+            self.stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
+            return False
+        return True
+
+
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
 
         if clear:
             self.stdscr.erase()
 
-        ## Terminal too small to display Picker
         h, w = self.stdscr.getmaxyx()
-        if h<3 or w<len("Terminal"): return None
-        if (self.show_footer or self.footer_string) and (h<12 or w<35) or (h<12 and w<10):
-            self.stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
-            self.stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
-            self.stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
-            return None
 
-        # top_space = self.top_gap
-        # if self.title: top_space+=1
-        # if self.display_modes: top_space+=1
+        # Test if the terminal is of a sufficient size to display the picker
+        if not self.test_screen_size(): return None
 
+
+        # Determine the number of items_per_page, top_size and bottom_size
         self.calculate_section_sizes()
 
         # Determine which rows are to be displayed on the current screen
@@ -627,49 +661,56 @@ class Picker:
             except:
                 pass
                 
-
-        ## Display rows and highlights
-        for idx in range(start_index, end_index):
-            item = self.indexed_items[idx]
-            y = idx - start_index + self.top_space
-            if self.show_row_header:
+        # Display row header 
+        if self.show_row_header:
+            for idx in range(start_index, end_index):
+                y = idx - start_index + self.top_space
                 if idx == self.cursor_pos:
                     self.stdscr.addstr(y, 0, f" {self.indexed_items[idx][0]} ", curses.color_pair(self.colours_start+19) | curses.A_BOLD)
                 else:
                     self.stdscr.addstr(y, 0, f" {self.indexed_items[idx][0]} ", curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
+        def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5):
+            cell_pos = sum(visible_column_widths[:col])+col*len(self.separator)-self.leftmost_char + self.startx
+            # cell_width = self.column_widths[self.sort_column]
+            cell_width = visible_column_widths[col] + len(self.separator)
+            cell_max_width = w-cell_pos
+            try:
+                # Start of cell is on screen
+                if self.startx <= cell_pos <= w:
+                    self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], curses.color_pair(self.colours_start+colour_pair_number))
+                    if self.centre_in_cols:
+                        cell_value = f"{self.indexed_items[row][1][col]:^{cell_width-len(self.separator)}}" + self.separator
+                    else:
+                        cell_value = self.indexed_items[row][1][col] + self.separator
+                    cell_value = cell_value[:min(cell_width, cell_max_width)]
+                    cell_value = cell_value[:-len(self.separator)] + self.separator
+                    self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
+                # Part of the cell is on screen
+                elif self.startx <= cell_pos+cell_width <= w:
+                    cell_start = self.startx - cell_pos
+                    self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+colour_pair_number))
+                    cell_value = self.indexed_items[row][1][col][cell_start:visible_column_widths[col]]
+                    self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
+            except:
+                pass
+        selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
+
+        # Draw:
+        #    1. standard row
+        #    2. highlights
+        #    3. selected
+        #    4. cursor
+        ## Display rows and highlights
+        for idx in range(start_index, end_index):
+            item = self.indexed_items[idx]
+            y = idx - start_index + self.top_space
 
             row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
             # row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
             # row_str = format_row(item[1][self.leftmost_column:], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
-            if idx == self.cursor_pos:
-                if self.cell_cursor:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
 
-                    cell_pos = sum(visible_column_widths[:self.sort_column])+self.sort_column*len(self.separator)-self.leftmost_char + self.startx
-                    # cell_width = self.column_widths[self.sort_column]
-                    cell_width = visible_column_widths[self.sort_column] + len(self.separator)
-                    cell_max_width = w-cell_pos
-                    try:
-                        if self.startx <= cell_pos <= w:
-                            self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], curses.color_pair(self.colours_start+5))
-                            if self.centre_in_cols:
-                                cell_value = f"{self.indexed_items[self.cursor_pos][1][self.sort_column]:^{cell_width}}" + self.separator
-                            else:
-                                cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column] + self.separator
-                            cell_value = cell_value[:min(cell_width, cell_max_width)]
-                            self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+5) | curses.A_BOLD)
-                        elif self.startx <= cell_pos+cell_width <= w:
-                            cell_start = self.startx - cell_pos
-                            self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+5))
-                            cell_value = self.indexed_items[self.cursor_pos][1][self.sort_column][cell_start:visible_column_widths[self.sort_column]]
-                            self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+5) | curses.A_BOLD)
-                    except:
-                        pass
-                else:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
-            else:
-                self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
+            self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
             # Highlight the whole string of the selected rows
             if self.highlight_full_row:
                 if self.selections[item[0]]:
@@ -699,6 +740,39 @@ class Picker:
                     self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
                 elif self.is_deselecting and self.start_selection <= idx <= self.cursor_pos:
                     self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
+            if self.cell_cursor:
+                if item[0] in selected_cells_by_row:
+                    for j in selected_cells_by_row[item[0]]:
+                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25)
+
+                
+
+                # Visually selected
+                if self.is_selecting and self.start_selection <= idx <= self.cursor_pos:
+                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+1)
+                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
+                    for col in x_interval:
+                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
+
+
+                elif self.is_selecting and self.start_selection >= idx >= self.cursor_pos:
+                    # self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
+                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+1)
+                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
+                    for col in x_interval:
+                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
+                # Visually deslected
+                if self.is_deselecting and self.start_selection >= idx >= self.cursor_pos:
+                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+10)
+                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
+                    for col in x_interval:
+                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
+                elif self.is_deselecting and self.start_selection <= idx <= self.cursor_pos:
+                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+10)
+                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
+                    for col in x_interval:
+                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
+
 
             # if not highlights_hide:
             if not self.highlights_hide and idx != self.cursor_pos:
@@ -736,6 +810,13 @@ class Picker:
                         # self.stdscr.addstr(y, self.startx+highlight_start, row_str[highlight_start:min(w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                     except:
                         pass
+
+            if idx == self.cursor_pos:
+                if self.cell_cursor:
+                    # self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
+                    highlight_cell(idx, self.sort_column, visible_column_widths)
+                else:
+                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             
         ## Display scrollbar
         if self.scroll_bar and len(self.indexed_items) and len(self.indexed_items) > (self.items_per_page):
@@ -768,52 +849,6 @@ class Picker:
                 self.footer.draw(h, w)
             except:
                 pass
-
-            # # Fill background
-            # self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-            # self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-            # self.stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(self.colours_start+20)) # Problem with curses that you can't write to the last char
-            #
-            # if self.filter_query:
-            #     self.stdscr.addstr(h - 2, 2, f" Filter: {self.filter_query} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            # if self.search_query:
-            #     self.stdscr.addstr(h - 3, 2, f" Search: {self.search_query} [{self.search_index}/{self.search_count}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            # if self.user_opts:
-            #     self.stdscr.addstr(h-1, 2, f" Opts: {self.user_opts} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-            # # Display sort information
-            # sort_column_info = f"{self.sort_column if self.sort_column is not None else 'None'}"
-            # sort_method_info = f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}" if self.sort_column != None else "NA"
-            #
-            #
-            # ## RIGHT
-            # # Sort status
-            # sort_order_info = "Desc." if self.sort_reverse[self.sort_column] else "Asc."
-            # sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
-            # self.stdscr.addstr(h - 2, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
-            #
-            #
-            # if self.footer_string:
-            #     # footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
-            #     footer_string_width = min(w-1, max(len(self.footer_string), 50))
-            #     disp_string = f"{self.footer_string[:footer_string_width]:>{footer_string_width-1}} "
-            #     self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-            #     self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-            # else:
-            #     # Display cursor mode
-            #     select_mode = "Cursor"
-            #     if self.is_selecting: select_mode = "Visual Selection"
-            #     elif self.is_deselecting: select_mode = "Visual deselection"
-            #     self.stdscr.addstr(h - 1, w-35, f"{select_mode:>33} ", curses.color_pair(self.colours_start+20))
-            # # Display selection count
-            # selected_count = sum(self.selections.values())
-            # if self.paginate:
-            #     cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count}"
-            #     self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-            # else:
-            #     cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count}"
-            #     self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-            #
-            # self.stdscr.refresh()
         elif self.footer_string:
             footer_string_width = min(w-1, len(self.footer_string)+2)
             disp_string = f" {self.footer_string[:footer_string_width]:>{footer_string_width-2}} "
@@ -874,6 +909,7 @@ class Picker:
         """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
         function_data = {
             "selections":                       self.selections,
+            "cell_selections":                  self.cell_selections,
             "items_per_page":                   self.items_per_page,
             "current_row":                      self.current_row,
             "current_page":                     self.current_page,
@@ -897,6 +933,7 @@ class Picker:
             "filter_query":                     self.filter_query,
             "indexed_items":                    self.indexed_items,
             "start_selection":                  self.start_selection,
+            "start_selection_col":              self.start_selection_col,
             "end_selection":                    self.end_selection,
             "highlights":                       self.highlights,
             "max_column_width":                 self.max_column_width,
@@ -1037,6 +1074,7 @@ class Picker:
             "keys_dict": options_keys,
             "show_footer": False,
             "cancel_is_back": True,
+            "number_columns": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1157,6 +1195,8 @@ class Picker:
                     self.centre_in_cols = not self.centre_in_cols
                 elif setting == "cv":
                     self.centre_in_terminal_vertical = not self.centre_in_terminal_vertical
+                elif setting == "cell":
+                    self.cell_cursor = True
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
                 elif setting == "footer":
@@ -1252,18 +1292,24 @@ class Picker:
         """ Select all in indexed_items. """
         for i in range(len(self.indexed_items)):
             self.selections[self.indexed_items[i][0]] = True
+        for i in self.cell_selections.keys():
+            self.cell_selections[i] = True
+
         self.draw_screen(self.indexed_items, self.highlights)
 
     def deselect_all(self) -> None:
         """ Deselect all items in indexed_items. """
         for i in range(len(self.selections)):
             self.selections[i] = False
+        for i in self.cell_selections.keys():
+            self.cell_selections[i] = False
         self.draw_screen(self.indexed_items, self.highlights)
 
     def handle_visual_selection(self, selecting:bool = True) -> None:
         """ Toggle visual selection or deselection. """
         if not self.is_selecting and not self.is_deselecting and len(self.indexed_items) and len(self.indexed_items[0][1]):
             self.start_selection = self.cursor_pos
+            self.start_selection_col = self.sort_column
             if selecting:
                 self.is_selecting = True
             else:
@@ -1277,6 +1323,16 @@ class Picker:
                 for i in range(start, end + 1):
                     if self.indexed_items[i][0] not in self.unselectable_indices:
                         self.selections[self.indexed_items[i][0]] = True
+            if self.start_selection != -1:
+                ystart = max(min(self.start_selection, self.end_selection), 0)
+                yend = min(max(self.start_selection, self.end_selection), len(self.indexed_items)-1)
+                xstart = min(self.start_selection_col, self.sort_column)
+                xend = max(self.start_selection_col, self.sort_column)
+                for i in range(ystart, yend + 1):
+                    if self.indexed_items[i][0] not in self.unselectable_indices:
+                        for j in range(xstart, xend+1):
+                            cell_index = (self.indexed_items[i][0], j)
+                            self.cell_selections[cell_index] = True
             self.start_selection = -1
             self.end_selection = -1
             self.is_selecting = False
@@ -1292,6 +1348,16 @@ class Picker:
                 for i in range(start, end + 1):
                     # selections[i] = False
                     self.selections[self.indexed_items[i][0]] = False
+            if self.start_selection != -1:
+                ystart = max(min(self.start_selection, self.end_selection), 0)
+                yend = min(max(self.start_selection, self.end_selection), len(self.indexed_items)-1)
+                xstart = min(self.start_selection_col, self.sort_column)
+                xend = max(self.start_selection_col, self.sort_column)
+                for i in range(ystart, yend + 1):
+                    if self.indexed_items[i][0] not in self.unselectable_indices:
+                        for j in range(xstart, xend+1):
+                            cell_index = (self.indexed_items[i][0], j)
+                            self.cell_selections[cell_index] = False
             self.start_selection = -1
             self.end_selection = -1
             self.is_deselecting = False
@@ -1337,7 +1403,7 @@ class Picker:
             return True
         return False
 
-    def copy_dialog(self) -> None:
+    def copy_dialogue(self) -> None:
         copy_header = [
             "Representation",
             "Columns",
@@ -1357,20 +1423,69 @@ class Picker:
 
 
         funcs = [
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="python", copy_hidden_cols=False),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="python", copy_hidden_cols=True),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="tsv", copy_hidden_cols=False),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="tsv", copy_hidden_cols=True),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="csv", copy_hidden_cols=False),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="csv", copy_hidden_cols=True),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="custom_sv", copy_hidden_cols=False, separator=o),
-            lambda items, indexed_items, selections, hidden_columns: copy_to_clipboard(items, indexed_items, selections, hidden_columns, representation="custom_sv", copy_hidden_cols=True, separator=o),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="python", copy_hidden_cols=False, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="python", copy_hidden_cols=True, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="tsv", copy_hidden_cols=False, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="tsv", copy_hidden_cols=True, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="csv", copy_hidden_cols=False, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="csv", copy_hidden_cols=True, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="custom_sv", copy_hidden_cols=False, separator=o, cellwise=cell_cursor),
+            lambda items, indexed_items, selections, cell_selections, hidden_columns, cell_cursor: copy_to_clipboard(items, indexed_items, selections, cell_selections, hidden_columns, representation="custom_sv", copy_hidden_cols=True, separator=o, cellwise=cell_cursor),
         ]
 
         # Copy items based on selection
         if s:
             for idx in s.keys():
-                funcs[idx](self.items, self.indexed_items, self.selections, self.hidden_columns)
+                funcs[idx](self.items, self.indexed_items, self.selections, self.cell_selections, self.hidden_columns, self.cell_cursor)
+    def paste_dialogue(self) -> None:
+        paste_header = [
+            "Representation",
+            "Columns",
+        ]
+        options = [
+            ["Paste values", ""],
+        ]
+        require_option = [False]
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Paste values", header=paste_header, require_option=require_option)
+
+
+        funcs = [
+            lambda items, pasta, paste_row, paste_col: paste_values(items, pasta, paste_row, paste_col)
+        ]
+
+        try:
+            pasta = eval(pyperclip.paste())
+            if type(pasta) == type([]):
+                acceptable_data_type = True
+                for row in pasta:
+                    if type(row) != type([]):
+                        acceptable_data_type = False
+                        break
+
+                    for cell in row:
+                        if cell != None and type(cell) != type(""):
+                            acceptable_data_type = False
+                            break
+                    if not acceptable_data_type:
+                        break
+                if not acceptable_data_type:
+                    self.draw_screen(self.indexed_items, self.highlights)
+                    self.notification(self.stdscr, message="Error pasting data.")
+                    return None
+
+        except:
+            self.draw_screen(self.indexed_items, self.highlights)
+            self.notification(self.stdscr, message="Error pasting data.")
+            return None
+        if type(pasta) == type([]) and len(pasta) > 0 and type(pasta[0]) == type([]):
+            if s:
+                for idx in s.keys():
+                    return_val, tmp_items = funcs[idx](self.items, pasta, self.cursor_pos, self.sort_column)
+                    if return_val:
+                        cursor_pos = self.cursor_pos
+                        self.items = tmp_items
+                        self.initialise_variables()
+                        self.cursor_pos = cursor_pos
 
     def save_dialog(self) -> None:
         
@@ -1449,6 +1564,8 @@ class Picker:
         if self.track_entries_upon_refresh:
             selected_indices = get_selected_indices(self.selections)
             self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
+            self.ids_tuples = [(i, item[self.id_column]) for i, item in enumerate(self.items) if i in selected_indices]
+            self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
 
             if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
                 self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
@@ -1592,7 +1709,6 @@ class Picker:
 
                     t = threading.Thread(target=self.fetch_data)
                     t.start()
-
                 else:
                     function_data = self.get_function_data()
                     return [], "refresh", function_data
@@ -1752,9 +1868,12 @@ class Picker:
             elif self.check_key("toggle_select", key, self.keys_dict):
                 if len(self.indexed_items) > 0:
                     item_index = self.indexed_items[self.cursor_pos][0]
+                    cell_index = (self.indexed_items[self.cursor_pos][0], self.sort_column)
                     selected_count = sum(self.selections.values())
                     if self.max_selected == -1 or selected_count >= self.max_selected:
                         self.toggle_item(item_index)
+
+                        self.cell_selections[cell_index] = not self.cell_selections[cell_index]
                 self.cursor_down()
             elif self.check_key("select_all", key, self.keys_dict):  # Select all (m or ctrl-a)
                 self.select_all()
@@ -2017,7 +2136,9 @@ class Picker:
                 col_index = d[chr(key)]
                 self.toggle_column_visibility(col_index)
             elif self.check_key("copy", key, self.keys_dict):
-                self.copy_dialog()
+                self.copy_dialogue()
+            elif self.check_key("paste", key, self.keys_dict):
+                self.paste_dialogue()
             elif self.check_key("save", key, self.keys_dict):
                 self.save_dialog()
             elif self.check_key("load", key, self.keys_dict):
@@ -2408,6 +2529,8 @@ class Picker:
                         auto_complete_words=words,
                     )
                     if return_val:
+                        if usrtxt.startswith("```"):
+                            usrtxt = str(eval(usrtxt[3:]))
                         self.indexed_items[self.cursor_pos][1][self.sort_column] = usrtxt
                         self.history_edits.append(usrtxt)
 
@@ -2517,6 +2640,8 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
         curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
         curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
         curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
+        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
+        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
 
 
         # notifications 50, infobox 100, help 150
@@ -2545,6 +2670,10 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
         curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
         curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
         curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+        curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
+        curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
+        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
+        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
 
         # Help
         colours = help_colours
@@ -2571,6 +2700,10 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
         curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
         curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
         curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+        curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
+        curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
+        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
+        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
     except:
         pass
     COLOURS_SET = True
@@ -2691,12 +2824,14 @@ def main() -> None:
             'name': 'mp4',
         },
     ]
-    function_data["cell_cursor"] = True
+    # function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     function_data["centre_in_cols"] = True
     function_data["show_row_header"] = True
     function_data["keys_dict"] = picker_keys
     function_data["id_column"] = -1
+    function_data["track_entries_upon_refresh"] = True
+    function_data["centre_in_terminal_vertical"] = True
     # function_data["highlight_full_row"] = True
     stdscr = start_curses()
     try:
