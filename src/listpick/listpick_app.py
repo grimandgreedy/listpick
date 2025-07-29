@@ -698,126 +698,144 @@ class Picker:
 
         # Draw:
         #    1. standard row
-        #    2. highlights
+        #    2. highlights l0
         #    3. selected
-        #    4. cursor
+        #    4. above-selected highlights l1
+        #    5. cursor
+        #    6. top-level highlights l2
         ## Display rows and highlights
+
+        def sort_highlights(highlights):
+            """ 
+            Sort highlights into lists based on their display level.
+            Highlights with no level defined will be displayed at level 0.
+            """
+            l0 = []
+            l1 = []
+            l2 = []
+            for highlight in highlights:
+                if "level" in highlight:
+                    if highlight["level"] == 0: l0.append(highlight)
+                    elif highlight["level"] == 1: l1.append(highlight)
+                    elif highlight["level"] == 2: l2.append(highlight)
+                    else: l0.append(highlight)
+                else:
+                    l0.append(highlight)
+            return l0, l1, l2
+
+        def draw_highlights(highlights: list[dict], idx: int, y: int, item: tuple[int, list[str]]):
+            row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+            full_row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+            for highlight in highlights:
+                if "row" in highlight:
+                    if highlight["row"] != self.indexed_items[idx][0]:
+                        continue
+                try:
+                    if highlight["field"] == "all":
+                        match = re.search(highlight["match"], full_row_str, re.IGNORECASE)
+                        if not match: continue
+                        highlight_start = match.start()
+                        highlight_end = match.end()
+                        if highlight_end - self.leftmost_char < 0:
+                            continue
+
+                    elif type(highlight["field"]) == type(0) and highlight["field"] not in self.hidden_columns:
+                        match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], centre=False), re.IGNORECASE)
+                        if not match: continue
+                        field_start = sum([width for i, width in enumerate(self.column_widths[:highlight["field"]]) if i not in self.hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in self.hidden_columns])*wcswidth(self.separator)
+
+                        ## We want to search the non-centred values but highlight the centred values.
+                        if self.centre_in_cols:
+                            tmp = truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], self.centre_in_cols)
+                            field_start += (len(tmp) - len(tmp.lstrip()))
+
+                        highlight_start = field_start + match.start()
+                        highlight_end = match.end() + field_start
+                        if highlight_end - self.leftmost_char < 0:
+                            continue
+                    else:
+                        continue
+                    highlight_start -= self.leftmost_char
+                    highlight_end -= self.leftmost_char
+                    self.stdscr.addstr(y, max(self.startx, self.startx+highlight_start), row_str[max(highlight_start,0):min(w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
+                except:
+                    pass
+
+        l0_highlights, l1_highlights, l2_highlights = sort_highlights(self.highlights)
+
+
         for idx in range(start_index, end_index):
             item = self.indexed_items[idx]
             y = idx - start_index + self.top_space
 
             row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
-            # row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
-            # row_str = format_row(item[1][self.leftmost_column:], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
 
+            ## Display the standard row
             self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
-            # Highlight the whole string of the selected rows
-            if self.highlight_full_row:
-                if self.selections[item[0]]:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+1))
-                # Visually selected
-                if self.is_selecting and self.start_selection <= idx <= self.cursor_pos:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+1))
-                elif self.is_selecting and self.start_selection >= idx >= self.cursor_pos:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+1))
-                # Visually deslected
-                if self.is_deselecting and self.start_selection >= idx >= self.cursor_pos:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+1))
-                elif self.is_deselecting and self.start_selection <= idx <= self.cursor_pos:
-                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+1))
+            
 
-            # Highlight the first char of the selected rows
-            else:
-                if self.selections[item[0]]:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
-                # Visually selected
-                if self.is_selecting and self.start_selection <= idx <= self.cursor_pos:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
-                elif self.is_selecting and self.start_selection >= idx >= self.cursor_pos:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
-                # Visually deslected
-                if self.is_deselecting and self.start_selection >= idx >= self.cursor_pos:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
-                elif self.is_deselecting and self.start_selection <= idx <= self.cursor_pos:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
+            # Draw the level 0 highlights
+            if not self.highlights_hide:
+                draw_highlights(l0_highlights, idx, y, item)
+
+            # Higlight cursor cell and selected cells
             if self.cell_cursor:
                 if item[0] in selected_cells_by_row:
                     for j in selected_cells_by_row[item[0]]:
                         highlight_cell(idx, j, visible_column_widths, colour_pair_number=25)
 
-                
-
                 # Visually selected
-                if self.is_selecting and self.start_selection <= idx <= self.cursor_pos:
-                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+1)
-                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
-                    for col in x_interval:
-                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
+                if self.is_selecting:
+                    if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                        x_interval = range(min(self.start_selection_col, self.sort_column), max(self.start_selection_col, self.sort_column)+1)
+                        for col in x_interval:
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
 
-
-                elif self.is_selecting and self.start_selection >= idx >= self.cursor_pos:
-                    # self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
-                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+1)
-                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
-                    for col in x_interval:
-                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
                 # Visually deslected
-                if self.is_deselecting and self.start_selection >= idx >= self.cursor_pos:
-                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+10)
-                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
-                    for col in x_interval:
-                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
-                elif self.is_deselecting and self.start_selection <= idx <= self.cursor_pos:
-                    if self.start_selection_col < self.sort_column: x_interval = range(self.start_selection_col, self.sort_column+10)
-                    else: x_interval = range(self.sort_column, self.start_selection_col+1)
-                    for col in x_interval:
-                        highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
+                if self.is_deselecting:
+                    if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
+                        x_interval = range(min(self.start_selection_col, self.sort_column), max(self.start_selection_col, self.sort_column)+1)
+                        for col in x_interval:
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
+            # Higlight cursor row and selected rows
+            elif self.highlight_full_row:
+                if self.selections[item[0]]:
+                    self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+25) | curses.A_BOLD)
+                # Visually selected
+                elif self.is_selecting:
+                    if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                        self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+25))
+                # Visually deslected
+                elif self.is_deselecting:
+                    if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
+                        self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+26))
 
+            # Highlight the cursor row and the first char of the selected rows.
+            else:
+                if self.selections[item[0]]:
+                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
+                # Visually selected
+                if self.is_selecting:
+                    if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                        self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
+                # Visually deslected
+                if self.is_deselecting:
+                    if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
+                        self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
 
-            # if not highlights_hide:
-            if not self.highlights_hide and idx != self.cursor_pos:
-                for highlight in self.highlights:
-                    if "row" in highlight:
-                        if highlight["row"] != self.indexed_items[idx][0]:
-                            continue
-                    try:
-                        if highlight["field"] == "all":
-                            full_row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
-                            match = re.search(highlight["match"], full_row_str, re.IGNORECASE)
-                            if not match: continue
-                            highlight_start = match.start()
-                            highlight_end = match.end()
-                            if highlight_end - self.leftmost_char < 0:
-                                continue
+            if not self.highlights_hide:
+                draw_highlights(l1_highlights, idx, y, item)
 
-                        elif type(highlight["field"]) == type(4) and highlight["field"] not in self.hidden_columns:
-                            match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], self.centre_in_cols), re.IGNORECASE)
-                            if not match: continue
-                            field_start = sum([width for i, width in enumerate(self.column_widths[:highlight["field"]]) if i not in self.hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in self.hidden_columns])*wcswidth(self.separator)
-                            highlight_start = field_start + match.start()
-                            highlight_end = match.end() + field_start
-                            if highlight_end - self.leftmost_char < 0:
-                                continue
-
-                        else:
-                            continue
-                        color_pair = curses.color_pair(self.colours_start+highlight["color"])  # Selected item
-                        if idx == self.cursor_pos:
-                            color_pair = curses.color_pair(self.colours_start+highlight["color"])  | curses.A_REVERSE
-                        highlight_start -= self.leftmost_char
-                        highlight_end -= self.leftmost_char
-                        self.stdscr.addstr(y, max(self.startx, self.startx+highlight_start), row_str[max(highlight_start,0):min(w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
-                        # self.stdscr.addstr(y, self.startx+highlight_start, row_str[highlight_start:min(w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
-                    except:
-                        pass
-
+            # Draw cursor
             if idx == self.cursor_pos:
                 if self.cell_cursor:
-                    # self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2) | curses.A_BOLD)
                     highlight_cell(idx, self.sort_column, visible_column_widths)
                 else:
                     self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             
+            if not self.highlights_hide:
+                draw_highlights(l2_highlights, idx, y, item)
+
         ## Display scrollbar
         if self.scroll_bar and len(self.indexed_items) and len(self.indexed_items) > (self.items_per_page):
             scroll_bar_length = int(self.items_per_page*self.items_per_page/len(self.indexed_items))
@@ -1196,7 +1214,7 @@ class Picker:
                 elif setting == "cv":
                     self.centre_in_terminal_vertical = not self.centre_in_terminal_vertical
                 elif setting == "cell":
-                    self.cell_cursor = True
+                    self.cell_cursor = not self.cell_cursor
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
                 elif setting == "footer":
@@ -2824,6 +2842,58 @@ def main() -> None:
             'name': 'mp4',
         },
     ]
+    function_data["highlights"] = [
+    {
+        "match": "^complete[\s]*$",
+        "field": 1,
+        "color": 8,
+    },
+    {
+        "match": "^error[\s]*|^removed[\s]*$",
+        "field": 1,
+        "color": 7,
+    },
+    {
+        "match": "^active[\s]*$",
+        "field": 1,
+        "color": 9,
+    },
+    {
+        "match": "^waiting[\s]*$",
+        "field": 1,
+        "color": 11,
+    },
+    {
+        "match": "^paused[\s]*$",
+        "field": 1,
+        "color": 12,
+    },
+    { 
+        "match": r'^(0\d?(\.\d*)?\b|\b\d(\.\d*)?)\b%?',              # Pattern for numbers from 0 to 20
+        "field": 6,
+        "color": 7,
+    },
+    {
+        "match": r'^(2\d(\.\d*)?|3\d(\.\d*)?|40(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 20 to 40
+        "field": 6,
+        "color": 11,
+    },
+    {
+        "match": r'^(4\d(\.\d*)?|5\d(\.\d*)?|60(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 40 to 60
+        "field": 6,
+        "color": 9,
+    },
+    {
+        "match": r'^(6\d(\.\d*)?|7\d(\.\d*)?|80(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 60 to 80
+        "field": 6,
+        "color": 9,
+    },
+    {
+        "match": r'^(8\d(\.\d*)?|9\d(\.\d*)?|100(\.\d*)?)(?!\d)\b%?',  # Pattern for numbers from 80 to 100
+        "field": 6,
+        "color": 8,
+    },
+    ]
     # function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     function_data["centre_in_cols"] = True
@@ -2832,7 +2902,7 @@ def main() -> None:
     function_data["id_column"] = -1
     function_data["track_entries_upon_refresh"] = True
     function_data["centre_in_terminal_vertical"] = True
-    # function_data["highlight_full_row"] = True
+    function_data["highlight_full_row"] = True
     stdscr = start_curses()
     try:
         # Run the Picker

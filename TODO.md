@@ -240,7 +240,7 @@ ASAP
 >   - [ ] Delete cell-wise
 >   - [ ] Draw highlights before cell cursor
 >    - [ ] Should there be different highlight 'levels' ?
-> - [ ] We really need to separate out the sort_column from the selected_column...
+> - [ ] We really need to separate out the sort_column from the selected_column. They should be two different things.
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active
@@ -267,6 +267,7 @@ ASAP
 >   - [ ] some capture groups don't work [^0]
 >   - [ ] should general search be cell-wise?
 >   - [ ] option to search visible columns only
+>   - [ ] [^\s]* finds the right matches but doesn't highlight them properly.
 > - [ ] Visual selection: start visual selection on row 100. List_picker refreshes and there are only 10 rows with the applied filter. End visual selection on row 2. Crash
 > - [ ] blinking cursor character shows after opening nvim and returning to listpicker
 >    - Not sure if this can be avoided. 
@@ -304,6 +305,7 @@ ASAP
 > - [ ] centre_in_cols doesn't seem to centre the values properly. They are to the left of the cell.
 > - [ ] Crash when we delete the last row
 > - [ ] (***) Refreshing when we have selected cells that are not in the refreshed data causes crash.
+> - [ ] Crash when editing a cell and adding newlines (from nvim)
 
 
 

@@ -26,7 +26,7 @@ def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, ad
                 return False
             else:
                 cell_value = str(row[col])
-                if not pattern.search(str(cell_value)):
+                if not pattern.search(cell_value):
                     return False
                 # return invert_filter
 
@@ -39,6 +39,7 @@ def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, ad
                     "field": hcol,
                     "color": 10,
                     "type": "search",
+                    "level": 1,
                 }
                 if highlight not in highlights:
                     highlights.append(highlight)
