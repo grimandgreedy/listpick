@@ -110,7 +110,7 @@ def sort_items(indexed_items: list[Tuple[int,list[str]]], sort_method:int=0, sor
         try:
             if SORT_METHODS[sort_method] == 'num':
                 indexed_items.sort(key=lambda x: parse_numerical(x[1][sort_column]), reverse=sort_reverse)
-            elif SORT_METHODS[sort_method] == 'orig':
+            elif SORT_METHODS[sort_method] == 'Orig':
                 indexed_items.sort(key=lambda x: x[0], reverse=sort_reverse)
             elif SORT_METHODS[sort_method] == 'lex':
                 # indexed_items.sort(key=lambda x: x[1][sort_column].lower(), reverse=sort_reverse)
