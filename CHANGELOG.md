@@ -1,6 +1,19 @@
 # CHANGELOG.md
-## [0.1.14] 2025-07-28
- - Fixed display bug when cells are centred vertically.
+## [0.1.14] 2025-??
+ - Fixed bug when cells are centred vertically.
+ - Added "level" keyword for highlight dictionary.
+  - l0: show highlight above base rows
+  - l1: show highlight above selected cells/rows
+  - l2: show highlight above cursor cell/row.
+ - Added separate selected_column argument (distinct from sort_column) so that columns can be navigated without sorting on the selected column. 's' has to be pressed on the selected_column to trigger sorting.
+ - Changed scrolling to start/end so that it selects the first/last column.
+ - Bug fixes:
+   - When data was centred vertically it would take an extra draw_screen loop to determine the proper column widths when the column sizes changed. This has been fixed.
+   - Refreshing sorted data would resort it on the selected column rather than the sort column. Fixed.
+ - Added some extra options to the settings:
+   - Toggle header
+   - Toggle row header
+   - Toggle modes
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.

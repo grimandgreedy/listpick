@@ -120,7 +120,7 @@ class Picker:
         paginate: bool =False,
         cancel_is_back: bool = False,
         mode_index: int =0,
-        modes: list[dict] = [{}],
+        modes: list[dict] = [],
         display_modes: bool =False,
         require_option: list=[],
         require_option_default: list=[],
@@ -335,15 +335,18 @@ class Picker:
         h, w = self.stdscr.getmaxyx()
         self.top_space = self.top_gap
         if self.title: self.top_space+=1
-        if self.display_modes: self.top_space+=1
-        if self.header: self.top_space += 1
-        if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
-            self.top_space += ((h-(self.top_space+self.bottom_space))-len(self.indexed_items))//2
+        if self.modes and self.display_modes: self.top_space+=1
+        if self.header and self.show_header: self.top_space += 1
 
         # self.items_per_page
         self.items_per_page = h - self.top_space - self.bottom_space
         if not self.show_footer and self.footer_string: self.items_per_page-=1
         self.items_per_page = min(h-self.top_space-1, self.items_per_page)
+
+
+        # Adjust top space if centring vertically and we have fewer rows than terminal lines
+        if self.centre_in_terminal_vertical and len(self.indexed_items) < self.items_per_page:
+            self.top_space += ((h-(self.top_space+self.bottom_space))-len(self.indexed_items))//2
 
         # self.column_widths
         visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
@@ -463,7 +466,7 @@ class Picker:
                 self.cursor_pos, self.search_index, self.search_count, self.highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
         # If a sort is passed
         if len(self.indexed_items) > 0:
-            sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+            sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
         # if len(self.items[0]) == 1:
         #     self.number_columns = False
 
@@ -570,10 +573,6 @@ class Picker:
         # Test if the terminal is of a sufficient size to display the picker
         if not self.test_screen_size(): return None
 
-
-        # Determine the number of items_per_page, top_size and bottom_size
-        self.calculate_section_sizes()
-
         # Determine which rows are to be displayed on the current screen
         ## Paginate
         if self.paginate:
@@ -594,6 +593,9 @@ class Picker:
         self.column_widths = get_column_widths(rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
         visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
         visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
+
+        # Determine the number of items_per_page, top_size and bottom_size
+        self.calculate_section_sizes()
         
         # top_space = self.top_gap
 
@@ -629,7 +631,7 @@ class Picker:
             # top_space += 1
 
         ## Display header
-        if self.header:
+        if self.header and self.show_header:
             header_str = ""
             up_to_selected_col = ""
             selected_col_str = ""
@@ -643,7 +645,7 @@ class Picker:
                 header_str += self.separator
 
             header_str = header_str[self.leftmost_char:]
-            header_ypos = self.top_gap + bool(self.title) + bool(self.display_modes)
+            header_ypos = self.top_gap + bool(self.title) + bool(self.display_modes and self.modes)
             self.stdscr.addstr(header_ypos, 0, ' '*w, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
             self.stdscr.addstr(header_ypos, self.startx, header_str[:min(w-self.startx, visible_columns_total_width+1)], curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
@@ -1204,10 +1206,10 @@ class Picker:
                     self.highlights_hide = not self.highlights_hide
                 elif setting[0] == "s":
                     if 0 <= int(setting[1:]) < len(self.items[0]):
-                        self.selected_column = int(setting[1:])
+                        self.sort_column = int(setting[1:])
                         if len(self.indexed_items):
                             current_pos = self.indexed_items[self.cursor_pos][0]
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
                         if len(self.indexed_items):
                             new_pos = [row[0] for row in self.indexed_items].index(current_pos)
                             self.cursor_pos = new_pos
@@ -1217,8 +1219,14 @@ class Picker:
                     self.centre_in_cols = not self.centre_in_cols
                 elif setting == "cv":
                     self.centre_in_terminal_vertical = not self.centre_in_terminal_vertical
+                elif setting == "modes":
+                    self.display_modes = not self.display_modes
                 elif setting == "cell":
                     self.cell_cursor = not self.cell_cursor
+                elif setting == "rh":
+                    self.show_row_header = not self.show_row_header
+                elif setting == "header":
+                    self.show_header = not self.show_header
                 elif setting[0] == "":
                     cols = setting[1:].split(",")
                 elif setting == "footer":
@@ -1829,6 +1837,9 @@ class Picker:
                     options += [["th", "Cycle between themes. (accepts th#)"]]
                     options += [["nohl", "Toggle highlights"]]
                     options += [["footer", "Toggle footer"]]
+                    options += [["header", "Toggle header"]]
+                    options += [["rh", "Toggle row header"]]
+                    options += [["modes", "Toggle modes"]]
                     options += [["ft", "Cycle through footer styles (accepts ft#)"]]
                     options += [[f"s{i}", f"Select col. {i}"] for i in range(len(self.items[0]))]
                     options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(self.items[0]))]
@@ -2005,10 +2016,10 @@ class Picker:
             elif self.check_key("col_select", key, self.keys_dict):
                 col_index = key - ord('0')
                 if 0 <= col_index < len(self.items[0]):
-                    self.selected_column = col_index
+                    self.sort_column = col_index
                     if len(self.indexed_items) > 0:
                         current_index = self.indexed_items[self.cursor_pos][0]
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                         self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
             elif self.check_key("col_select_next", key, self.keys_dict):
                 if len(self.items) > 0 and len(self.items[0]) > 0:
@@ -2016,7 +2027,7 @@ class Picker:
                     self.selected_column = col_index
                     # if len(self.indexed_items) > 0:
                     #     current_index = self.indexed_items[self.cursor_pos][0]
-                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                     #     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
                 # Flash when we loop back to the first column
                 # if self.selected_column == 0:
@@ -2043,7 +2054,7 @@ class Picker:
                     self.selected_column = col_index
                     # if len(self.indexed_items) > 0:
                     #     current_index = self.indexed_items[self.cursor_pos][0]
-                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                     #     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
                 # Flash when we loop back to the last column
                 # if self.selected_column == len(self.column_widths)-1:
@@ -2082,6 +2093,7 @@ class Picker:
 
             elif self.check_key("scroll_far_left", key, self.keys_dict):
                 self.leftmost_char = 0
+                self.selected_column = 0
             
             elif self.check_key("scroll_far_right", key, self.keys_dict):
                 h, w = self.stdscr.getmaxyx()
@@ -2097,6 +2109,8 @@ class Picker:
                 #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
                 # self.notification(self.stdscr, f"{longest_row_str_len}")
                 self.leftmost_char = max(0, longest_row_str_len-w+2+self.startx)
+                if len(self.items):
+                    self.selected_column = len(self.items[0])-1
 
             elif self.check_key("add_column_before", key, self.keys_dict):
                 self.items = [row[:self.selected_column]+[""]+row[self.selected_column:] for row in self.items]
@@ -2275,7 +2289,7 @@ class Picker:
                     self.cursor_pos = new_index
                     # Re-sort self.items after applying filter
                     if self.columns_sort_method[self.selected_column] != 0:
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
 
             elif self.check_key("search_input", key, self.keys_dict):
                 self.draw_screen(self.indexed_items, self.highlights)
@@ -2373,7 +2387,7 @@ class Picker:
                     self.cursor_pos = new_index
                     # Re-sort self.items after applying filter
                     if self.columns_sort_method[self.selected_column] != 0:
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                 elif self.cancel_is_back:
                     function_data = self.get_function_data()
                     function_data["last_key"] = key
@@ -2437,7 +2451,7 @@ class Picker:
                         else: new_index = 0
                         self.cursor_pos = new_index
                         # Re-sort self.items after applying filter
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("mode_prev", key, self.keys_dict): # shift+tab key
                 # apply setting 
                 prev_mode_index = self.mode_index
@@ -2454,7 +2468,7 @@ class Picker:
                         else: new_index = 0
                         self.cursor_pos = new_index
                         # Re-sort self.items after applying filter
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.selected_column], sort_column=self.selected_column, sort_reverse=self.sort_reverse[self.selected_column])  # Re-sort self.items based on new column
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("pipe_input", key, self.keys_dict):
                 # usrtxt = "xargs -d '\n' -I{}  "
                 usrtxt = "xargs "

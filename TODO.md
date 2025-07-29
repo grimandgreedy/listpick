@@ -240,7 +240,7 @@ ASAP
 >   - [ ] Delete cell-wise
 >   - [ ] Draw highlights before cell cursor
 >    - [ ] Should there be different highlight 'levels' ?
-> - [ ] We really need to separate out the sort_column from the selected_column. They should be two different things.
+> - [x] Separate sort_column from a new selected_column argument. They really should be two different things.
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active

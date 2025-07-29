@@ -96,6 +96,7 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "edit_picker":                      "Edit cell from options dialogue.",
         "edit_ipython":                     "Edit current data with ipython.",
         "copy":                             "Copy selections.",
+        "paste":                            "Paste into picker.",
         "save":                             "Save selections.",
         "load":                             "Load from file.",
         "open":                             "Open from file.",
@@ -107,8 +108,10 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "scroll_left":                      "Scroll left.",
         "scroll_far_right":                 "Scroll to the end of the column set.",
         "scroll_far_left":                  "Scroll to the left home.",
-        "add_column":                       "Insert column before cursor.",
-        "add_row":                          "Insert row before cursor.",
+        "add_column_before":                "Insert column before cursor.",
+        "add_row_before":                   "Insert row before cursor.",
+        "add_column_after":                 "Insert column after cursor.",
+        "add_row_after":                    "Insert row after cursor.",
     }
     sections = {
         "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_far_right", "scroll_far_left" ],
@@ -119,7 +122,7 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "Filter and sort:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
         "Settings:": [ "settings_input", "settings_options" ],
         "Cancel:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
-        "Save, load, and copy:": [ "save", "load", "copy", "open" ],
+        "Save, load, copy and paste:": [ "save", "load", "open", "copy", "paste" ],
         "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right" ],
     }
 
