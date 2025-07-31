@@ -501,7 +501,6 @@ class Picker:
                     selected_indices.append(all_ids.index(id))
                     self.selections[all_ids.index(id)] = True
 
-            rows_with_selected_cells = []
             for i, id in self.ids_tuples:
                 if id in all_ids:
                     # rows_with_selected_cells
@@ -561,6 +560,15 @@ class Picker:
             return False
         return True
 
+    def splash_screen(self, message=""):
+        """ Display a splash screen with a message. Useful when loading a large data set. """
+        h, w =self.stdscr.getmaxyx()
+        self.stdscr.bkgd(' ', curses.color_pair(2))
+        try:
+            self.stdscr.addstr(h//2, (w-len(message))//2, message, curses.color_pair(2))
+        except:
+            pass
+        self.stdscr.refresh()
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
@@ -688,8 +696,11 @@ class Picker:
                         cell_value = f"{self.indexed_items[row][1][col]:^{cell_width-len(self.separator)}}" + self.separator
                     else:
                         cell_value = self.indexed_items[row][1][col] + self.separator
-                    cell_value = cell_value[:min(cell_width, cell_max_width)]
-                    cell_value = cell_value[:-len(self.separator)] + self.separator
+                    # cell_value = cell_value[:min(cell_width, cell_max_width)-len(self.separator)]
+                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width)-len(self.separator))
+                    cell_value = cell_value + self.separator
+                    # cell_value = cell_value
+                    # row_str = truncate_to_display_width(row_str_left_adj, min(w-self.startx, visible_columns_total_width))
                     self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
                 # Part of the cell is on screen
                 elif self.startx <= cell_pos+cell_width <= w:
@@ -699,7 +710,6 @@ class Picker:
                     self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
             except:
                 pass
-        selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
 
         # Draw:
         #    1. standard row
@@ -729,8 +739,9 @@ class Picker:
             return l0, l1, l2
 
         def draw_highlights(highlights: list[dict], idx: int, y: int, item: tuple[int, list[str]]):
-            row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+            if len(highlights) == 0: return None
             full_row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+            row_str = full_row_str[self.leftmost_char:]
             for highlight in highlights:
                 if "row" in highlight:
                     if highlight["row"] != self.indexed_items[idx][0]:
@@ -774,6 +785,11 @@ class Picker:
             y = idx - start_index + self.top_space
 
             row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
+            # row_str = truncate_to_display_width(row_str, min(w-self.startx, visible_columns_total_width))
+            row_str_orig = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
+            row_str_left_adj = clip_left(row_str_orig, self.leftmost_char)
+            row_str = truncate_to_display_width(row_str_left_adj, min(w-self.startx, visible_columns_total_width))
+            # row_str = truncate_to_display_width(row_str, min(w-self.startx, visible_columns_total_width))[self.leftmost_char:]
 
             ## Display the standard row
             self.stdscr.addstr(y, self.startx, row_str[:min(w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
@@ -785,8 +801,9 @@ class Picker:
 
             # Higlight cursor cell and selected cells
             if self.cell_cursor:
-                if item[0] in selected_cells_by_row:
-                    for j in selected_cells_by_row[item[0]]:
+                self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
+                if item[0] in self.selected_cells_by_row:
+                    for j in self.selected_cells_by_row[item[0]]:
                         highlight_cell(idx, j, visible_column_widths, colour_pair_number=25)
 
                 # Visually selected
@@ -1029,6 +1046,11 @@ class Picker:
         for var in variables:
             if var in function_data:
                 setattr(self, var, function_data[var])
+
+        if "colour_theme_number" in function_data:
+            global COLOURS_SET
+            COLOURS_SET = False
+            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
                 
         # if "items" in function_data: self.items = function_data["items"]
         # if "header" in function_data: self.header = function_data["header"]
@@ -1219,6 +1241,27 @@ class Picker:
                     self.centre_in_cols = not self.centre_in_cols
                 elif setting == "cv":
                     self.centre_in_terminal_vertical = not self.centre_in_terminal_vertical
+                elif setting == "arb":
+                    self.insert_row(self.cursor_pos)
+                elif setting == "ara":
+                    self.insert_row(self.cursor_pos+1)
+                elif setting == "aca":
+                    self.insert_column(self.selected_column+1)
+                elif setting == "acb":
+                    self.insert_column(self.selected_column)
+                elif setting.startswith("ir"):
+                    if setting[2:].isnumeric():
+                        num = int(setting[2:])
+                    else:
+                        num = self.cursor_pos
+                    self.insert_row(num)
+                elif setting.startswith("ic"):
+                    if setting[2:].isnumeric():
+                        num = int(setting[2:])
+                    else:
+                        num = self.selected_column
+                    self.insert_column(num)
+
                 elif setting == "modes":
                     self.display_modes = not self.display_modes
                 elif setting == "cell":
@@ -1669,6 +1712,99 @@ class Picker:
         words = sorted(list(set(words)), key=key_f)
         return words
 
+    def insert_row(self, pos: int):
+        if self.items != [[]]:
+            row_len = 1
+            if self.header: row_len = len(self.header)
+            elif len(self.items): row_len  = len(self.items[0])
+            # if len(self.indexed_items) == 0:
+            #     insert_at_pos = 0
+            # else:
+            #     insert_at_pos = self.indexed_items[self.cursor_pos][0]
+            self.items = self.items[:pos] + [["" for x in range(row_len)]] + self.items[pos:]
+            if pos <= self.cursor_pos:
+                self.cursor_pos += 1
+            # We are adding a row before so we have to move the cursor down
+            # If there is a filter then we know that an empty row doesn't match
+            current_cursor_pos = self.cursor_pos
+            self.initialise_variables()
+            self.cursor_pos = current_cursor_pos
+        else:
+            self.items = [[""]]
+            self.initialise_variables()
+
+
+
+    # def add_row_before(self):
+    #     if self.items != [[]]:
+    #         row_len = 1
+    #         if self.header: row_len = len(self.header)
+    #         elif len(self.items): row_len  = len(self.items[0])
+    #         if len(self.indexed_items) == 0:
+    #             insert_at_pos = 0
+    #         else:
+    #             insert_at_pos = self.indexed_items[self.cursor_pos][0]
+    #         self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
+    #         # We are adding a row before so we have to move the cursor down
+    #         # If there is a filter then we know that an empty row doesn't match
+    #         if not self.filter_query:
+    #             self.cursor_pos +=1
+    #         current_cursor_pos = self.cursor_pos
+    #         self.initialise_variables()
+    #         self.cursor_pos = current_cursor_pos
+    #     else:
+    #         self.items = [[""]]
+    #         self.initialise_variables()
+    #
+    # def add_row_after(self):
+    #     if self.items != [[]]:
+    #         row_len = 1
+    #         if self.header: row_len = len(self.header)
+    #         elif len(self.items): row_len  = len(self.items[0])
+    #
+    #
+    #         if self.cursor_pos == len(self.items)-1:
+    #             self.items.append(["" for x in range(row_len)])
+    #         else:
+    #             insert_at_pos = self.indexed_items[self.cursor_pos][0]
+    #             self.items = self.items[:insert_at_pos+1] + [["" for x in range(row_len)]] + self.items[insert_at_pos+1:]
+    #         # We are adding a row before so we have to move the cursor down
+    #         # If there is a filter then we know that an empty row doesn't match
+    #         current_cursor_pos = self.cursor_pos
+    #         self.initialise_variables()
+    #         self.cursor_pos = current_cursor_pos
+    #     else:
+    #         self.items = [[""]]
+    #         self.initialise_variables()
+    # def add_column_after(self):
+    #     self.items = [row[:self.selected_column+1]+[""]+row[self.selected_column+1:] for row in self.items]
+    #     self.header = self.header[:self.selected_column+1] + [""] + self.header[self.selected_column+1:]
+    #     self.editable_columns = self.editable_columns[:self.selected_column+1] + [self.editable_by_default] + self.editable_columns[self.selected_column+1:]
+    #     current_cursor_pos = self.cursor_pos
+    #     self.initialise_variables()
+    #     self.cursor_pos = current_cursor_pos
+    #
+    # def add_column_before(self):
+    #     self.items = [row[:self.selected_column]+[""]+row[self.selected_column:] for row in self.items]
+    #     self.header = self.header[:self.selected_column] + [""] + self.header[self.selected_column:]
+    #     self.editable_columns = self.editable_columns[:self.selected_column] + [self.editable_by_default] + self.editable_columns[self.selected_column:]
+    #     self.selected_column += 1
+    #     current_cursor_pos = self.cursor_pos
+    #     self.initialise_variables()
+    #     self.cursor_pos = current_cursor_pos
+
+    def insert_column(self, pos:int):
+        self.items = [row[:pos]+[""]+row[pos:] for row in self.items]
+        self.header = self.header[:pos] + [""] + self.header[pos:]
+        self.editable_columns = self.editable_columns[:pos] + [self.editable_by_default] + self.editable_columns[pos:]
+        if pos <= self.selected_column:
+            self.selected_column += 1
+        current_cursor_pos = self.cursor_pos
+        self.initialise_variables()
+        self.cursor_pos = current_cursor_pos
+
+
+
     def run(self) -> Tuple[list[int], str, dict]:
 
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
@@ -1843,6 +1979,11 @@ class Picker:
                     options += [["ft", "Cycle through footer styles (accepts ft#)"]]
                     options += [[f"s{i}", f"Select col. {i}"] for i in range(len(self.items[0]))]
                     options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(self.items[0]))]
+                    options += [["ara", "Add empty row after cursor."]]
+                    options += [["arb", "Add empty row before the cursor."]]
+                    options += [["aca", "Add empty column after the selected column."]]
+                    options += [["acb", "Add empty column before the selected column."]]
+
 
                 settings_options_header = ["Key", "Setting"]
 
@@ -2113,64 +2254,20 @@ class Picker:
                     self.selected_column = len(self.items[0])-1
 
             elif self.check_key("add_column_before", key, self.keys_dict):
-                self.items = [row[:self.selected_column]+[""]+row[self.selected_column:] for row in self.items]
-                self.header = self.header[:self.selected_column] + [""] + self.header[self.selected_column:]
-                self.editable_columns = self.editable_columns[:self.selected_column] + [self.editable_by_default] + self.editable_columns[self.selected_column:]
-                self.selected_column += 1
-                current_cursor_pos = self.cursor_pos
-                self.initialise_variables()
-                self.cursor_pos = current_cursor_pos
+                # self.add_column_before()
+                self.insert_column(self.selected_column)
 
             elif self.check_key("add_column_after", key, self.keys_dict):
-                self.items = [row[:self.selected_column+1]+[""]+row[self.selected_column+1:] for row in self.items]
-                self.header = self.header[:self.selected_column+1] + [""] + self.header[self.selected_column+1:]
-                self.editable_columns = self.editable_columns[:self.selected_column+1] + [self.editable_by_default] + self.editable_columns[self.selected_column+1:]
-                current_cursor_pos = self.cursor_pos
-                self.initialise_variables()
-                self.cursor_pos = current_cursor_pos
+                # self.add_column_after()
+                self.insert_column(self.selected_column+1)
 
             elif self.check_key("add_row_before", key, self.keys_dict):
-                if self.items != [[]]:
-                    row_len = 1
-                    if self.header: row_len = len(self.header)
-                    elif len(self.items): row_len  = len(self.items[0])
-                    if len(self.indexed_items) == 0:
-                        insert_at_pos = 0
-                    else:
-                        insert_at_pos = self.indexed_items[self.cursor_pos][0]
-                    self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
-                    # We are adding a row before so we have to move the cursor down
-                    # If there is a filter then we know that an empty row doesn't match
-                    if not self.filter_query:
-                        self.cursor_pos +=1
-                    current_cursor_pos = self.cursor_pos
-                    self.initialise_variables()
-                    self.cursor_pos = current_cursor_pos
-                else:
-                    self.items = [[""]]
-                    self.initialise_variables()
-
+                # self.add_row_before()
+                self.insert_row(self.cursor_pos)
 
             elif self.check_key("add_row_after", key, self.keys_dict):
-                if self.items != [[]]:
-                    row_len = 1
-                    if self.header: row_len = len(self.header)
-                    elif len(self.items): row_len  = len(self.items[0])
-
-
-                    if self.cursor_pos == len(self.items)-1:
-                        self.items.append(["" for x in range(row_len)])
-                    else:
-                        insert_at_pos = self.indexed_items[self.cursor_pos][0]
-                        self.items = self.items[:insert_at_pos+1] + [["" for x in range(row_len)]] + self.items[insert_at_pos+1:]
-                    # We are adding a row before so we have to move the cursor down
-                    # If there is a filter then we know that an empty row doesn't match
-                    current_cursor_pos = self.cursor_pos
-                    self.initialise_variables()
-                    self.cursor_pos = current_cursor_pos
-                else:
-                    self.items = [[""]]
-                    self.initialise_variables()
+                # self.add_row_after()
+                self.insert_row(self.cursor_pos+1)
 
             elif self.check_key("col_hide", key, self.keys_dict):
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
@@ -2754,6 +2851,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
 def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     """ Parse command line arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
+    parser.add_argument('filename', type=str, help='The file to process')
     parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
     parser.add_argument('--load', '-l', dest='load', type=str, help='Load file from Picker dump.')
     parser.add_argument('--stdin', dest='stdin', action='store_true', help='Table passed on stdin')
@@ -2778,6 +2876,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         input_arg = '--stdin'
     elif args.stdin2:
         input_arg = '--stdin2'
+    elif args.filename:
+        input_arg = args.filename
 
     elif args.generate:
         function_data["refresh_function"] = lambda : generate_picker_data(args.generate)
@@ -2796,7 +2896,13 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         return args, function_data
         # sys.exit(1)
     
-    items, header = table_to_list(input_arg, args.delimiter, args.file_type)
+    if not args.file_type:
+        filetype = guess_file_type(input_arg)
+    else:
+        filetype = args.file_type
+    
+
+    items, header = table_to_list(input_arg, args.delimiter, filetype)
     function_data["items"] = items
     if header: function_data["header"] = header
     return args, function_data
@@ -2866,7 +2972,7 @@ def main() -> None:
             'name': 'mp4',
         },
     ]
-    # function_data["cell_cursor"] = True
+    function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     function_data["centre_in_cols"] = True
     function_data["show_row_header"] = True
@@ -2878,15 +2984,18 @@ def main() -> None:
     stdscr = start_curses()
     try:
         # Run the Picker
-        h, w = stdscr.getmaxyx()
-        if (h>8 and w >20):
-            curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
-            stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
-            s = "Listpick is loading your data..."
-            stdscr.addstr(h//2, (w-len(s))//2, s)
-            stdscr.refresh()
+        # h, w = stdscr.getmaxyx()
+        # if (h>8 and w >20):
+        #     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        #     stdscr.bkgd(' ', curses.color_pair(1))  # Apply background color
+        #     s = "Listpick is loading your data..."
+        #     stdscr.addstr(h//2, (w-len(s))//2, s)
+        #     stdscr.refresh()
 
-        app = Picker(stdscr, **function_data)
+        # app = Picker(stdscr, **function_data)
+        app = Picker(stdscr)
+        app.splash_screen("Listpick is loading your data...")
+        app.set_function_data(function_data)
         app.load_input_history("~/.config/listpick/cmdhist.json")
         app.run()
 

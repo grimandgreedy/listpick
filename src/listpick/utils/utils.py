@@ -14,6 +14,25 @@ import tempfile
 import os
 from typing import Tuple, Dict
 
+def clip_left(text, n):
+    """
+    Clips the first `n` display-width characters from the left of the input string.
+    
+    Parameters:
+    - text (str): The input string.
+    - n (int): The number of display-width characters to clip from the left.
+    
+    Returns:
+    - str: The remaining part of the string after clipping.
+    """
+    width = 0
+    for i, char in enumerate(text):
+        char_width = wcwidth(char)
+        if width + char_width > n:
+            return text[i:]
+        width += char_width
+    return text  # If the total width is less than n, return the full string
+
 def truncate_to_display_width(text: str, max_column_width: int, centre=False) -> str:
     """ 
     Truncate and/or pad text to max_column_width using wcwidth to ensure visual width is correct 
@@ -42,6 +61,15 @@ def truncate_to_display_width(text: str, max_column_width: int, centre=False) ->
         result = result + ' ' * padding 
     return result
 
+def is_formula_cell(cell: str) -> bool:
+    """ Returns whether the cell should be evaluated as a formula. """
+    if cell.startswith("$"): return True
+    else: return False
+
+def evaluate_cell(cell:str) -> str:
+    return str(eval(cell[1:]))
+
+
 def format_row_full(row: list[str], hidden_columns:list = []) -> str:
     """ Format list of strings as a tab-separated single string. No hidden columns. """
     return '\t'.join(str(row[i]) for i in range(len(row)) if i not in hidden_columns)
@@ -56,6 +84,9 @@ def format_row(row: list[str], hidden_columns: list, column_widths: list[int], s
     row_str = ""
     for i, cell in enumerate(row):
         if i in hidden_columns: continue
+        # if is_formula_cell(cell):
+        #     cell = evaluate_cell(cell)
+        
         val = truncate_to_display_width(str(cell), column_widths[i], centre)
         row_str += val + separator
     return row_str
@@ -66,6 +97,7 @@ def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_w
     if len(items) == 0: return [0]
     assert len(items) > 0
     widths = [max(wcswidth(str(row[i])) for row in items) for i in range(len(items[0]))]
+    # widths = [max(len(str(row[i])) for row in items) for i in range(len(items[0]))]
     if header:
         header_widths = [wcswidth(f"{i}. {str(h)}") if number_columns else wcswidth(str(h)) for i, h in enumerate(header)]
         return [min(max_column_width, max(widths[i], header_widths[i])) for i in range(len(header))]
@@ -279,3 +311,7 @@ def dir_picker() -> str:
             return filename
         else:
             return ""
+
+def guess_file_type(filename: str) -> str:
+    """ Guess filetype. Currently just uses the extension of the file. """
+    return filename.split(".")[-1]

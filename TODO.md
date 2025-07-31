@@ -113,7 +113,11 @@ ASAP
 >   - [ ] Maybe need to have row-mode and cell-mode.
 > - [x] Support pasting copied cells into the picker
 >   - [ ] Ensure that we can only paste when cells are editable.
+>   - [ ] Add option to insert cells; e.g., insert two columns and move the data to the right of the selected column across
 > - [ ] Support inserting cells/rows.
+> - [ ] Bulk edit in nvim
+> - [ ] Add formula and display value...
+> - [ ] Implement log for debugging purposes.
 
 
 
@@ -241,6 +245,16 @@ ASAP
 >   - [ ] Draw highlights before cell cursor
 >    - [ ] Should there be different highlight 'levels' ?
 > - [x] Separate sort_column from a new selected_column argument. They really should be two different things.
+> - [ ] Peformance improvements:
+>   - [ ] Ensure that we only get_column_widths when we need to since this is resource intensive:
+>     - [ ] When we change the max_column_width
+> - [ ] Add data refreshing modes:
+>   - [ ] Replace
+>   - [ ] Append
+>   - [ ] Union
+>   - [ ] Intersection
+> - [ ] Add a broader editor_picker option which enables/disables add/remove columns in the settings.
+> - [ ] If no -t type argument is given then guess filetype.
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active
@@ -306,6 +320,8 @@ ASAP
 > - [ ] Crash when we delete the last row
 > - [ ] (***) Refreshing when we have selected cells that are not in the refreshed data causes crash.
 > - [ ] Crash when editing a cell and adding newlines (from nvim)
+> - [x] Pink flash when loading. Likely due to colour redefinitions before picker actually loads.
+>   - [x] Fixed. Created splashscreen class function which will be displayed after the colours are defined.
 
 
 

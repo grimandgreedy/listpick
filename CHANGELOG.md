@@ -14,6 +14,14 @@
    - Toggle header
    - Toggle row header
    - Toggle modes
+   - Add/insert blank row
+   - Add/insert blank column
+ - Added splash screen to picker which can be displayed when loading a large data set, for example.
+ - Ensured that the curses colour pairs are redefined if we are loading from a picker save state.
+ - Added functions to insert an empty row/column at an an arbitrary position in the picker items.
+ - Adjusted the commandline arguments so that the filename can be passed without the -i flag.
+ - If no input file type is specified on the command line it will now guess based on the input file's extension.
+ - Improved display of cells/rows with various unicode characters. It is much better but there are still some problems with alignment and highlighting.
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.
