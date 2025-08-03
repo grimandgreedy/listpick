@@ -19,6 +19,7 @@ from typing import Callable, Optional, Tuple, Dict
 import json
 import threading
 import string
+import logging
 
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
@@ -36,6 +37,7 @@ from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
 from listpick.ui.footer import StandardFooter, CompactFooter, NoFooter
+from listpick.utils.picker_log import setup_logger
 
 
 try:
@@ -140,6 +142,7 @@ class Picker:
 
         colours_start: int =0,
         colours_end: int =-1,
+        reset_colours: bool = True,
         key_remappings: dict = {},
         keys_dict:dict = picker_keys,
         display_infobox : bool = False,
@@ -165,6 +168,8 @@ class Picker:
         history_settings: list[str] = [],
         history_edits: list[str] = [],
         history_pipes: list[str] = [],
+        debug: bool = False,
+        debug_level: int = 1,
 
     ):
         self.stdscr = stdscr
@@ -260,6 +265,7 @@ class Picker:
 
         self.colours_start = colours_start
         self.colours_end = colours_end
+        self.reset_colours = reset_colours
         self.key_remappings = key_remappings
         self.keys_dict = keys_dict
         self.display_infobox = display_infobox
@@ -302,23 +308,13 @@ class Picker:
         self.history_settings = history_settings
         self.history_edits = history_edits
 
-        # No set_escdelay function on windows.
-        try:
-            curses.set_escdelay(25)
-        except:
-            pass
-        if curses.has_colors() and self.colours != None:
-            # raise Exception("Terminal does not support color")
-            curses.start_color()
-            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
-            if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
-                self.colours_start = self.colours_start
-                self.notification_colours_start = self.colours_start+50
-                self.help_colours_start = self.colours_start+100
-            else:
-                self.colours_start = 0
-                self.notification_colours_start = 0
-                self.help_colours_start = 0
+
+
+
+        self.debug = debug
+        self.debug_level = debug_level
+
+        self.initialise_picker_state(reset_colours=self.reset_colours)
 
 
     def calculate_section_sizes(self):
@@ -328,6 +324,9 @@ class Picker:
         self.bottom_space: the size of the footer + the bottom buffer space
         self.top_space: the size of the space at the top of the picker: title + modes + header + top_gap
         """
+
+        self.logger.debug(f"function: calculate_section_sizes()")
+
         # self.bottom_space
         self.bottom_space = self.footer.height if self.show_footer else 0
 
@@ -358,9 +357,9 @@ class Picker:
         if visible_columns_total_width < w and self.centre_in_terminal:
             self.startx += (w - visible_columns_total_width) // 2
 
-
-
     def get_visible_rows(self) -> list[list[str]]:
+
+        self.logger.debug(f"function: get_visible_rows()")
         ## Scroll with column select
         if self.paginate:
             start_index = (self.cursor_pos//self.items_per_page) * self.items_per_page
@@ -375,13 +374,79 @@ class Picker:
         rows = [v[1] for v in self.indexed_items[start_index:end_index]] if len(self.indexed_items) else self.items
         return rows
 
+    def initialise_picker_state(self, reset_colours=False) -> None:
+        """ Initialise state variables for the picker. These are: debugging and colours. """
 
 
+        if reset_colours and curses.has_colors() and self.colours != None:
+            # raise Exception("Terminal does not support color")
+            curses.start_color()
+            global COLOURS_SET
+            COLOURS_SET = False
+            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+            if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
+                self.colours_start = self.colours_start
+                self.notification_colours_start = self.colours_start+50
+                self.help_colours_start = self.colours_start+100
+            else:
+                self.colours_start = 0
+                self.notification_colours_start = 0
+                self.help_colours_start = 0
+
+        debug_levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
+        dbglvl =  debug_levels[self.debug_level]
+        self.logger = setup_logger(name="picker_log", log_file="picker.log", log_enabled=self.debug, level =dbglvl)
+        self.logger.info(f"Initialiasing Picker.")
+        # self.notification(self.stdscr, message=repr(self.logger))
+
+
+        #                     1              2             3                4              5
+        # logger = logging.getLogger(__file__)
+        # if self.debug_level == 0:
+        #     logger = logging.getLogger()
+        #     logger.disabled = True
+        # else:
+        #
+        #     file_handler = logging.FileHandler(f"{self.title}.log", mode='w')
+        #     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%m-%d-%Y %H:%M:%S')
+        #     file_handler.setFormatter(formatter)
+        #     logger.addHandler(file_handler)
+        #     logger.setLevel(debug_levels[self.debug_level-1])
+
+            # logging.basicConfig(
+            #     level=debug_levels[self.debug_level-1],
+            #     format='%(asctime)s - %(levelname)s - %(message)s',
+            #     datefmt='%m-%d-%Y %H:%M:%S',
+            #     filename=f"{self.title}.log",
+            #     filemode="w",
+            # )
+        #
+        # self.logger.info(f"Starging log. Log level {logger.getEffectiveLevel()}")
+        # self.logger.info(f"Starging log. Log level {repr(debug_levels)}, {self.debug_level}, {debug_levels[self.debug_level-1]}")
+        # self.notification(self.stdscr, f"Starging log. Log level {repr(debug_levels)}, {self.debug_level}, {debug_levels[self.debug_level-1]}")
+        # self.notification(self.stdscr, f"{__file__}")
+
+        ## Logging level plan
+        # DEBUG: loop functions, draw screen, etc.
+        # INFO: main functions 
+        # WARNING: any try-except fails 
+
+        # No set_escdelay function on windows.
+        try:
+            curses.set_escdelay(25)
+        except:
+            logging.warning("Error trying to set curses.set_escdelay")
+
+        # self.stdscr.clear()
+        # self.stdscr.refresh()
+        # self.draw_screen(self.indexed_items, self.highlights)
 
 
 
     def initialise_variables(self, get_data: bool = False) -> None:
         """ Initialise the variables that keep track of the data. """
+
+        self.logger.info(f"function: initialise_variables()")
 
         # tracking, self.ids, self.cursor_pos_id = False, [], 0
         tracking = False
@@ -532,6 +597,7 @@ class Picker:
         returns:
             adjusted items, header, sort_column and column_widths
         """
+        self.logger.info(f"function: move_column(direction={direction})")
         if len(self.items) < 1: return None
         if (self.selected_column+direction) < 0 or (self.selected_column+direction) >= len(self.items[0]): return None
 
@@ -550,6 +616,7 @@ class Picker:
         self.selected_column = new_index
 
     def test_screen_size(self):
+        self.logger.debug("function: test_screen_size()")
         h, w = self.stdscr.getmaxyx()
         ## Terminal too small to display Picker
         if h<3 or w<len("Terminal"): return False
@@ -561,6 +628,7 @@ class Picker:
         return True
 
     def splash_screen(self, message=""):
+        self.logger.info(f"function: splash_screen({message})")
         """ Display a splash screen with a message. Useful when loading a large data set. """
         h, w =self.stdscr.getmaxyx()
         self.stdscr.bkgd(' ', curses.color_pair(2))
@@ -572,6 +640,7 @@ class Picker:
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
+        self.logger.debug("Draw screen.")
 
         if clear:
             self.stdscr.erase()
@@ -700,6 +769,7 @@ class Picker:
                     cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width)-len(self.separator))
                     cell_value = cell_value + self.separator
                     # cell_value = cell_value
+                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width))
                     # row_str = truncate_to_display_width(row_str_left_adj, min(w-self.startx, visible_columns_total_width))
                     self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
                 # Part of the cell is on screen
@@ -739,6 +809,7 @@ class Picker:
             return l0, l1, l2
 
         def draw_highlights(highlights: list[dict], idx: int, y: int, item: tuple[int, list[str]]):
+            self.logger.debug(f"function: draw_highlights()")
             if len(highlights) == 0: return None
             full_row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
             row_str = full_row_str[self.leftmost_char:]
@@ -904,6 +975,8 @@ class Picker:
 
     def infobox(self, stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
         """ Display non-interactive infobox window. """
+
+        self.logger.info(f"function: infobox()")
         h, w = stdscr.getmaxyx()
         notification_width, notification_height = w//2, 3*h//5
         message_width = notification_width-5
@@ -935,6 +1008,7 @@ class Picker:
                 "display_only": True,
                 "hidden_columns": [],
                 "title": title,
+                "reset_colours": False,
             }
 
             OptionPicker = Picker(submenu_win, **infobox_data)
@@ -943,9 +1017,8 @@ class Picker:
 
         return submenu_win
 
-
-    
     def get_function_data(self) -> dict:
+        self.logger.debug(f"function: get_function_data()")
         """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
         function_data = {
             "selections":                       self.selections,
@@ -1036,30 +1109,40 @@ class Picker:
             "history_settings":                 self.history_settings,
             "show_header":                      self.show_header,
             "show_row_header":                  self.show_row_header,
+            "debug":                            self.debug,
+            "debug_level":                      self.debug_level,
+            "reset_colours":                    self.reset_colours,
         }
         return function_data
 
     def set_function_data(self, function_data: dict) -> None:
         """ Set variables from state dict containing core variables."""
+        self.logger.info(f"function: set_function_data()")
         variables = self.get_function_data().keys()
 
         for var in variables:
             if var in function_data:
                 setattr(self, var, function_data[var])
 
-        if "colour_theme_number" in function_data:
-            global COLOURS_SET
-            COLOURS_SET = False
-            colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+        reset_colours = bool("colour_theme_number" in function_data)
+        self.initialise_picker_state(reset_colours=reset_colours)
+
+        self.initialise_variables()
+        # if "colour_theme_number" in function_data:
+        #     global COLOURS_SET
+        #     COLOURS_SET = False
+        #     colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
                 
         # if "items" in function_data: self.items = function_data["items"]
         # if "header" in function_data: self.header = function_data["header"]
-        self.indexed_items = function_data["indexed_items"] if "indexed_items" in function_data else []
+        # self.indexed_items = function_data["indexed_items"] if "indexed_items" in function_data else []
 
 
 
     def delete_entries(self) -> None:
         """ Delete entries from view. """
+
+        self.logger.info(f"function: delete_entries()")
         # Remove selected items from the list
         selected_indices = [index for index, selected in self.selections.items() if selected]
         if not selected_indices:
@@ -1105,6 +1188,7 @@ class Picker:
                             0: user hit escape
                             1: user hit return
         """
+        self.logger.info(f"function: choose_option()")
         if options == []: options = [[f"{i}"] for i in range(10)]
         cursor = 0
 
@@ -1121,6 +1205,7 @@ class Picker:
             "show_footer": False,
             "cancel_is_back": True,
             "number_columns": False,
+            "reset_colours": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1144,6 +1229,8 @@ class Picker:
 
 
     def notification(self, stdscr: curses.window, message: str="", title:str="Notification", colours_end: int=0, duration:int=4) -> None:
+
+        self.logger.info(f"function: notification()")
         """ Notification box. """
         notification_width, notification_height = 50, 7
         message_width = notification_width-5
@@ -1173,6 +1260,7 @@ class Picker:
                 "highlight_full_row": True,
                 "top_gap": 0,
                 "cancel_is_back": True,
+                "reset_colours": False,
 
             }
             OptionPicker = Picker(submenu_win, **notification_data)
@@ -1189,6 +1277,7 @@ class Picker:
 
     def toggle_column_visibility(self, col_index:int) -> None:
         """ Toggle the visibility of the column at col_index. """
+        self.logger.info(f"function: toggle_column_visibility()")
         if 0 <= col_index < len(self.items[0]):
             if col_index in self.hidden_columns:
                 self.hidden_columns.remove(col_index)
@@ -1196,17 +1285,16 @@ class Picker:
                 self.hidden_columns.append(col_index)
 
     def apply_settings(self) -> None:
-        """ The users settings will be stored in the user_settings variable. This function applies those settings. """
-        
-        # settings= usrtxt.split(' ')
-        # split settings and appy them
-        """
+        """ 
+        The users settings will be stored in the user_settings variable. This function applies those settings.
+
         ![0-9]+ show/hide column
         s[0-9]+ set column focus for sort
         g[0-9]+ go to index
         p[0-9]+ go to page
         nohl    hide search highlights
         """
+        self.logger.info(f"function: apply_settings()")
         if self.user_settings:
             settings = re.split(r'\s+', self.user_settings)
             for setting in settings:
@@ -1348,21 +1436,25 @@ class Picker:
             self.user_settings = ""
 
     def apply_command(self, command: Command):
+        self.logger.info(f"function: apply_command()")
         if command.command_type == "setting":
             self.user_settings = command.command_value
             self.apply_settings()
 
     def redo(self):
+        self.logger.info(f"function: redo()")
         if len(self.command_stack):
             self.apply_command(self.command_stack[-1])
 
     def toggle_item(self, index: int) -> None:
         """ Toggle selection of item at index. """
+        self.logger.info(f"function: toggle_item()")
         self.selections[index] = not self.selections[index]
         self.draw_screen(self.indexed_items, self.highlights)
 
     def select_all(self) -> None:
         """ Select all in indexed_items. """
+        self.logger.info(f"function: select_all()")
         for i in range(len(self.indexed_items)):
             self.selections[self.indexed_items[i][0]] = True
         for i in self.cell_selections.keys():
@@ -1372,6 +1464,7 @@ class Picker:
 
     def deselect_all(self) -> None:
         """ Deselect all items in indexed_items. """
+        self.logger.info(f"function: deselect_all()")
         for i in range(len(self.selections)):
             self.selections[i] = False
         for i in self.cell_selections.keys():
@@ -1380,6 +1473,7 @@ class Picker:
 
     def handle_visual_selection(self, selecting:bool = True) -> None:
         """ Toggle visual selection or deselection. """
+        self.logger.info(f"function: handle_visual_selection()")
         if not self.is_selecting and not self.is_deselecting and len(self.indexed_items) and len(self.indexed_items[0][1]):
             self.start_selection = self.cursor_pos
             self.start_selection_col = self.selected_column
@@ -1436,21 +1530,24 @@ class Picker:
             self.is_deselecting = False
             self.draw_screen(self.indexed_items, self.highlights)
 
-    def cursor_down(self) -> bool:
+    def cursor_down(self, count=1) -> bool:
         """ Move cursor down. """
+        self.logger.info(f"function: cursor_down()")
         # Returns: whether page is turned
         new_pos = self.cursor_pos + 1
+        new_pos = min(self.cursor_pos+count, len(self.indexed_items)-1)
         while True:
-            if new_pos >= len(self.indexed_items): return False
             if self.indexed_items[new_pos][0] in self.unselectable_indices: new_pos+=1
             else: break
         self.cursor_pos = new_pos
         return True
 
-    def cursor_up(self) -> bool:
+    def cursor_up(self, count=1) -> bool:
         """ Move cursor up. """
+        self.logger.info(f"function: cursor_up()")
         # Returns: whether page is turned
-        new_pos = self.cursor_pos - 1
+
+        new_pos = max(self.cursor_pos - count, 0)
         while True:
             if new_pos < 0: return False
             elif new_pos in self.unselectable_indices: new_pos -= 1
@@ -1460,6 +1557,7 @@ class Picker:
 
     def remapped_key(self, key: int, val: int, key_remappings: dict) -> bool:
         """ Check if key has been remapped to val in key_remappings. """
+        # self.logger.info(f"function: remapped_key()")
         if key in key_remappings:
             if key_remappings[key] == val or (isinstance(key_remappings[key], list) and val in key_remappings[key]):
                 return True
@@ -1477,6 +1575,8 @@ class Picker:
         return False
 
     def copy_dialogue(self) -> None:
+        """ Display dialogue to select how rows/cells should be copied. """
+        self.logger.info(f"function: copy_dialogue()")
         copy_header = [
             "Representation",
             "Columns",
@@ -1511,6 +1611,8 @@ class Picker:
             for idx in s.keys():
                 funcs[idx](self.items, self.indexed_items, self.selections, self.cell_selections, self.hidden_columns, self.cell_cursor)
     def paste_dialogue(self) -> None:
+        """ Display dialogue to select how to paste from the clipboard. """
+        self.logger.info(f"function: paste_dialogue()")
         paste_header = [
             "Representation",
             "Columns",
@@ -1561,6 +1663,8 @@ class Picker:
                         self.cursor_pos = cursor_pos
 
     def save_dialog(self) -> None:
+        """ Display dialogue to select how to save the picker data. """
+        self.logger.info(f"function: save_dialog()")
         
         dump_header = []
         options = [ 
@@ -1600,6 +1704,8 @@ class Picker:
                         self.notification(self.stdscr, message=return_val, title="Error")
 
     def load_dialog(self) -> None:
+        """ Display dialogue to select which file to load and in what way it should be loaded. """
+        self.logger.info(f"function: load_dialog()")
         
         dump_header = []
         options = [ 
@@ -1628,11 +1734,14 @@ class Picker:
                 #     notification(stdscr, message=return_val, title="Error")
 
     def set_registers(self):
+        """ Set registers to be sent to the input field. """
+        self.logger.info(f"function: set_registers()")
         self.registers = {"*": self.indexed_items[self.cursor_pos][1][self.selected_column]} if len(self.indexed_items) and len(self.indexed_items[0][1]) else {}
 
 
     def fetch_data(self) -> None:
         """ Refesh data asynchronously. When data has been fetched self.data_ready is set to True. """
+        self.logger.info(f"function: fetch_data()")
         tmp_items, tmp_header = self.refresh_function()
         if self.track_entries_upon_refresh:
             selected_indices = get_selected_indices(self.selections)
@@ -1647,7 +1756,8 @@ class Picker:
             self.data_ready = True
 
     def save_input_history(self, file_path: str) -> bool:
-        """ Save command history. Returns True if successful save. """
+        """ Save input field history. Returns True if successful save. """
+        self.logger.info(f"function: save_input_history()")
         file_path = os.path.expanduser(file_path)
         history_dict = {
             "history_filter_and_search" :       self.history_filter_and_search,
@@ -1663,6 +1773,7 @@ class Picker:
 
     def load_input_history(self, file_path:str) -> bool:
         """ Load command history. Returns true if successful load. """
+        self.logger.info(f"function: load_input_history()")
         file_path = os.path.expanduser(file_path)
         if not os.path.exists(file_path):
             return False
@@ -1686,10 +1797,10 @@ class Picker:
 
         return True
 
-    def loading_screen(self, text: str):
-        pass
 
     def get_word_list(self) -> list[str]:
+        """ Get a list of all words used in any cell of the picker. Used for completion in search/filter input_field. """
+        self.logger.info(f"function: infobox()")
         translator = str.maketrans('', '', string.punctuation)
         
         words = []
@@ -1713,6 +1824,9 @@ class Picker:
         return words
 
     def insert_row(self, pos: int):
+        """ Insert a blank row at position `pos` """
+        self.logger.info(f"function: insert_row(pos={pos})")
+
         if self.items != [[]]:
             row_len = 1
             if self.header: row_len = len(self.header)
@@ -1733,67 +1847,9 @@ class Picker:
             self.items = [[""]]
             self.initialise_variables()
 
-
-
-    # def add_row_before(self):
-    #     if self.items != [[]]:
-    #         row_len = 1
-    #         if self.header: row_len = len(self.header)
-    #         elif len(self.items): row_len  = len(self.items[0])
-    #         if len(self.indexed_items) == 0:
-    #             insert_at_pos = 0
-    #         else:
-    #             insert_at_pos = self.indexed_items[self.cursor_pos][0]
-    #         self.items = self.items[:insert_at_pos] + [["" for x in range(row_len)]] + self.items[insert_at_pos:]
-    #         # We are adding a row before so we have to move the cursor down
-    #         # If there is a filter then we know that an empty row doesn't match
-    #         if not self.filter_query:
-    #             self.cursor_pos +=1
-    #         current_cursor_pos = self.cursor_pos
-    #         self.initialise_variables()
-    #         self.cursor_pos = current_cursor_pos
-    #     else:
-    #         self.items = [[""]]
-    #         self.initialise_variables()
-    #
-    # def add_row_after(self):
-    #     if self.items != [[]]:
-    #         row_len = 1
-    #         if self.header: row_len = len(self.header)
-    #         elif len(self.items): row_len  = len(self.items[0])
-    #
-    #
-    #         if self.cursor_pos == len(self.items)-1:
-    #             self.items.append(["" for x in range(row_len)])
-    #         else:
-    #             insert_at_pos = self.indexed_items[self.cursor_pos][0]
-    #             self.items = self.items[:insert_at_pos+1] + [["" for x in range(row_len)]] + self.items[insert_at_pos+1:]
-    #         # We are adding a row before so we have to move the cursor down
-    #         # If there is a filter then we know that an empty row doesn't match
-    #         current_cursor_pos = self.cursor_pos
-    #         self.initialise_variables()
-    #         self.cursor_pos = current_cursor_pos
-    #     else:
-    #         self.items = [[""]]
-    #         self.initialise_variables()
-    # def add_column_after(self):
-    #     self.items = [row[:self.selected_column+1]+[""]+row[self.selected_column+1:] for row in self.items]
-    #     self.header = self.header[:self.selected_column+1] + [""] + self.header[self.selected_column+1:]
-    #     self.editable_columns = self.editable_columns[:self.selected_column+1] + [self.editable_by_default] + self.editable_columns[self.selected_column+1:]
-    #     current_cursor_pos = self.cursor_pos
-    #     self.initialise_variables()
-    #     self.cursor_pos = current_cursor_pos
-    #
-    # def add_column_before(self):
-    #     self.items = [row[:self.selected_column]+[""]+row[self.selected_column:] for row in self.items]
-    #     self.header = self.header[:self.selected_column] + [""] + self.header[self.selected_column:]
-    #     self.editable_columns = self.editable_columns[:self.selected_column] + [self.editable_by_default] + self.editable_columns[self.selected_column:]
-    #     self.selected_column += 1
-    #     current_cursor_pos = self.cursor_pos
-    #     self.initialise_variables()
-    #     self.cursor_pos = current_cursor_pos
-
     def insert_column(self, pos:int):
+        """ Insert blank column at `pos`"""
+        self.logger.info(f"function: insert_column(pos={pos})")
         self.items = [row[:pos]+[""]+row[pos:] for row in self.items]
         self.header = self.header[:pos] + [""] + self.header[pos:]
         self.editable_columns = self.editable_columns[:pos] + [self.editable_by_default] + self.editable_columns[pos:]
@@ -1806,6 +1862,8 @@ class Picker:
 
 
     def run(self) -> Tuple[list[int], str, dict]:
+        """ Run the picker. """
+        self.logger.info(f"function: run()")
 
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
             self.footer_string = self.footer_string_refresh_function()
@@ -1855,8 +1913,10 @@ class Picker:
 
             ## Refresh data asyncronously.
             if self.refreshing_data:
+                self.logger.debug(f"Data refresh check")
                 with self.data_lock:
                     if self.data_ready:
+                        self.logger.debug(f"Data ready after refresh")
                         self.initialise_variables()
 
                         initial_time = time.time()
@@ -1867,6 +1927,7 @@ class Picker:
                         self.data_ready = False
 
             elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) >= self.timer):
+                self.logger.debug(f"Get new data (refresh).")
                 h, w = self.stdscr.getmaxyx()
                 self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
                 self.stdscr.refresh()
@@ -1895,11 +1956,13 @@ class Picker:
             #         return [], "refresh", function_data
 
             if self.footer_string_auto_refresh and ((time.time() - initial_time_footer) > self.footer_timer):
+                self.logger.debug(f"footer_string_auto_refresh")
                 self.footer_string = self.footer_string_refresh_function()
                 initial_time_footer = time.time()
                 self.draw_screen(self.indexed_items, self.highlights)
 
             if self.check_key("help", key, self.keys_dict):
+                self.logger.info(f"key_function help")
                 self.stdscr.clear()
                 self.stdscr.refresh()
                 help_data = {
@@ -1918,6 +1981,7 @@ class Picker:
                     "centre_in_terminal": True,
                     "centre_in_terminal_vertical": True,
                     "hidden_columns": [],
+                    "reset_colours": False,
 
                 }
                 OptionPicker = Picker(self.stdscr, **help_data)
@@ -1933,6 +1997,7 @@ class Picker:
                 exit()
 
             elif self.check_key("settings_input", key, self.keys_dict):
+                self.logger.info(f"Settings input")
                 usrtxt = f"{self.user_settings.strip()} " if self.user_settings else ""
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
@@ -1960,6 +2025,7 @@ class Picker:
                     self.history_settings.append(usrtxt)
                     self.user_settings = ""
             elif self.check_key("toggle_footer", key, self.keys_dict):
+                self.logger.info(f"toggle footer")
                 self.user_settings = "footer"
                 self.apply_settings()
 
@@ -2021,23 +2087,18 @@ class Picker:
                 if not page_turned: clear_screen = False
             elif self.check_key("half_page_down", key, self.keys_dict):
                 clear_screen = False
-                for i in range(self.items_per_page//2): 
-                    if self.cursor_down(): clear_screen = True
+                self.cursor_down(count=self.items_per_page//2)
             elif self.check_key("five_down", key, self.keys_dict):
                 clear_screen = False
-                for i in range(5): 
-                    if self.cursor_down(): clear_screen = True
+                self.cursor_down(count=5)
             elif self.check_key("cursor_up", key, self.keys_dict):
                 page_turned = self.cursor_up()
                 if not page_turned: clear_screen = False
             elif self.check_key("five_up", key, self.keys_dict):
-                clear_screen = False
-                for i in range(5): 
-                    if self.cursor_up(): clear_screen = True
+                # if self.cursor_up(count=5): clear_screen = True
+                self.cursor_up(count=5)
             elif self.check_key("half_page_up", key, self.keys_dict):
-                clear_screen = False
-                for i in range(self.items_per_page//2): 
-                    if self.cursor_up(): clear_screen = True
+                self.cursor_up(count=self.items_per_page//2)
 
             elif self.check_key("toggle_select", key, self.keys_dict):
                 if len(self.indexed_items) > 0:
@@ -2079,6 +2140,7 @@ class Picker:
                 #     current_row = (len(self.indexed_items) +items_per_page - 1) % items_per_page
                 # self.draw_screen(self.indexed_items, self.highlights)
             elif self.check_key("enter", key, self.keys_dict):
+                self.logger.info(f"key_function enter")
                 # Print the selected indices if any, otherwise print the current index
                 if self.is_selecting or self.is_deselecting: self.handle_visual_selection()
                 if len(self.items) == 0:
@@ -2120,6 +2182,7 @@ class Picker:
                 self.cursor_pos = max(0, self.cursor_pos-self.items_per_page)
 
             elif self.check_key("redraw_screen", key, self.keys_dict):
+                self.logger.info(f"key_function redraw_screen")
                 self.stdscr.clear()
                 self.stdscr.refresh()
                 restrict_curses(self.stdscr)
@@ -2138,6 +2201,8 @@ class Picker:
                     current_index = self.indexed_items[self.cursor_pos][0]
                     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
+
+                self.logger.info(f"key_function cycle_sort_method. (sort_column, sort_method) = ({self.sort_column}, {self.columns_sort_method[self.sort_column]})")
             elif self.check_key("cycle_sort_method_reverse", key, self.keys_dict):  # Cycle sort method
                 old_sort_column = self.sort_column
                 self.sort_column = self.selected_column
@@ -2146,6 +2211,7 @@ class Picker:
                     current_index = self.indexed_items[self.cursor_pos][0]
                     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
+                self.logger.info(f"key_function cycle_sort_method. (sort_column, sort_method) = ({self.sort_column}, {self.columns_sort_method[self.sort_column]})")
 
             elif self.check_key("cycle_sort_order", key, self.keys_dict):  # Toggle sort order
                 self.sort_reverse[self.sort_column] = not self.sort_reverse[self.sort_column]
@@ -2154,8 +2220,10 @@ class Picker:
                     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                     self.draw_screen(self.indexed_items, self.highlights)
                     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
+                self.logger.info(f"key_function cycle_sort_order. (sort_column, sort_method, sort_reverse) = ({self.sort_column}, {self.columns_sort_method[self.sort_column]}, {self.sort_reverse[self.sort_column]})")
             elif self.check_key("col_select", key, self.keys_dict):
                 col_index = key - ord('0')
+                self.logger.info(f"key_function col_select {col_index}")
                 if 0 <= col_index < len(self.items[0]):
                     self.sort_column = col_index
                     if len(self.indexed_items) > 0:
@@ -2166,13 +2234,10 @@ class Picker:
                 if len(self.items) > 0 and len(self.items[0]) > 0:
                     col_index = (self.selected_column +1) % (len(self.items[0]))
                     self.selected_column = col_index
-                    # if len(self.indexed_items) > 0:
-                    #     current_index = self.indexed_items[self.cursor_pos][0]
-                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
-                    #     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
                 # Flash when we loop back to the first column
                 # if self.selected_column == 0:
                 #     curses.flash()
+                self.logger.info(f"key_function col_select_next {self.selected_column}")
 
 
                 ## Scroll with column select
@@ -2193,10 +2258,8 @@ class Picker:
                 if len(self.items) > 0 and len(self.items[0]) > 0:
                     col_index = (self.selected_column -1) % (len(self.items[0]))
                     self.selected_column = col_index
-                    # if len(self.indexed_items) > 0:
-                    #     current_index = self.indexed_items[self.cursor_pos][0]
-                    #     sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
-                    #     self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
+
+                self.logger.info(f"key_function col_select_prev {self.selected_column}")
                 # Flash when we loop back to the last column
                 # if self.selected_column == len(self.column_widths)-1:
                 #     curses.flash()
@@ -2213,6 +2276,7 @@ class Picker:
                 self.leftmost_char = max(0, min(sum(visible_column_widths)+len(self.separator)*len(visible_column_widths) - w + self.startx, self.leftmost_char))
 
             elif self.check_key("scroll_right", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_right")
                 h, w = self.stdscr.getmaxyx()
                 rows = self.get_visible_rows()
                 longest_row_str_len = 0
@@ -2220,23 +2284,21 @@ class Picker:
                     item = rows[i]
                     row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
                     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
-                # for i in range(len(self.indexed_items)):
-                #     item = self.indexed_items[i]
-                #     row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)[self.leftmost_char:]
-                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
-
 
                 if longest_row_str_len >= w-self.startx:
                     self.leftmost_char = self.leftmost_char+5
 
             elif self.check_key("scroll_left", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_left")
                 self.leftmost_char = max(self.leftmost_char-5, 0)
 
             elif self.check_key("scroll_far_left", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_far_left")
                 self.leftmost_char = 0
                 self.selected_column = 0
             
             elif self.check_key("scroll_far_right", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_far_right")
                 h, w = self.stdscr.getmaxyx()
                 longest_row_str_len = 0
                 rows = self.get_visible_rows()
@@ -2254,22 +2316,27 @@ class Picker:
                     self.selected_column = len(self.items[0])-1
 
             elif self.check_key("add_column_before", key, self.keys_dict):
+                self.logger.info(f"key_function add_column_before")
                 # self.add_column_before()
                 self.insert_column(self.selected_column)
 
             elif self.check_key("add_column_after", key, self.keys_dict):
+                self.logger.info(f"key_function add_column_after")
                 # self.add_column_after()
                 self.insert_column(self.selected_column+1)
 
             elif self.check_key("add_row_before", key, self.keys_dict):
+                self.logger.info(f"key_function add_row_before")
                 # self.add_row_before()
                 self.insert_row(self.cursor_pos)
 
             elif self.check_key("add_row_after", key, self.keys_dict):
+                self.logger.info(f"key_function add_row_after")
                 # self.add_row_after()
                 self.insert_row(self.cursor_pos+1)
 
             elif self.check_key("col_hide", key, self.keys_dict):
+                self.logger.info(f"key_function col_hide")
                 d = {'!': 0, '@': 1, '#': 2, '$': 3, '%': 4, '^': 5, '&': 6, '*': 7, '(': 8, ')': 9}
                 d = {s:i for i,s in enumerate(")!@#$%^&*(")}
                 col_index = d[chr(key)]
@@ -2287,6 +2354,7 @@ class Picker:
                 self.delete_entries()
 
             elif self.check_key("delete_column", key, self.keys_dict):  # Delete key
+                self.logger.info(f"key_function delete_column")
                 row_len = 1
                 if self.header: row_len = len(self.header)
                 elif len(self.items): row_len  = len(self.items[0])
@@ -2313,20 +2381,24 @@ class Picker:
             #         self.items_per_page -= 1
             #     self.draw_screen(self.indexed_items, self.highlights)
             elif self.check_key("decrease_column_width", key, self.keys_dict):
+                self.logger.info(f"key_function decrease_column_width")
                 if self.max_column_width > 10:
                     self.max_column_width -= 10
                     self.column_widths[:] = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
                     self.draw_screen(self.indexed_items, self.highlights)
             elif self.check_key("increase_column_width", key, self.keys_dict):
+                self.logger.info(f"key_function increase_column_width")
                 if self.max_column_width < 1000:
                     self.max_column_width += 10
                     self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns)
                     self.draw_screen(self.indexed_items, self.highlights)
             elif self.check_key("visual_selection_toggle", key, self.keys_dict):
+                self.logger.info(f"key_function visual_selection_toggle")
                 self.handle_visual_selection()
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("visual_deselection_toggle", key, self.keys_dict):
+                self.logger.info(f"key_function visual_deselection_toggle")
                 self.handle_visual_selection(selecting=False)
                 self.draw_screen(self.indexed_items, self.highlights)
 
@@ -2338,12 +2410,8 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
 
 
-            elif key == ord('r'):
-                # Refresh
-                self.calculate_section_sizes()
-                self.stdscr.refresh()
-
             elif self.check_key("filter_input", key, self.keys_dict):
+                self.logger.info(f"key_function filter_input")
                 self.draw_screen(self.indexed_items, self.highlights)
                 usrtxt = f"{self.filter_query} " if self.filter_query else ""
                 h, w = self.stdscr.getmaxyx()
@@ -2374,7 +2442,7 @@ class Picker:
                     self.history_filter_and_search.append(usrtxt)
 
                     # If the current mode filter has been changed then go back to the first mode
-                    if "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] not in self.filter_query:
+                    if self.modes and "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] not in self.filter_query:
                         self.mode_index = 0
                     # elif "filter" in modes[mode_index] and modes[mode_index]["filter"] in filter_query:
                     #     filter_query.split(modes[mode_index]["filter"])
@@ -2389,6 +2457,7 @@ class Picker:
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
 
             elif self.check_key("search_input", key, self.keys_dict):
+                self.logger.info(f"key_function search_input")
                 self.draw_screen(self.indexed_items, self.highlights)
                 usrtxt = f"{self.search_query} " if self.search_query else ""
                 h, w = self.stdscr.getmaxyx()
@@ -2429,6 +2498,7 @@ class Picker:
                         self.search_index, self.search_count = 0, 0
 
             elif self.check_key("continue_search_forward", key, self.keys_dict):
+                self.logger.info(f"key_function continue_search_forward")
                 return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
                     query=self.search_query,
                     indexed_items=self.indexed_items,
@@ -2440,6 +2510,7 @@ class Picker:
                 if return_val:
                     self.cursor_pos, self.search_index, self.search_count, self.highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
             elif self.check_key("continue_search_backward", key, self.keys_dict):
+                self.logger.info(f"key_function continue_search_backward")
                 return_val, tmp_cursor, tmp_index, tmp_count, tmp_highlights = search(
                     query=self.search_query,
                     indexed_items=self.indexed_items,
@@ -2471,7 +2542,7 @@ class Picker:
                     self.highlights = [highlight for highlight in self.highlights if "type" not in highlight or highlight["type"] != "search" ]
                 # Remove filter
                 elif self.filter_query:
-                    if "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] in self.filter_query and self.filter_query.strip() != self.modes[self.mode_index]["filter"]:
+                    if self.modes and "filter" in self.modes[self.mode_index] and self.modes[self.mode_index]["filter"] in self.filter_query and self.filter_query.strip() != self.modes[self.mode_index]["filter"]:
                         self.filter_query = self.modes[self.mode_index]["filter"]
                     # elif "filter" in modes[mode_index]:
                     else:
@@ -2499,6 +2570,7 @@ class Picker:
                 self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("opts_input", key, self.keys_dict):
+                self.logger.info(f"key_function opts_input")
                 usrtxt = f"{self.user_opts} " if self.user_opts else ""
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
                 if self.show_footer and self.footer.height >= 1: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
@@ -2525,13 +2597,16 @@ class Picker:
                     self.user_opts = usrtxt
                     self.history_opts.append(usrtxt)
             elif self.check_key("opts_select", key, self.keys_dict):
+                self.logger.info(f"key_function opts_select")
                 s, o, f = self.choose_option(self.stdscr, self.options_list)
                 if self.user_opts.strip(): self.user_opts += " "
                 self.user_opts += " ".join([x for x in s.values()])
             elif self.check_key("notification_toggle", key, self.keys_dict):
+                self.logger.info(f"key_function notification_toggle")
                 self.notification(self.stdscr, colours_end=self.colours_end)
 
             elif self.check_key("mode_next", key, self.keys_dict): # tab key
+                self.logger.info(f"key_function mode_next")
                 # apply setting 
                 prev_mode_index = self.mode_index
                 self.mode_index = (self.mode_index+1)%len(self.modes)
@@ -2550,6 +2625,7 @@ class Picker:
                         # Re-sort self.items after applying filter
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("mode_prev", key, self.keys_dict): # shift+tab key
+                self.logger.info(f"key_function mode_prev")
                 # apply setting 
                 prev_mode_index = self.mode_index
                 self.mode_index = (self.mode_index-1)%len(self.modes)
@@ -2567,6 +2643,7 @@ class Picker:
                         # Re-sort self.items after applying filter
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("pipe_input", key, self.keys_dict):
+                self.logger.info(f"key_function pipe_input")
                 # usrtxt = "xargs -d '\n' -I{}  "
                 usrtxt = "xargs "
                 field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
@@ -2629,6 +2706,7 @@ class Picker:
 
 
             elif self.check_key("open", key, self.keys_dict):
+                self.logger.info(f"key_function open")
                 selected_indices = get_selected_indices(self.selections)
                 if not selected_indices:
                     selected_indices = [self.indexed_items[self.cursor_pos][0]]
@@ -2640,9 +2718,11 @@ class Picker:
 
 
             elif self.check_key("reset_opts", key, self.keys_dict):
+                self.logger.info(f"key_function reset_opts")
                 self.user_opts = ""
 
             elif self.check_key("edit", key, self.keys_dict):
+                self.logger.info(f"key_function edit")
                 if len(self.indexed_items) > 0 and self.selected_column >=0 and self.editable_columns[self.selected_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.selected_column]
                     usrtxt = f"{current_val}"
@@ -2674,6 +2754,7 @@ class Picker:
                         self.history_edits.append(usrtxt)
 
             elif self.check_key("edit_picker", key, self.keys_dict):
+                self.logger.info(f"key_function edit_picker")
                 if len(self.indexed_items) > 0 and self.selected_column >=0 and self.editable_columns[self.selected_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.selected_column]
                     usrtxt = f"{current_val}"
@@ -2702,6 +2783,7 @@ class Picker:
                         self.indexed_items[self.cursor_pos][1][self.selected_column] = usrtxt
                         self.history_edits.append(usrtxt)
             elif self.check_key("edit_ipython", key, self.keys_dict):
+                self.logger.info(f"key_function edit_picker")
                 import IPython
                 self.stdscr.clear()
                 restrict_curses(self.stdscr)
@@ -2734,6 +2816,7 @@ class Picker:
 
 def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
     """ Initialise curses colour pairs from dictionary. """
+    
 
     global COLOURS_SET, notification_colours, help_colours
     if COLOURS_SET: return None
@@ -2859,7 +2942,10 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for listpick Picker.')
     parser.add_argument('-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods', 'pkl'], help='Type of file (tsv, csv, json, xlsx, ods)')
+    parser.add_argument('--debug', action="store_true", help="Enable debug log.")
+    parser.add_argument('--debug-verbose', action="store_true", help="Enable debug verbose log.")
     args = parser.parse_args()
+
 
     function_data = {
         "items" : [],
@@ -2895,6 +2981,13 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         print("No data provided. Loading empty Picker.")
         return args, function_data
         # sys.exit(1)
+    if args.debug:
+        function_data["debug"] = True
+        function_data["debug_level"] = 1
+
+    if args.debug_verbose:
+        function_data["debug"] = True
+        function_data["debug_level"] = 0
     
     if not args.file_type:
         filetype = guess_file_type(input_arg)
@@ -2957,21 +3050,21 @@ def main() -> None:
         pass
         
     function_data["colour_theme_number"] = 3
-    function_data["modes"]  = [ 
-        {
-            'filter': '',
-            'sort': 0,
-            'name': 'All',
-        },
-        {
-            'filter': '--2 miss',
-            'name': 'miss',
-        },
-        {
-            'filter': '--2 mp4',
-            'name': 'mp4',
-        },
-    ]
+    # function_data["modes"]  = [ 
+    #     {
+    #         'filter': '',
+    #         'sort': 0,
+    #         'name': 'All',
+    #     },
+    #     {
+    #         'filter': '--2 miss',
+    #         'name': 'miss',
+    #     },
+    #     {
+    #         'filter': '--2 mp4',
+    #         'name': 'mp4',
+    #     },
+    # ]
     function_data["cell_cursor"] = True
     function_data["display_modes"] = True
     function_data["centre_in_cols"] = True
@@ -2981,6 +3074,8 @@ def main() -> None:
     function_data["track_entries_upon_refresh"] = True
     function_data["centre_in_terminal_vertical"] = True
     function_data["highlight_full_row"] = True
+    # function_data["debug"] = True
+    # function_data["debug_level"] = 1
     stdscr = start_curses()
     try:
         # Run the Picker
@@ -2994,8 +3089,8 @@ def main() -> None:
 
         # app = Picker(stdscr, **function_data)
         app = Picker(stdscr)
-        app.splash_screen("Listpick is loading your data...")
         app.set_function_data(function_data)
+        app.splash_screen("Listpick is loading your data...")
         app.load_input_history("~/.config/listpick/cmdhist.json")
         app.run()
 

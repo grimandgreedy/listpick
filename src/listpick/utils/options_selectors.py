@@ -12,8 +12,13 @@ import curses
 from typing import Tuple
 from listpick.ui.input_field import input_field
 from listpick.utils.utils import dir_picker
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def default_option_input(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_prefix:str="Opts", registers={}) -> Tuple[bool, str]:
+
+    logger.info("function: default_option_input (options_selectors.py)")
     # notification(stdscr, message=f"opt required for {index}")
     usrtxt = f"{starting_value} " if starting_value else ""
     h, w = stdscr.getmaxyx()
@@ -40,6 +45,7 @@ def default_option_selector(stdscr: curses.window, refresh_screen_function=None,
     NOT YET IMPLEMENTED!!
     *** **** *** ** ** *
     """
+    logger.info("function: default_option_selector (options_selectors.py)")
     # notification(stdscr, message=f"opt required for {index}")
     usrtxt = f"{starting_value} " if starting_value else ""
     h, w = stdscr.getmaxyx()
@@ -60,6 +66,8 @@ def default_option_selector(stdscr: curses.window, refresh_screen_function=None,
 
 
 def output_file_option_selector(stdscr:curses.window, refresh_screen_function, registers={}) -> Tuple[bool, str]:
+
+    logger.info("function: output_file_option_selector (options_selectors.py)")
     s = dir_picker()
 
     stdscr.clear()

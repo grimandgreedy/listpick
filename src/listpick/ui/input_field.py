@@ -13,6 +13,9 @@ from typing import Tuple, Optional, Callable
 import os
 import tempfile
 from datetime import datetime
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def input_field(
     stdscr: curses.window,
@@ -67,6 +70,7 @@ def input_field(
                         0: user hit escape
                         1: user hit return
     """
+    logger.info("function: input_field (input_field.py)")
     potential_path = usrtxt
     word_separator_chars = ["/", " ", "="]
     kill_ring = []

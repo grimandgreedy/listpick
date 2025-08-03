@@ -12,6 +12,9 @@ import re
 from typing import Tuple
 from listpick.utils.search_and_filter_utils import apply_filter, tokenise
 import os
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str]]], query: str) -> list[Tuple[int, list[str]]]:
     """ 
@@ -30,6 +33,7 @@ def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str
 
     Returns indexed_items, which is a list of tuples; each tuple consists of the index and the data of the matching row in the original items list. 
     """
+    logger.info("function: filter_items (filtering.py)")
 
 
     invert_filter = False

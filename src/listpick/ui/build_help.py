@@ -8,11 +8,15 @@ License: MIT
 """
 
 from listpick.ui.keys import picker_keys
-
 import curses
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def build_help_rows(keys_dict: dict) -> list[list[str]]:
     """ Build help rows based on the keys_dict. """
+
+    logger.info(f"function: build_help_rows() (build_help.py)")
     ## Key names
     special_keys = {
 

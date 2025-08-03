@@ -11,6 +11,9 @@ License: MIT
 import pyperclip
 from typing import Tuple
 from listpick.utils.utils import get_selected_cells_by_row
+import logging
+
+logger = logging.getLogger('picker_log')
 
 """
 representation: python, tab-separated, comma-separated, current view
@@ -37,6 +40,7 @@ def copy_to_clipboard(
                             accepted values: python, csv, tsv, current view, custom_sv
 
     """
+    logger.info("function: copy_to_clipboard (clipboard_operations.py)")
     formatted_items = []
     if cellwise:
         if len(items):

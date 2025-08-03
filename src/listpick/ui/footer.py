@@ -1,66 +1,15 @@
 """
+footer.py
+Lines to be displayed on the help screen.
 
-if self.show_footer:
-    # Fill background
-    self.stdscr.addstr(h-3, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-    self.stdscr.addstr(h-2, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
-    self.stdscr.addstr(h-1, 0, ' '*(w-1), curses.color_pair(self.colours_start+20)) # Problem with curses that you can't write to the last char
-
-    if self.filter_query:
-        self.stdscr.addstr(h - 2, 2, f" Filter: {self.filter_query} "[:w-40], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-    if self.search_query:
-        self.stdscr.addstr(h - 3, 2, f" Search: {self.search_query} [{self.search_index}/{self.search_count}] "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-    if self.user_opts:
-        self.stdscr.addstr(h-1, 2, f" Opts: {self.user_opts} "[:w-3], curses.color_pair(self.colours_start+20) | curses.A_BOLD)
-    # Display sort information
-    sort_column_info = f"{self.sort_column if self.sort_column is not None else 'None'}"
-    sort_method_info = f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}" if self.sort_column != None else "NA"
-
-
-    ## RIGHT
-    # Sort status
-    sort_order_info = "Desc." if self.sort_reverse[self.sort_column] else "Asc."
-    sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
-    self.stdscr.addstr(h - 2, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
-
-
-    if self.footer_string:
-        # footer_string_width = min(w, max(len(self.footer_string), w//3, 39))
-        footer_string_width = min(w-1, max(len(self.footer_string), 50))
-        disp_string = f"{self.footer_string[:footer_string_width]:>{footer_string_width-1}} "
-        self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-        self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-    else:
-        # Display cursor mode
-        select_mode = "Cursor"
-        if self.is_selecting: select_mode = "Visual Selection"
-        elif self.is_deselecting: select_mode = "Visual deselection"
-        self.stdscr.addstr(h - 1, w-35, f"{select_mode:>33} ", curses.color_pair(self.colours_start+20))
-    # Display selection count
-    selected_count = sum(self.selections.values())
-    if self.paginate:
-        cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  Page {self.cursor_pos//self.items_per_page + 1}/{(len(self.indexed_items) + self.items_per_page - 1) // self.items_per_page}  Selected {selected_count}"
-        self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-    else:
-        cursor_disp_str = f" {self.cursor_pos+1}/{len(self.indexed_items)}  |  Selected {selected_count}"
-        self.stdscr.addstr(h - 3, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
-
-    self.stdscr.refresh()
-elif self.footer_string:
-    footer_string_width = min(w-1, len(self.footer_string)+2)
-    disp_string = f" {self.footer_string[:footer_string_width]:>{footer_string_width-2}} "
-    self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-    self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
-
-## Display infobox
-if self.display_infobox:
-    self.infobox(self.stdscr, message=self.infobox_items, title=self.infobox_title)
-    # self.stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
+Author: GrimAndGreedy
+License: MIT
 """
 
-
-
 import curses
+import logging
+
+logger = logging.getLogger('picker_log')
 
 class Footer:
     def __init__(self, stdscr, colours_start, get_state_function):

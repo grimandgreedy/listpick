@@ -9,9 +9,16 @@ License: MIT
 """
 
 import os
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def make_list_unique(l:list) -> list:
-    """ Ensure each of the strings in a list is unique by numbering identical strings. """
+    """ 
+    Ensure each of the strings in a list is unique by numbering identical strings.
+    """
+
+    logger.info("function: make_list_unique (dump.py)")
     result = []
     for i in l:
         if i not in result:
@@ -24,6 +31,8 @@ def make_list_unique(l:list) -> list:
 def dump_state(function_data:dict, file_path:str) -> None:
     """ Dump state of Picker to file. """
 
+    logger.info("function: dump_state (dump.py)")
+
     import dill as pickle
     exclude_keys =  ["refresh_function", "get_data_startup", "get_new_data", "auto_refresh"]
     function_data = {key: val for key, val in function_data.items() if key not in exclude_keys}
@@ -32,6 +41,8 @@ def dump_state(function_data:dict, file_path:str) -> None:
 
 def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
     """ Dump data from a Picker object. Returns whether there was an error. """
+    logger.info("function: dump_data (dump.py)")
+
     include_keys = ["items", "header"]
     function_data = {key: val for key, val in function_data.items() if key in include_keys }
 
@@ -84,6 +95,7 @@ def dump_data(function_data:dict, file_path:str, format="pickle") -> str:
 
 def load_state(file_path:str) -> dict:
     """ Load Picker state from dump. """
+    logger.info("function: load_state (dump.py)")
     import dill as pickle
     with open(os.path.expandvars(os.path.expanduser(file_path)), 'rb') as f:
         loaded_data = pickle.load(f)

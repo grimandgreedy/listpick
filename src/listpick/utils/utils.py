@@ -13,6 +13,9 @@ import subprocess
 import tempfile
 import os
 from typing import Tuple, Dict
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def clip_left(text, n):
     """
@@ -42,6 +45,7 @@ def truncate_to_display_width(text: str, max_column_width: int, centre=False) ->
         If centre=True then the string is centred, if applicable.
 
     """
+    # logger.debug("function: truncate_to_display_width (utils.py)")
     result = ''
     width = 0
     for char in text:
@@ -239,6 +243,7 @@ def openFiles(files: list[str]) -> str:
     Returns:
         str
     """
+    logger.info("function: openFiles (utils.py)")
     def get_mime_types(files):
         types = {}
 
@@ -288,6 +293,7 @@ def openFiles(files: list[str]) -> str:
 def file_picker() -> str:
     """ Run file picker (yazi by default) and return the path of the file picked. If no file is picked an empty string is returned. """
 
+    logger.info("function: file_picker (utils.py)")
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
 
@@ -302,6 +308,7 @@ def file_picker() -> str:
 def dir_picker() -> str:
     """ Run dir picker (yazi by default) and return the path of the directory one is in upon exit. """
 
+    logger.info("function: dir_picker (utils.py)")
     with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
         subprocess.run(f"yazi --cwd-file={tmpfile.name}", shell=True)
 
@@ -314,4 +321,5 @@ def dir_picker() -> str:
 
 def guess_file_type(filename: str) -> str:
     """ Guess filetype. Currently just uses the extension of the file. """
+    logger.info("function: guess_file_type (utils.py)")
     return filename.split(".")[-1]

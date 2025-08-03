@@ -1,6 +1,10 @@
 from typing import Tuple
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def paste_values(items: list[list[str]], pasta: list[list], paste_row:int, paste_col: int) -> Tuple[bool, list[list[str]]]:
+    logger.info("function: paste_values (paste_operations.py)")
     if len(pasta) == 0:
         return False, items
     if len(items) == 0:

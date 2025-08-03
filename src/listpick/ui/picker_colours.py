@@ -10,10 +10,14 @@ License: MIT
 
 import curses
 from typing import Dict
+import logging
+
+logger = logging.getLogger('picker_log')
 
 
 def get_colours(pick:int=0) -> Dict[str, int]:
     """ Define colour options for listpick. """
+    logger.info("function get_colours (picker_colours.py)")
     colours = [
         ### (0) Green header, green title, green modes, purple selected, blue cursor
     {
@@ -288,6 +292,7 @@ def get_colours(pick:int=0) -> Dict[str, int]:
 
 def get_help_colours(pick: int=0) -> Dict[str, int]:
     """ Define help colour options for listpick. """
+    logger.info("function get_help_colours (picker_colours.py)")
     colours = get_colours(pick)
     # colours = [get_colours(i) for i in range(get_theme_count())]
     # for i in range(len(colours)):
@@ -310,6 +315,7 @@ def get_help_colours(pick: int=0) -> Dict[str, int]:
 
 def get_notification_colours(pick:int=0) -> Dict[str, int]:
     """ Define notification colour options for listpick. """
+    logger.info("function get_notification_colours (picker_colours.py)")
     colours = get_colours(pick)
 
     # Black and white
@@ -338,10 +344,12 @@ def get_notification_colours(pick:int=0) -> Dict[str, int]:
     return colours
 
 def get_fallback_colours() -> Dict[str, int]:
+    logger.info("function get_fallback_colours (picker_colours.py)")
     return get_colours(4)
 
 def get_theme_count() -> int:
     """ Get the number of themes. """
+    logger.info("function get_theme_count (picker_colours.py)")
     col_list = []
     i = 0
     for i in range(100):

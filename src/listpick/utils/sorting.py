@@ -10,9 +10,13 @@ License: MIT
 import re
 from datetime import datetime
 from typing import Tuple
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def parse_numerical(value: str) -> float:
     """ Match first number in string and return it as a float. If not number then return INF. """
+    logger.info("function: parse_numerical (sorting.py)")
     try:
         match = re.search(r'(\d+(\.\d+)?)', value)
         if match:
@@ -23,6 +27,7 @@ def parse_numerical(value: str) -> float:
 
 def parse_size(value: str) -> float:
     """ Match size in string and return it as a float. If no match then return INF."""
+    logger.info("function: parse_size (sorting.py)")
     size_units = {
         'B': 1,
         'KB': 1024,
@@ -48,6 +53,7 @@ def parse_size(value: str) -> float:
 
 def time_to_seconds(time_str: str) -> float:
     """Convert a time string to total seconds."""
+    logger.info("function: time_to_seconds (sorting.py)")
     if time_str.strip().upper() == "INF":
         return float('inf')  # Assign infinity for "INF"
 
@@ -82,6 +88,7 @@ def time_to_seconds(time_str: str) -> float:
 
 def time_sort(time_str: str) -> datetime:
     """ If there is a date in the string then convert it to strptime. If no match then return 00:00 (as datetime)."""
+    logger.info("function: time_sort (sorting.py)")
     formats = [
         "%Y-%m-%d %H:%M",     # "2021-03-16 15:30"
         "%Y-%m-%d",           # "2021-03-16"
@@ -105,6 +112,8 @@ def time_sort(time_str: str) -> datetime:
 
 def sort_items(indexed_items: list[Tuple[int,list[str]]], sort_method:int=0, sort_column:int=0, sort_reverse:bool=False):
     """ Sort indexed_items based on the sort_method on sort_column. """
+    logger.info("function: sort_items (sorting.py)")
+
     SORT_METHODS = ['Orig', 'lex', 'LEX', 'alnum', 'ALNUM', 'time', 'num', 'size']
     if sort_column is not None:
         try:

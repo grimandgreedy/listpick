@@ -15,14 +15,19 @@ import argparse
 from typing import Tuple, Iterable, Optional
 import dill as pickle
 import os
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def read_file_content(file_path: str) -> str:
     """ Read lines from file. """
+    logger.info("function: read_file_content (table_to_list_of_lists.py)")
     with open(file_path, 'r') as file:
         return file.read()
 
 def strip_whitespace(item: Iterable) -> Iterable:
     """ Strip whitespace from string or from list of strings. """
+    logger.info("function: strip_whitespace (table_to_list_of_lists.py)")
     if isinstance(item, list):
         return [strip_whitespace(sub_item) for sub_item in item]
     elif isinstance(item, str):
@@ -37,10 +42,12 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
     Convert data string to list. The input_arg
     Currently accepts: csv, tsv, json, xlsx, ods
     """
+    logger.info("function: table_to_list (table_to_list_of_lists.py)")
     table_data = []
 
     def parse_csv_like(data:str, delimiter:str) -> list[list[str]]:
         """ Convert value-separated data (e.g., CSV or TSV) to list of lists. """
+        logger.info("function: parse_csv_like (table_to_list_of_lists.py)")
 
         try:
             reader = csv.reader(StringIO(data), delimiter=delimiter)
@@ -51,6 +58,7 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
 
     def csv_string_to_list(csv_string:str) -> list[list[str]]:
         """ Convert csv string to list of lists using csv.reader. """
+        logger.info("function: csv_string_to_list (table_to_list_of_lists.py)")
         f = StringIO(csv_string)
         reader = csv.reader(f, skipinitialspace=True)
         return [row for row in reader]

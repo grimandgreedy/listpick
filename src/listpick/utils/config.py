@@ -1,7 +1,11 @@
 import os
 import toml
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def get_config(path="~/.config/aria2tui/config.toml") -> dict:
+    logger.info("function: get_config (config.py)")
     """ Get config from file. """
     full_config = get_default_config()
 
@@ -23,6 +27,7 @@ def get_config(path="~/.config/aria2tui/config.toml") -> dict:
     return full_config
 
 def get_default_config() -> dict:
+    logger.info("function: get_default_config (config.py)")
     default_config = {
         "general" : {
             # "url": "http://localhost",

@@ -9,9 +9,13 @@ License: MIT
 """
 
 import re
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, add_highlights:bool = False, highlights: list=[]) -> bool:
     """ Checks if row matches the filter. """
+    logger.info("function: apply_filter (search_and_filter_utils.py)")
     for col, filter_list in filters.items():
         for filter in filter_list:
             if case_sensitive or (filter != filter.lower()):
@@ -49,6 +53,7 @@ def apply_filter(row: list[str], filters: dict, case_sensitive: bool = False, ad
 
 def tokenise(query:str) -> dict:
     """ Convert query into dict consisting of filters. '--1  """
+    logger.info("function: tokenise (search_and_filter_utils.py)")
     filters = {}
 
     # tokens = re.split(r'(\s+--\d+|\s+--i)', query)

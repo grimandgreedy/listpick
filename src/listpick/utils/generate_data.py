@@ -12,11 +12,15 @@ import subprocess
 import os
 from typing import Tuple, Callable
 import toml
+import logging
+
+logger = logging.getLogger('picker_log')
 
 def generate_columns(funcs: list, files: list) -> list[list[str]]:
     """
     Takes a list of functions and a list of files. Each function is run for each file and a list of lists is returned.
     """
+    logger.info("function: generate_columns (generate_data.py)")
     items = []
     for file in files:
         item = []
@@ -34,6 +38,7 @@ def command_to_func(command: str) -> Callable:
         mediainfo {} | grep -i format
         mediainfo {} | grep -i format | head -n 1 | awk '{{print $3}}'
     """
+    logger.info("function: command_to_func (generate_data.py)")
     
     func = lambda arg: subprocess.run(command.format(repr(arg)), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8")
     return func
@@ -42,6 +47,7 @@ def load_environment(envs:dict):
     """
     Load environment variables from an envs dict.
     """
+    logger.info("function: load_environment (generate_data.py)")
 
     if "cwd" in envs:
         os.chdir(os.path.expandvars(os.path.expanduser(envs["cwd"])))
@@ -51,6 +57,7 @@ def read_toml(file_path) -> Tuple[dict, list, list]:
     """
     Read toml file and return the environment, commands and header sections.
     """
+    logger.info("function: read_toml (generate_data.py)")
     with open(file_path, 'r') as file:
         config = toml.load(file)
 
@@ -64,6 +71,7 @@ def generate_picker_data(file_path: str) -> Tuple[list[list[str]], list[str]]:
     """
     Generate data for Picker based upon the toml file commands.
     """
+    logger.info("function: generate_picker_data (generate_data.py)")
     environment, commands, header = read_toml(file_path)
     lines = commands
 
