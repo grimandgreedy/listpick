@@ -1028,6 +1028,7 @@ class Picker:
                 "hidden_columns": [],
                 "title": title,
                 "reset_colours": False,
+                "clear_on_start": True,
             }
 
             OptionPicker = Picker(submenu_win, **infobox_data)
@@ -3110,6 +3111,11 @@ def main() -> None:
     function_data["centre_in_terminal_vertical"] = True
     function_data["highlight_full_row"] = True
     function_data["pin_cursor"] = True
+    function_data["display_infobox"] = True
+    function_data["infobox_items"] = [["1"], ["2"], ["3"]]
+    function_data["infobox_title"] = "Title"
+
+
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
     stdscr = start_curses()
