@@ -96,7 +96,7 @@ def format_row(row: list[str], hidden_columns: list, column_widths: list[int], s
     return row_str
     # return row_str.strip()
 
-def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_width:int=70, number_columns:bool=True) -> list[int]:
+def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_width:int=70, number_columns:bool=True, max_total_width=-1, separator = "    ") -> list[int]:
     """ Calculate maximum width of each column with clipping. """
     if len(items) == 0: return [0]
     assert len(items) > 0
@@ -104,8 +104,29 @@ def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_w
     # widths = [max(len(str(row[i])) for row in items) for i in range(len(items[0]))]
     if header:
         header_widths = [wcswidth(f"{i}. {str(h)}") if number_columns else wcswidth(str(h)) for i, h in enumerate(header)]
-        return [min(max_column_width, max(widths[i], header_widths[i])) for i in range(len(header))]
-    return [min(max_column_width, width) for width in widths]
+        col_widths =  [min(max_column_width, max(widths[i], header_widths[i])) for i in range(len(header))]
+        # actual_max_widths = [max(header_widths[i], widths[i]) for i in range(len(widths))]
+        #
+        # if sum(col_widths) + len(separator)*(len(col_widths)-1) < max_total_width:
+        #     # Elongate rows...
+        #     amount_less = max_total_width  - (sum(col_widths) + len(separator)*(len(col_widths)-1))
+        #     number_over = sum([1 if col_widths[i] != actual_max_widths[i] else 0 for i in range(len(col_widths))])
+        #     count = 0
+        #     for i in range(len(col_widths)):
+        #         if col_widths[i] < actual_max_widths[i]:
+        #             col_widths[i] += amount_less//number_over
+        #             count+=1
+        #             if count == number_over:
+        #                 col_widths[i]+= amount_less%number_over
+        #                 break
+        #     if sum(actual_max_widths) + len(separator)*(len(col_widths)-1) < max_total_width:
+        #         col_widths = actual_max_widths
+        #     else:
+        #         # Maximise balance.....
+        #         pass
+    else:
+        col_widths = [min(max_column_width, width) for width in widths]
+    return col_widths
 
 def get_mode_widths(item_list: list[str]) -> list[int]:
     """ Calculate the maximum width of modes with clipping. """

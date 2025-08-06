@@ -118,6 +118,9 @@ ASAP
 > - [ ] Bulk edit in nvim
 > - [ ] Add formula and display value...
 > - [ ] Implement log for debugging purposes.
+>   - [x] Basic log setup complete
+>   - [ ] Need more useful messages to determine where an error is thrown.
+> - [ ] Pin cursor.
 
 
 
@@ -255,6 +258,7 @@ ASAP
 >   - [ ] Intersection
 > - [ ] Add a broader editor_picker option which enables/disables add/remove columns in the settings.
 > - [ ] If no -t type argument is given then guess filetype.
+> - [ ] Add row selection using 'V'--select all cells in a row.
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active
@@ -322,6 +326,7 @@ ASAP
 > - [ ] Crash when editing a cell and adding newlines (from nvim)
 > - [x] Pink flash when loading. Likely due to colour redefinitions before picker actually loads.
 >   - [x] Fixed. Created splashscreen class function which will be displayed after the colours are defined.
+> - [ ] If the longest string in a column is the header string and show_header=False, then get_column_widths still calculates based on the header string length.
 
 
 

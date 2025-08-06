@@ -22,6 +22,9 @@
  - Adjusted the commandline arguments so that the filename can be passed without the -i flag.
  - If no input file type is specified on the command line it will now guess based on the input file's extension.
  - Improved display of cells/rows with various unicode characters. It is much better but there are still some problems with alignment and highlighting.
+ - Setup logging for the Picker class. Currently still very basic but will track to the last function that was run before crash if the --debug flag is passed to the picker.
+ - Added pin_cursor options which keeps the cursor on the same row during a refresh rather than tracking the id of the highlighted row. 
+ - Updated StandardFooter. Now shows information on two lines rather than three; all cursor and selection information on the first line and the sort information on the second. Cursor, Visual (de)selection now abreviated to C, VS, and VDS.
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.
