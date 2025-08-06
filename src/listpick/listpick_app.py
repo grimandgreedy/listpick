@@ -891,7 +891,7 @@ class Picker:
 
             # Higlight cursor cell and selected cells
             if self.cell_cursor:
-                self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
+                # self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
                 if item[0] in self.selected_cells_by_row:
                     for j in self.selected_cells_by_row[item[0]]:
                         highlight_cell(idx, j, visible_column_widths, colour_pair_number=25)
@@ -987,7 +987,11 @@ class Picker:
         
         ## Display infobox
         if self.display_infobox:
+            # self.stdscr.refresh()
             self.infobox(self.stdscr, message=self.infobox_items, title=self.infobox_title)
+
+        # if not self.display_only:
+        #     self.stdscr.refresh()
             # self.stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
 
@@ -1012,30 +1016,33 @@ class Picker:
         }
         if len(submenu_items) > notification_height - 2:
             submenu_items = submenu_items[:notification_height-3] + [f"{'....':^{notification_width}}"]
-        while True:
-            h, w = stdscr.getmaxyx()
+        # while True:
+        h, w = stdscr.getmaxyx()
 
-            submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
-            infobox_data = {
-                "items": submenu_items,
-                "colours": notification_colours,
-                "colours_start": self.notification_colours_start,
-                "disabled_keys": [ord('z'), ord('c')],
-                "show_footer": False,
-                "top_gap": 0,
-                "key_remappings": notification_remap_keys,
-                "display_only": True,
-                "hidden_columns": [],
-                "title": title,
-                "reset_colours": False,
-                "clear_on_start": True,
-            }
+        # submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+        submenu_win = self.stdscr.subpad(notification_height, notification_width, 3, w - (notification_width+4))
+        submenu_win.erase()
+        # submenu_win.untouchwin()
+        infobox_data = {
+            "items": submenu_items,
+            "colours": notification_colours,
+            "colours_start": self.notification_colours_start,
+            "disabled_keys": [ord('z'), ord('c')],
+            "show_footer": False,
+            "top_gap": 0,
+            "key_remappings": notification_remap_keys,
+            "display_only": True,
+            "hidden_columns": [],
+            "title": title,
+            "reset_colours": False,
+        }
 
-            OptionPicker = Picker(submenu_win, **infobox_data)
-            s, o, f = OptionPicker.run()
-            if o != "refresh": break
+        # for i in range(3, 3+notification_height):
+        #     self.stdscr.addstr(i, w - (notification_width+4), ' '*notification_width, curses.color_pair(4))
+        OptionPicker = Picker(submenu_win, **infobox_data)
+        s, o, f = OptionPicker.run()
+        submenu_win.refresh()
 
-        return submenu_win
 
     def get_function_data(self) -> dict:
         self.logger.debug(f"function: get_function_data()")
@@ -1482,6 +1489,10 @@ class Picker:
             self.selections[self.indexed_items[i][0]] = True
         for i in self.cell_selections.keys():
             self.cell_selections[i] = True
+        for row in range(len(self.indexed_items)):
+            self.selected_cells_by_row[row] = list(range(len(self.indexed_items[row][1])))
+
+
 
         self.draw_screen(self.indexed_items, self.highlights)
 
@@ -1492,6 +1503,7 @@ class Picker:
             self.selections[i] = False
         for i in self.cell_selections.keys():
             self.cell_selections[i] = False
+        self.selected_cells_by_row = {}
         self.draw_screen(self.indexed_items, self.highlights)
 
     def handle_visual_selection(self, selecting:bool = True) -> None:
@@ -1520,9 +1532,18 @@ class Picker:
                 xend = max(self.start_selection_col, self.selected_column)
                 for i in range(ystart, yend + 1):
                     if self.indexed_items[i][0] not in self.unselectable_indices:
-                        for j in range(xstart, xend+1):
-                            cell_index = (self.indexed_items[i][0], j)
+                        row = self.indexed_items[i][0]
+                        if row not in self.selected_cells_by_row:
+                            self.selected_cells_by_row[row] = []
+
+                        for col in range(xstart, xend+1):
+                            cell_index = (row, col)
                             self.cell_selections[cell_index] = True
+
+                            self.selected_cells_by_row[row].append(col)
+                        # Remove duplicates
+                        self.selected_cells_by_row[row] = list(set(self.selected_cells_by_row[row]))
+
             self.start_selection = -1
             self.end_selection = -1
             self.is_selecting = False
@@ -1544,10 +1565,19 @@ class Picker:
                 xstart = min(self.start_selection_col, self.selected_column)
                 xend = max(self.start_selection_col, self.selected_column)
                 for i in range(ystart, yend + 1):
+                    row = self.indexed_items[i][0]
                     if self.indexed_items[i][0] not in self.unselectable_indices:
-                        for j in range(xstart, xend+1):
-                            cell_index = (self.indexed_items[i][0], j)
-                            self.cell_selections[cell_index] = False
+                        if row in self.selected_cells_by_row:
+                            for col in range(xstart, xend+1):
+                                try:
+                                    self.selected_cells_by_row[row].remove(col)
+                                except:
+                                    pass
+                                cell_index = (row, col)
+                                self.cell_selections[cell_index] = False
+                            if self.selected_cells_by_row[row] == []:
+                                del self.selected_cells_by_row[row]
+
             self.start_selection = -1
             self.end_selection = -1
             self.is_deselecting = False
@@ -1896,8 +1926,6 @@ class Picker:
 
         self.initialise_variables(get_data=self.get_data_startup)
 
-        self.draw_screen(self.indexed_items, self.highlights)
-
         initial_time = time.time()
         initial_time_footer = time.time()-self.footer_timer
 
@@ -1916,7 +1944,6 @@ class Picker:
         else:
             self.stdscr.erase()
 
-        self.stdscr.refresh()
 
         # Initialize colours
         # Check if terminal supports color
@@ -1926,9 +1953,9 @@ class Picker:
         self.draw_screen(self.indexed_items, self.highlights)
 
         if self.display_only:
-            self.stdscr.refresh()
-            function_data = self.get_function_data()
-            return [], "", function_data
+            # self.stdscr.refresh()
+            # function_data = self.get_function_data()
+            return [], "", {}
 
         # Main loop
 
@@ -2133,11 +2160,31 @@ class Picker:
                 if len(self.indexed_items) > 0:
                     item_index = self.indexed_items[self.cursor_pos][0]
                     cell_index = (self.indexed_items[self.cursor_pos][0], self.selected_column)
+                    row, col = cell_index
                     selected_count = sum(self.selections.values())
                     if self.max_selected == -1 or selected_count >= self.max_selected:
                         self.toggle_item(item_index)
 
                         self.cell_selections[cell_index] = not self.cell_selections[cell_index]
+                        # If any cells in the current row are selected
+                        if row in self.selected_cells_by_row:
+                            # If the current cell is selected then remove it
+                            if col in self.selected_cells_by_row[row]:
+                                # If the current cell is the only cell in the row that is selected then remove the row from the dict
+                                if len(self.selected_cells_by_row[row]) == 1:
+
+                                    del self.selected_cells_by_row[row]
+                                # else remove only the index of the current cell
+                                else:
+                                    self.selected_cells_by_row[row].remove(col)
+                            # If there are cells in the row that are selected then append the current cell to the row
+                            else:
+                                self.selected_cells_by_row[row].append(col)
+                        # Add the a list containing only the current column
+                        else:
+                            self.selected_cells_by_row[row] = [col]
+
+
                 self.cursor_down()
             elif self.check_key("select_all", key, self.keys_dict):  # Select all (m or ctrl-a)
                 self.select_all()
@@ -3111,9 +3158,9 @@ def main() -> None:
     function_data["centre_in_terminal_vertical"] = True
     function_data["highlight_full_row"] = True
     function_data["pin_cursor"] = True
-    function_data["display_infobox"] = True
-    function_data["infobox_items"] = [["1"], ["2"], ["3"]]
-    function_data["infobox_title"] = "Title"
+    # function_data["display_infobox"] = True
+    # function_data["infobox_items"] = [["1"], ["2"], ["3"]]
+    # function_data["infobox_title"] = "Title"
 
 
     # function_data["debug"] = True

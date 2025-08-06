@@ -26,6 +26,7 @@
  - Added pin_cursor options which keeps the cursor on the same row during a refresh rather than tracking the id of the highlighted row. 
  - Updated StandardFooter. Now shows information on two lines rather than three; all cursor and selection information on the first line and the sort information on the second. Cursor, Visual (de)selection now abreviated to C, VS, and VDS.
  - Fixed flickering when displaying an infobox.
+ - Optimised cpu usage by created a class variable selected_cells_by_row which updates with selection/deselection rather than being determined each time the draw_screen loop is run.
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.
