@@ -25,6 +25,7 @@
  - Setup logging for the Picker class. Currently still very basic but will track to the last function that was run before crash if the --debug flag is passed to the picker.
  - Added pin_cursor options which keeps the cursor on the same row during a refresh rather than tracking the id of the highlighted row. 
  - Updated StandardFooter. Now shows information on two lines rather than three; all cursor and selection information on the first line and the sort information on the second. Cursor, Visual (de)selection now abreviated to C, VS, and VDS.
+ - Added try-except wrapper to draw_screen function to prevent crashes during rapid resizing.
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.

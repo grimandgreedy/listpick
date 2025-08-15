@@ -658,6 +658,14 @@ class Picker:
         self.stdscr.refresh()
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
+        """ Try-except wrapper for the draw_screen_ function. """
+        try:
+            self.draw_screen_(self.indexed_items, self.highlights)
+        except Exception as e:
+            self.logger.warning(f"self.draw_screen_() error. {e}")
+            pass
+
+    def draw_screen_(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
         self.logger.debug("Draw screen.")
 
