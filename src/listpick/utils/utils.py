@@ -36,7 +36,7 @@ def clip_left(text, n):
         width += char_width
     return text  # If the total width is less than n, return the full string
 
-def truncate_to_display_width(text: str, max_column_width: int, centre=False) -> str:
+def truncate_to_display_width(text: str, max_column_width: int, centre=False, unicode_char_width: bool = True) -> str:
     """ 
     Truncate and/or pad text to max_column_width using wcwidth to ensure visual width is correct 
         with foreign character sets. 
@@ -74,16 +74,16 @@ def evaluate_cell(cell:str) -> str:
     return str(eval(cell[1:]))
 
 
-def format_row_full(row: list[str], hidden_columns:list = []) -> str:
+def format_row_full(row: list[str], hidden_columns:list = [], unicode_char_width: bool = True) -> str:
     """ Format list of strings as a tab-separated single string. No hidden columns. """
     return '\t'.join(str(row[i]) for i in range(len(row)) if i not in hidden_columns)
 
-def format_full_row(row:str) -> str:
+def format_full_row(row:str, unicode_char_width: bool = True) -> str:
     """ Format list of strings as a tab-separated single string. Includes hidden columns. """
     return '\t'.join(row)
 
 
-def format_row(row: list[str], hidden_columns: list, column_widths: list[int], separator: str, centre:bool=False) -> str:
+def format_row(row: list[str], hidden_columns: list, column_widths: list[int], separator: str, centre:bool=False, unicode_char_width: bool = True) -> str:
     """ Format list of strings as a single string. Requires separator string and the maximum width of the columns. """
     row_str = ""
     for i, cell in enumerate(row):
@@ -96,7 +96,7 @@ def format_row(row: list[str], hidden_columns: list, column_widths: list[int], s
     return row_str
     # return row_str.strip()
 
-def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_width:int=70, number_columns:bool=True, max_total_width=-1, separator = "    ") -> list[int]:
+def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_width:int=70, number_columns:bool=True, max_total_width=-1, separator = "    ", unicode_char_width: bool = True) -> list[int]:
     """ Calculate maximum width of each column with clipping. """
     if len(items) == 0: return [0]
     assert len(items) > 0

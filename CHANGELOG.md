@@ -26,6 +26,9 @@
  - Added pin_cursor options which keeps the cursor on the same row during a refresh rather than tracking the id of the highlighted row. 
  - Updated StandardFooter. Now shows information on two lines rather than three; all cursor and selection information on the first line and the sort information on the second. Cursor, Visual (de)selection now abreviated to C, VS, and VDS.
  - Added try-except wrapper to draw_screen function to prevent crashes during rapid resizing.
+ - Speed improvements:
+   - Create and track self.selected_cells_by_row when selections change rather than derive it from the self.cell_selections
+     - Much faster with very large data sets as we need to determine selected_cells_by_row every time we run self.draw_screen()
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.
