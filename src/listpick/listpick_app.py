@@ -2760,20 +2760,39 @@ class Picker:
                     if not selected_indices:
                         selected_indices = [self.indexed_items[self.cursor_pos][0]]
 
-                    full_values = [format_row_full(self.items[i], self.hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-                    full_values = [self.items[i][self.selected_column] for i in selected_indices]
+                    # full_values = [format_row_full(self.items[i], self.hidden_columns) for i in selected_indices]  # Use format_row_full for full data
+                    if self.cell_cursor:
+                        
+                        full_values = []
+                        for row in self.selected_cells_by_row.keys():
+                            selected_cell_row_str = ""
+                            for cell in self.selected_cells_by_row[row]:
+                                if " " in self.items[row][cell]:
+                                    selected_cell_row_str += repr(self.items[row][cell])
+                                else:
+                                    selected_cell_row_str += self.items[row][cell]
+                                selected_cell_row_str += "\t"
+                            full_values.append(selected_cell_row_str.strip())
+
+
+                        # full_values = ["\t".join([repr(self.items[key][cell]) for cell in self.selected_cells_by_row[key]]) for key in self.selected_cells_by_row.keys()]
+                        # full_values = ["\t".join([self.items[key][cell] for cell in self.selected_cells_by_row[key]]) for key in self.selected_cells_by_row.keys()]
+                    else:
+                        full_values = [self.items[i][self.selected_column] for i in selected_indices]
                     if full_values:
-                        command = usrtxt.split()
+                        # command = usrtxt.split()
+                        command = usrtxt
                         # command = ['xargs', '-d' , '"\n"' '-I', '{}', 'mpv', '{}']
                         # command = ['xargs', '-d' , '"\n"' '-I', '{}', 'mpv', '{}']
                         # command = "xargs -d '\n' -I{} mpv {}"
 
                         try:
-                            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
                             if process.stdin != None:
                                 for value in full_values:
-                                    process.stdin.write((repr(value) + '\n').encode())
+                                    process.stdin.write((value + '\n').encode())
+                                    # process.stdin.write((value + '\n').encode())
 
                                 process.stdin.close()
 
@@ -3158,9 +3177,9 @@ def main() -> None:
     function_data["centre_in_terminal_vertical"] = True
     function_data["highlight_full_row"] = True
     function_data["pin_cursor"] = True
-    function_data["display_infobox"] = True
-    function_data["infobox_items"] = [["1"], ["2"], ["3"]]
-    function_data["infobox_title"] = "Title"
+    # function_data["display_infobox"] = True
+    # function_data["infobox_items"] = [["1"], ["2"], ["3"]]
+    # function_data["infobox_title"] = "Title"
     # function_data["footer_string"] = "Title"
     function_data["highlights"] = highlights
     function_data["show_footer"] = False

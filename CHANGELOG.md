@@ -29,6 +29,8 @@
  - Speed improvements:
    - Create and track self.selected_cells_by_row when selections change rather than derive it from the self.cell_selections
      - Much faster with very large data sets as we need to determine selected_cells_by_row every time we run self.draw_screen()
+ - We can now pipe data from cells in multiple columns to a command.
+   - e.g., pipe two cols to gnuplot
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.

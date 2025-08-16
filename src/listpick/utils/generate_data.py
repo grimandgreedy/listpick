@@ -25,7 +25,10 @@ def generate_columns(funcs: list, files: list) -> list[list[str]]:
     for file in files:
         item = []
         for func in funcs:
-            item.append(func(file))
+            try:
+                item.append(func(file))
+            except:
+                item.append("")
         items.append(item)
         
     return items

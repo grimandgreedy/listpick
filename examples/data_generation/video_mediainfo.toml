@@ -1,3 +1,10 @@
+# 
+# video_mediainfo.toml
+# Generate mediainfo for mp4 files in a directory
+# 
+# Author: GrimAndGreedy
+# License: MIT
+
 [environment]
 cwd="~/Videos"
 

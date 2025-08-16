@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+Create a basic picker with a title, header, items, and highlights.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 import sys, os
 from listpick.listpick_app import Picker, close_curses, start_curses
 
@@ -33,7 +42,7 @@ stdscr = start_curses()
 x = Picker(
         stdscr = stdscr,
         items = l,
-        title="Test Picker",
+        title="Picker Example",
         header=header,
         highlights=highlights,
     )

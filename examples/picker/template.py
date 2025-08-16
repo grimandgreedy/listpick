@@ -1,3 +1,12 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+"""
+Create a basic picker with a title, header, and items.
+
+Author: GrimAndGreedy
+License: MIT
+"""
+
 from listpick.listpick_app import Picker, close_curses, start_curses
 
 l = [["1", "2"], ["3", "4"]]
@@ -9,7 +18,7 @@ x = Picker(
         items = l,
         title="Test Picker",
         header=header,
-        highlights=highlights,
+        # highlights=highlights,
     )
 selected_indices, opts, picker_data = x.run()
 
