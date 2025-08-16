@@ -1,0 +1,37 @@
+Thank you for filling out a Git bug report!
+Please answer the following questions to help us understand your issue.
+
+What did you do before the bug happened? (Steps to reproduce your issue)
+
+What did you expect to happen? (Expected behavior)
+
+What happened instead? (Actual behavior)
+
+What's different between what you expected and what actually happened?
+
+Anything else you want to add:
+
+Please review the rest of the bug report below.
+You can delete any lines you don't wish to share.
+
+
+[System Info]
+git version:
+git version 2.50.1
+cpu: x86_64
+built from commit: d82adb61ba2fd11d8f2587fca1b6bd7925ce4044
+sizeof-long: 8
+sizeof-size_t: 8
+shell-path: /bin/sh
+libcurl: 8.14.1
+OpenSSL: OpenSSL 3.5.1 1 Jul 2025
+zlib-ng: 2.2.4
+SHA-1: SHA1_DC
+SHA-256: SHA256_BLK
+uname: Linux 6.15.9-arch1-1 #1 SMP PREEMPT_DYNAMIC Sat, 02 Aug 2025 01:20:06 +0000 x86_64
+compiler info: gnuc: 15.1
+libc info: glibc: 2.42
+$SHELL (typically, interactive shell): /usr/bin/zsh
+
+
+[Enabled Hooks]

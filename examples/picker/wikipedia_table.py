@@ -1,7 +1,7 @@
 #!/bin/python
 # -*- coding: utf-8 -*-
 """
-Get a wikipedia table and display it in listpick.
+Get a wikipedia table and display it in a Picker.
 
 Author: GrimAndGreedy
 License: MIT
@@ -53,10 +53,11 @@ def load_data(filename: str, url: str) -> list:
         return data
 
 if __name__ == "__main__":
-    url = 'https://en.wikipedia.org/wiki/2024%E2%80%9325_Premier_League'
+    url = 'https://en.wikipedia.org/wiki/2024-25_Premier_League'
 
     # Filename for pickled data
-    pickle_filename = 'premier_league_tables_2024.pkl'
+    # pickle_filename = './auxiallary_files/premier_league_tables_2024.pkl'
+    pickle_filename = f'./auxiallary_files/{url.split("/")[-1]}.pkl'
     try:
         tables = load_data(pickle_filename, url)
         league_table_number = 4

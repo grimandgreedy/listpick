@@ -344,3 +344,20 @@ def guess_file_type(filename: str) -> str:
     """ Guess filetype. Currently just uses the extension of the file. """
     logger.info("function: guess_file_type (utils.py)")
     return filename.split(".")[-1]
+
+
+def pad_lists_to_same_length(list_of_lists: list[list[str]]) -> list[list[str]]:
+    """ Ensure that all lists in a list of lists are of the same length. Pad any shorter sublists with empty strings. """
+    if not list_of_lists or list_of_lists in [[], [[]]]:
+        return []
+
+    # Find the maximum length of the sublists
+    lengths = [len(sublist) for sublist in list_of_lists]
+    max_length = max(lengths)
+    min_length = min(lengths)
+    if min_length == max_length: return list_of_lists
+
+    # Pad each sublist with empty strings to match the maximum length
+    padded_list = [sublist + [''] * (max_length - len(sublist)) for sublist in list_of_lists]
+
+    return padded_list

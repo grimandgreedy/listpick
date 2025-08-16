@@ -449,8 +449,6 @@ class Picker:
         # self.stdscr.refresh()
         # self.draw_screen(self.indexed_items, self.highlights)
 
-
-
     def initialise_variables(self, get_data: bool = False) -> None:
         """ Initialise the variables that keep track of the data. """
 
@@ -473,6 +471,7 @@ class Picker:
         
             self.items, self.header = self.refresh_function()
 
+        self.items = pad_lists_to_same_length(self.items)
                     
         if self.items == []: self.items = [[]]
         ## Ensure that items is a List[List[Str]] object
@@ -1959,6 +1958,8 @@ class Picker:
 
         while True:
             key = self.stdscr.getch()
+            if key:
+                self.logger.info(f"key={key}")
             h, w = self.stdscr.getmaxyx()
             if key in self.disabled_keys: continue
             clear_screen=True
@@ -3160,7 +3161,7 @@ def main() -> None:
     function_data["display_infobox"] = True
     function_data["infobox_items"] = [["1"], ["2"], ["3"]]
     function_data["infobox_title"] = "Title"
-    function_data["footer_string"] = "Title"
+    # function_data["footer_string"] = "Title"
     function_data["highlights"] = highlights
     function_data["show_footer"] = False
     # function_data["debug"] = True
