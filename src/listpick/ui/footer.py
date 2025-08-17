@@ -93,10 +93,14 @@ class StandardFooter(Footer):
         # Cursor & selection info
         selected_count = sum(state["selections"].values())
         if state["paginate"]:
-            cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])}  Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])}"
+            # cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])//state['items_per_page']} | {select_mode}"
+            cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])//state['items_per_page']} | {select_mode}"
         else:
             cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | {select_mode}"
-        self.stdscr.addstr(picker_info_y, w-35, f"{cursor_disp_str:>33} ", curses.color_pair(self.colours_start+20))
+
+        # Maximum chars that should be displayed
+        max_chars = min(len(cursor_disp_str)+2, w)
+        self.stdscr.addstr(picker_info_y, w-max_chars, f"{cursor_disp_str:>{max_chars-2}} ", curses.color_pair(self.colours_start+20))
 
 
         # Sort info
@@ -105,7 +109,7 @@ class StandardFooter(Footer):
         sort_order_info = "Desc." if state["sort_reverse"] else "Asc."
         sort_order_info = "▼" if state["sort_reverse"][state['sort_column']] else "▲"
         sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
-        self.stdscr.addstr(sort_info_y, w-35, f"{sort_disp_str:>34}", curses.color_pair(self.colours_start+20))
+        self.stdscr.addstr(sort_info_y, w-max_chars, f"{sort_disp_str:>{max_chars-1}}", curses.color_pair(self.colours_start+20))
 
         self.stdscr.refresh()
 

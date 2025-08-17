@@ -350,6 +350,8 @@ def pad_lists_to_same_length(list_of_lists: list[list[str]]) -> list[list[str]]:
     """ Ensure that all lists in a list of lists are of the same length. Pad any shorter sublists with empty strings. """
     if not list_of_lists or list_of_lists in [[], [[]]]:
         return []
+    if type(list_of_lists) == type([]) and len(list_of_lists) and type(list_of_lists[0]) == type(""):
+        list_of_lists = [[x] for x in list_of_lists]
 
     # Find the maximum length of the sublists
     lengths = [len(sublist) for sublist in list_of_lists]

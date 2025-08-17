@@ -1260,7 +1260,12 @@ class Picker:
         message_width = notification_width-5
 
         if not message: message = "!!"
-        submenu_items = ["  "+message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
+        if type(message) == type(""):
+            mw = message_width
+            submenu_items = [[message[i*mw:(i+1)*mw]] for i in range(len(message)//mw+1)]
+        elif type(message) != type([]):
+            submenu_items = [["  !!"]]
+
 
         notification_remap_keys = { 
             curses.KEY_RESIZE: curses.KEY_F5,
@@ -2799,6 +2804,7 @@ class Picker:
                                 self.notification(self.stdscr, message=f"{len(full_values)} strings piped to {repr(usrtxt)}")
                         except Exception as e:
                             self.notification(self.stdscr, message=f"{e}")
+                            # self.notification(self.stdscr, message=f"Error: {str(e)}")
 
 
             elif self.check_key("open", key, self.keys_dict):
@@ -3182,7 +3188,8 @@ def main() -> None:
     # function_data["infobox_title"] = "Title"
     # function_data["footer_string"] = "Title"
     function_data["highlights"] = highlights
-    function_data["show_footer"] = False
+    # function_data["show_footer"] = False
+    function_data["paginate"] = True
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
     stdscr = start_curses()
