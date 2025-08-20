@@ -144,11 +144,14 @@ def table_to_list(
         import pandas as pd
         ef = pd.ExcelFile(input_arg)
         sheets = ef.sheet_names
-        if sheet_number < len(sheets):
-            df = pd.read_excel(input_arg, sheet_name=sheet_number)
-        else:
-            df = pd.read_excel(input_arg)
+        sheet_number = min(0, max(sheet_number, len(sheets)-1))
+        df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
+        # if sheet_number < len(sheets):
+        #     df = pd.read_excel(input_arg, sheet_name=sheet_number)
+        # else:
+        #     df = pd.read_excel(input_arg)
         table_data = df.values.tolist()
+        table_data = [[x if not pd.isna(x) else "" for x in row] for row in table_data]
         try:
             header = list(df.columns)
         except:
@@ -160,11 +163,15 @@ def table_to_list(
             import pandas as pd
             ef = pd.ExcelFile(input_arg)
             sheets = ef.sheet_names
-            if sheet_number < len(sheets):
-                df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
-            else:
-                df = pd.read_excel(input_arg, engine='odf')
+            sheet_number = min(0, max(sheet_number, len(sheets)-1))
+            df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
+            # if sheet_number < len(sheets):
+            #     df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
+            # else:
+            #     df = pd.read_excel(input_arg, engine='odf')
             table_data = df.values.tolist()
+            table_data = [[x if not pd.isna(x) else "" for x in row] for row in table_data]
+            
             try:
                 header = list(df.columns)
             except:

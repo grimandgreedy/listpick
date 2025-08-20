@@ -573,10 +573,6 @@ class Picker:
         # If a sort is passed
         if len(self.indexed_items) > 0:
             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
-        # if len(self.items[0]) == 1:
-        #     self.number_columns = False
-
-
 
         h, w = self.stdscr.getmaxyx()
 
@@ -677,7 +673,14 @@ class Picker:
         # Update current column index
         self.selected_column = new_index
 
-    def test_screen_size(self):
+    def test_screen_size(self) -> bool:
+        """ 
+        Determine if the terminal is large enough to display the picker. 
+        If the terminal is too small then display a message saying so.
+
+        Returns: True if terminal is large enough to display the Picker.
+
+        """
         self.logger.debug("function: test_screen_size()")
         h, w = self.stdscr.getmaxyx()
         ## Terminal too small to display Picker
@@ -689,9 +692,10 @@ class Picker:
             return False
         return True
 
-    def splash_screen(self, message=""):
-        self.logger.info(f"function: splash_screen({message})")
+    def splash_screen(self, message="") -> None:
         """ Display a splash screen with a message. Useful when loading a large data set. """
+
+        self.logger.info(f"function: splash_screen({message})")
         h, w =self.stdscr.getmaxyx()
         self.stdscr.bkgd(' ', curses.color_pair(2))
         try:
@@ -854,14 +858,6 @@ class Picker:
             except:
                 pass
 
-        # Draw:
-        #    1. standard row
-        #    2. highlights l0
-        #    3. selected
-        #    4. above-selected highlights l1
-        #    5. cursor
-        #    6. top-level highlights l2
-        ## Display rows and highlights
 
         def sort_highlights(highlights):
             """ 
@@ -920,6 +916,15 @@ class Picker:
                     self.stdscr.addstr(y, max(self.startx, self.startx+highlight_start), row_str[max(highlight_start,0):min(w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                 except:
                     pass
+
+        # Draw:
+        #    1. standard row
+        #    2. highlights l0
+        #    3. selected
+        #    4. above-selected highlights l1
+        #    5. cursor
+        #    6. top-level highlights l2
+        ## Display rows and highlights
 
         l0_highlights, l1_highlights, l2_highlights = sort_highlights(self.highlights)
 
