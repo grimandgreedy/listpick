@@ -116,6 +116,9 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "add_row_before":                   "Insert row before cursor.",
         "add_column_after":                 "Insert column after cursor.",
         "add_row_after":                    "Insert row after cursor.",
+        "info":                             "Display info screen.",
+        "file_next":                        "Go to the next open file.",
+        "file_prev":                        "Go to the previous open file.",
     }
     sections = {
         "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_far_right", "scroll_far_left" ],

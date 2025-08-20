@@ -9,17 +9,8 @@ ASAP
 > - [ ] Make input field look better:
 >   - [ ] During input
 >   - [ ] While being displayed.
-> - [ ] Handle multiple files
->   - [x] Display 'open' files in footer
->   - [x] Open multiple files with file_picker
->   - [x] Switch between 'open' files
->   - [ ] Handle unsaved files.
->   - [x] Remember state when switching between files.
->     - [x] Selections
->  - [ ] Add support in the alternate footers
-> - [x] Handle files with multiple sheets.
->  - [ ] Add support in the alternate footers
-> - [ ] Support opening multiple files from the command line.
+> - [ ] Add keys for next page, next sheet, info
+> - [ ] Sort out what to do when the width of the columns is less than the terminal.
 
 
 
@@ -276,6 +267,19 @@ ASAP
 > - [ ] Add row selection using 'V'--select all cells in a row.
 > - [ ] Add option for those who don't use a nerdfont.
 >   - [ ] refreshing symbol, pin cursor symbol,
+> - [x] Add info page.
+> - [ ] Handle multiple files
+>   - [x] Display 'open' files in footer
+>   - [x] Open multiple files with file_picker
+>   - [x] Switch between 'open' files
+>   - [ ] Handle unsaved files.
+>   - [x] Remember state when switching between files.
+>     - [x] Selections
+>  - [ ] Add support in the alternate footers
+>  - [ ] Add symbol in footer list to show if file has been edited or is unsaved
+> - [x] Handle files with multiple sheets.
+>  - [ ] Add support in the alternate footers
+> - [x] Support opening multiple files from the command line.
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active

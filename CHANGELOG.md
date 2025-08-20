@@ -1,5 +1,12 @@
 # CHANGELOG.md
-## [0.1.14] 2025-??
+Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+
+## [0.1.15] 2025-??-??
+ - Added info screen to display all information on the running Picker.
+ - Added keys for file_next and file_prev
+ - Added __sizeof__() function for the Picker class.
+
+## [0.1.14] 2025-08-20
  - Fixed bug when cells are centred vertically.
  - Added "level" keyword for highlight dictionary.
   - l0: show highlight above base rows

@@ -123,7 +123,7 @@ class Picker:
 
         paginate: bool =False,
         cancel_is_back: bool = False,
-        mode_index: int =0,
+        mode_index: int = 0,
         modes: list[dict] = [],
         display_modes: bool =False,
         require_option: list=[],
@@ -162,9 +162,7 @@ class Picker:
 
         startup_notification:str = "",
 
-        leftmost_column: int = 0,
         leftmost_char: int = 0,
-
 
         history_filter_and_search: list[str] = [],
         history_opts: list[str] = [],
@@ -299,7 +297,6 @@ class Picker:
         
         self.SORT_METHODS = SORT_METHODS
         self.command_stack = command_stack
-        self.leftmost_column = leftmost_column
         self.leftmost_char = leftmost_char
 
 
@@ -319,8 +316,6 @@ class Picker:
         self.history_opts = history_opts
         self.history_settings = history_settings
         self.history_edits = history_edits
-
-
 
 
         self.debug = debug
@@ -343,9 +338,17 @@ class Picker:
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
         self.footer_options = [StandardFooter(self.stdscr, colours_start, self.get_function_data), CompactFooter(self.stdscr, colours_start, self.get_function_data), NoFooter(self.stdscr, colours_start, self.get_function_data)]
         self.footer = self.footer_options[self.footer_style]
+        self.__version__ = "1.0"
 
+    def __sizeof__(self):
 
-
+        size = super().__sizeof__()
+        
+        # Add the size of each attribute directly owned by the object
+        for attr_name in dir(self):
+            if not attr_name.startswith('__') and not callable(getattr(self, attr_name)):
+                size += sys.getsizeof(getattr(self, attr_name))
+        return size
 
     def calculate_section_sizes(self):
         """
@@ -1170,7 +1173,6 @@ class Picker:
             "keys_dict":                        self.keys_dict,
             "cancel_is_back":                   self.cancel_is_back,
             "paginate":                         self.paginate,
-            "leftmost_column":                  self.leftmost_column,
             "leftmost_char":                    self.leftmost_char,
             "history_filter_and_search" :       self.history_filter_and_search,
             "history_pipes" :                   self.history_pipes,
@@ -1487,46 +1489,18 @@ class Picker:
                 elif setting == "unicode":
                     self.unicode_char_width = not self.unicode_char_width
                 elif setting == "file_next":
-                    if len(self.loaded_files) > 1:
-                        self.command_stack.append(Command("setting", self.user_settings))
-                        # Cache file state
-                        self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
-
-                        self.loaded_file_index = (self.loaded_file_index + 1) % len(self.loaded_files)
-                        self.loaded_file = self.loaded_files[self.loaded_file_index]
-
-                        # If we already have a loaded state for this file
-                        if self.loaded_file_states[self.loaded_file_index]:
-                            self.set_function_data(self.loaded_file_states[self.loaded_file_index])
-                        else:
-                            self.set_function_data({}, reset_absent_variables=True)
-                            self.load_file(self.loaded_file)
+                    self.command_stack.append(Command("setting", self.user_settings))
+                    self.switch_file(increment=1)
+                elif setting == "file_prev":
+                    self.command_stack.append(Command("setting", self.user_settings))
+                    self.switch_file(increment=-1)
 
                 elif setting == "sheet_next":
-                    if not os.path.exists(self.loaded_file):
-                        self.notification(self.stdscr, message=f"File {repr(self.loaded_file)} not found.")
-                        return None
-                    if len(self.sheets) > 1:
-                        self.command_stack.append(Command("setting", self.user_settings))
-
-                        # Cache sheet state
-                        self.sheet_states[self.sheet_index] = self.get_function_data()
-                        self.sheet_index = (self.sheet_index + 1) % len(self.sheets)
-                        self.sheet_name = self.sheets[self.sheet_index]
-
-                        # If we already have a loaded state for this file
-                        if self.sheet_states[self.sheet_index]:
-                            self.set_function_data(self.sheet_states[self.sheet_index])
-                        else:
-                            function_data = {
-                                "sheet_index": self.sheet_index,
-                                "sheet_name":  self.sheet_name,
-                                "sheet_states":self.sheet_states,
-                                "sheets":       self.sheets,
-                            }
-                            self.set_function_data(function_data, reset_absent_variables=True)
-                            self.load_sheet(self.loaded_file, sheet_number=self.sheet_index)
-
+                    self.command_stack.append(Command("setting", self.user_settings))
+                    self.switch_sheet(increment=1)
+                elif setting == "sheet_prev":
+                    self.command_stack.append(Command("setting", self.user_settings))
+                    self.switch_sheet(increment=-1)
 
                 elif setting.startswith("ft"):
                     if len(setting) > 2 and setting[2:].isnumeric():
@@ -2097,7 +2071,50 @@ class Picker:
 
             self.initialise_variables()
 
+    def switch_file(self, increment=1) -> None:
+        """ Go to the next file. """
+        if len(self.loaded_files) <= 1:
+            return None
 
+        # Cache file state
+        self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+
+        self.loaded_file_index = (self.loaded_file_index + increment) % len(self.loaded_files)
+        self.loaded_file = self.loaded_files[self.loaded_file_index]
+
+        # If we already have a loaded state for this file
+        if self.loaded_file_states[self.loaded_file_index]:
+            self.set_function_data(self.loaded_file_states[self.loaded_file_index])
+        else:
+            self.set_function_data({}, reset_absent_variables=True)
+            self.load_file(self.loaded_file)
+
+
+    def switch_sheet(self, increment=1) -> None:
+        if not os.path.exists(self.loaded_file):
+            self.notification(self.stdscr, message=f"File {repr(self.loaded_file)} not found.")
+            return None
+        if len(self.sheets) <= 1:
+            return None
+
+        # Cache sheet state
+        self.sheet_states[self.sheet_index] = self.get_function_data()
+
+        self.sheet_index = (self.sheet_index + increment) % len(self.sheets)
+        self.sheet_name = self.sheets[self.sheet_index]
+
+        # If we already have a loaded state for this file
+        if self.sheet_states[self.sheet_index]:
+            self.set_function_data(self.sheet_states[self.sheet_index])
+        else:
+            function_data = {
+                "sheet_index": self.sheet_index,
+                "sheet_name":  self.sheet_name,
+                "sheet_states":self.sheet_states,
+                "sheets":       self.sheets,
+            }
+            self.set_function_data(function_data, reset_absent_variables=True)
+            self.load_sheet(self.loaded_file, sheet_number=self.sheet_index)
 
 
 
@@ -2227,6 +2244,110 @@ class Picker:
                 }
                 OptionPicker = Picker(self.stdscr, **help_data)
                 s, o, f = OptionPicker.run()
+                self.draw_screen(self.indexed_items, self.highlights)
+
+            if self.check_key("info", key, self.keys_dict):
+                self.logger.info(f"key_function help")
+                self.stdscr.clear()
+                self.stdscr.refresh()
+                import importlib.metadata as metadata
+                version = metadata.version('listpick')
+
+                info_items = [
+                    ["    Listpick info:", "-*"*30],
+                    ["",""],
+                    ["listpick version", f"{version}"],
+
+                    ["",""],
+                    ["    Global:", "-*"*30],
+                    ["",""],
+                    ["current_file", self.loaded_file],
+                    ["loaded_files", repr(self.loaded_files)],
+                    ["auto_refresh", f"{repr(self.auto_refresh)}"],
+                    ["timer", f"{repr(self.timer)}"],
+                    ["pin_cursor", f"{repr(self.pin_cursor)}"],
+                    ["cwd", f"{os.getcwd()}"],
+                    ["Picker memory", f"{format_size(sys.getsizeof(self))}"],
+                    ["debug", f"{repr(self.debug)}"],
+                    ["debug level", f"{repr(self.debug_level)}"],
+
+                    ["",""],
+                    ["    Current File:", "-*"*30],
+                    ["",""],
+                    ["row/row count", f"{self.cursor_pos}/{len(self.indexed_items)}"],
+                    ["total rows", f"{len(self.items)}"],
+                    ["selections", f"{self.selected_cells_by_row}"],
+                    ["current_sheet", self.sheet_name],
+                    ["sheets", repr(self.sheets)],
+                    ["current column/column_count", f"{self.selected_column}/{len(self.column_widths)}"],
+                    ["hidden columns", f"{self.hidden_columns}"],
+                    ["sort column", f"{self.sort_column}"],
+                    ["sort method", f"{self.SORT_METHODS[self.columns_sort_method[self.sort_column]]}"],
+                    ["sort order", f"{'Descending' if self.sort_reverse[self.sort_column] else 'Ascending'}"],
+                    ["id_column", f"{self.id_column}"],
+
+                    ["",""],
+                    ["    Display options:", "-*"*30],
+                    ["",""],
+                    ["show_header", str(self.show_header)],
+                    ["show_footer", repr(self.show_footer)],
+                    ["show_row_header", repr(self.show_row_header)],
+                    ["max_column_width", str(self.max_column_width)],
+                    ["colour_theme_number", str(self.colour_theme_number)],
+                    ["top_gap", str(self.top_gap)],
+                    ["highlight_full_row", repr(self.highlight_full_row)],
+                    ["cell_cursor", repr(self.cell_cursor)],
+                    ["items_per_page", repr(self.items_per_page)],
+                    ["paginate", repr(self.paginate)],
+                    ["display_modes", repr(self.display_modes)],
+                    ["footer_style", repr(self.footer_style)],
+                    ["unicode_char_width", repr(self.unicode_char_width)],
+                    ["centre_in_terminal", repr(self.centre_in_terminal)],
+                    ["centre_in_cols", repr(self.centre_in_cols)],
+                    ["centre_in_terminal_vertical", repr(self.centre_in_terminal_vertical)],
+                ]
+                
+                data = self.get_function_data()
+                data["indexed_items"] = f"[...] length = {len(data['indexed_items'])}"
+                data["selections"] = f"[...] length = {len(data['selections'])}"
+                data["selected_cells_by_row"] = f"[...] length = {len(data['selected_cells_by_row'])}"
+                data["cell_selections"] = f"[...] length = {len(data['cell_selections'])}"
+                data["items"] = f"[...] length = {len(data['items'])}"
+                data["require_option"] = f"[...] length = {len(data['require_option'])}"
+                data["option_functions"] = f"[...] length = {len(data['option_functions'])}"
+                data["loaded_file_states"] = f"[...] length = {len(data['loaded_file_states'])}"
+                data["sheet_states"] = f"[...] length = {len(data['sheet_states'])}"
+                info_items += [
+                    ["",""],
+                    ["    get_function_data():", "-*"*30],
+                    ["",""],
+                    ["show_header", str(self.show_header)],
+                ]
+                info_items += [[key, repr(value)] for key, value in data.items()]
+                info_header = ["Option", "Value"]
+                info_data = {
+                    "items": info_items,
+                    "header": info_header,
+                    "title": f"{self.title} Info",
+                    "colours_start": self.help_colours_start,
+                    "colours": help_colours,
+                    "show_footer": True,
+                    "max_selected": 1,
+                    "keys_dict": help_keys,
+                    "disabled_keys": [ord('?'), ord('v'), ord('V'), ord('m'), ord('M'), ord('l'), curses.KEY_ENTER, ord('\n')],
+                    "highlight_full_row": True,
+                    "top_gap": 0,
+                    "paginate": self.paginate,
+                    "centre_in_terminal": False,
+                    "centre_in_terminal_vertical": True,
+                    "hidden_columns": [],
+                    "reset_colours": False,
+
+                }
+                OptionPicker = Picker(self.stdscr, **info_data)
+                s, o, f = OptionPicker.run()
+                
+                self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("exit", key, self.keys_dict):
                 self.stdscr.clear()
@@ -2247,6 +2368,7 @@ class Picker:
                     else:
                         self.set_function_data({}, reset_absent_variables=True)
                         self.load_file(self.loaded_file)
+                    self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("full_exit", key, self.keys_dict):
                 close_curses(self.stdscr)
@@ -2300,6 +2422,10 @@ class Picker:
                     options += [["rh", "Toggle row header"]]
                     options += [["modes", "Toggle modes"]]
                     options += [["ft", "Cycle through footer styles (accepts ft#)"]]
+                    options += [["file_next", "Go to the next open file."]]
+                    options += [["file_prev", "Go to the previous open file."]]
+                    options += [["sheet_next", "Go to the next sheet."]]
+                    options += [["sheet_prev", "Go to the previous sheet."]]
                     options += [["unicode", "Toggle b/w using len and wcwidth to calculate char width."]]
                     options += [[f"s{i}", f"Select col. {i}"] for i in range(len(self.items[0]))]
                     options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(self.items[0]))]
@@ -2926,14 +3052,10 @@ class Picker:
                             # Re-sort self.items after applying filter
                             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("file_next", key, self.keys_dict):
-                if len(self.loaded_files):
-                    self.loaded_file_index = (self.loaded_file_index + 1) % len(self.loaded_files)
-                    self.loaded_file = self.loaded_files[self.loaded_file_index]
+                self.switch_file(increment=1)
 
             elif self.check_key("file_prev", key, self.keys_dict):
-                if len(self.loaded_files):
-                    self.loaded_file_index = (self.loaded_file_index - 1) % len(self.loaded_files)
-                    self.loaded_file = self.loaded_files[self.loaded_file_index]
+                self.switch_file(increment=-1)
 
             elif self.check_key("pipe_input", key, self.keys_dict):
                 self.logger.info(f"key_function pipe_input")
