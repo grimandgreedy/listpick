@@ -716,6 +716,9 @@ class Picker:
             self.stdscr.erase()
 
         h, w = self.stdscr.getmaxyx()
+        # The height of the footer may need to be adjusted if the file changes.
+        self.footer.adjust_sizes(h,w)
+        self.calculate_section_sizes()
 
         # Test if the terminal is of a sufficient size to display the picker
         if not self.test_screen_size(): return None
@@ -742,7 +745,7 @@ class Picker:
         visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
 
         # Determine the number of items_per_page, top_size and bottom_size
-        self.calculate_section_sizes()
+        # self.calculate_section_sizes()
         
         # top_space = self.top_gap
 
@@ -1225,6 +1228,9 @@ class Picker:
             "top_gap",
             "unicode_char_width",
             "show_row_header",
+            "centre_in_terminal_vertical",
+            "centre_in_cols",
+            "centre_in_terminal",
         ]
 
         for var in variables:
@@ -1430,20 +1436,26 @@ class Picker:
                         self.auto_refresh = not self.auto_refresh
                     elif setting[1] == "h":
                         self.highlights_hide = not self.highlights_hide
+                elif setting.isnumeric():
+                    self.cursor_pos = max(0, min(int(setting), len(self.indexed_items)-1))
+                elif setting.startswith("col") and setting[3:].isnumeric():
+                    col = int(setting[3:])
+                    if 0 <= col < len(self.column_widths):
+                        self.selected_column = col
 
                 elif setting in ["nhl", "nohl", "nohighlights"]:
                     # highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
                     
                     self.highlights_hide = not self.highlights_hide
-                # elif setting[0] == "s":
-                #     if 0 <= int(setting[1:]) < len(self.items[0]):
-                #         self.sort_column = int(setting[1:])
-                #         if len(self.indexed_items):
-                #             current_pos = self.indexed_items[self.cursor_pos][0]
-                #         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
-                #         if len(self.indexed_items):
-                #             new_pos = [row[0] for row in self.indexed_items].index(current_pos)
-                #             self.cursor_pos = new_pos
+                elif setting.startswith("s") and setting[1:].isnumeric():
+                    if 0 <= int(setting[1:]) < len(self.items[0]):
+                        self.sort_column = int(setting[1:])
+                        if len(self.indexed_items):
+                            current_pos = self.indexed_items[self.cursor_pos][0]
+                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
+                        if len(self.indexed_items):
+                            new_pos = [row[0] for row in self.indexed_items].index(current_pos)
+                            self.cursor_pos = new_pos
                 elif setting == "ct":
                     self.centre_in_terminal = not self.centre_in_terminal
                 elif setting == "cc":
@@ -1494,6 +1506,8 @@ class Picker:
                 elif setting == "file_prev":
                     self.command_stack.append(Command("setting", self.user_settings))
                     self.switch_file(increment=-1)
+                    # self.draw_screen(self.indexed_items, self.highlights)
+                    # self.stdscr.refresh()
 
                 elif setting == "sheet_next":
                     self.command_stack.append(Command("setting", self.user_settings))
@@ -1504,7 +1518,6 @@ class Picker:
 
                 elif setting.startswith("ft"):
                     if len(setting) > 2 and setting[2:].isnumeric():
-                        
                         num = int(setting[2:])
                         self.footer_style = max(len(self.footer_options)-1, num)
                         self.footer = self.footer_options[self.footer_style]
@@ -2254,12 +2267,12 @@ class Picker:
                 version = metadata.version('listpick')
 
                 info_items = [
-                    ["    Listpick info:", "-*"*30],
+                    ["  Listpick info", "-*"*30],
                     ["",""],
                     ["listpick version", f"{version}"],
 
                     ["",""],
-                    ["    Global:", "-*"*30],
+                    ["  Global", "-*"*30],
                     ["",""],
                     ["current_file", self.loaded_file],
                     ["loaded_files", repr(self.loaded_files)],
@@ -2272,11 +2285,12 @@ class Picker:
                     ["debug level", f"{repr(self.debug_level)}"],
 
                     ["",""],
-                    ["    Current File:", "-*"*30],
+                    ["  Current File", "-*"*30],
                     ["",""],
-                    ["row/row count", f"{self.cursor_pos}/{len(self.indexed_items)}"],
-                    ["total rows", f"{len(self.items)}"],
-                    ["selections", f"{self.selected_cells_by_row}"],
+                    # ["row/row count", f"{self.cursor_pos}/{len(self.indexed_items)}"],
+                    ["Current row", f"{self.cursor_pos}/{len(self.indexed_items)}"],
+                    ["Total rows", f"{len(self.items)}"],
+                    ["Selection count", f"{self.selected_cells_by_row}"],
                     ["current_sheet", self.sheet_name],
                     ["sheets", repr(self.sheets)],
                     ["current column/column_count", f"{self.selected_column}/{len(self.column_widths)}"],
@@ -2287,7 +2301,7 @@ class Picker:
                     ["id_column", f"{self.id_column}"],
 
                     ["",""],
-                    ["    Display options:", "-*"*30],
+                    ["  Display options", "-*"*30],
                     ["",""],
                     ["show_header", str(self.show_header)],
                     ["show_footer", repr(self.show_footer)],
@@ -2319,11 +2333,18 @@ class Picker:
                 data["sheet_states"] = f"[...] length = {len(data['sheet_states'])}"
                 info_items += [
                     ["",""],
-                    ["    get_function_data():", "-*"*30],
+                    ["  get_function_data()", "-*"*30],
                     ["",""],
                     ["show_header", str(self.show_header)],
                 ]
                 info_items += [[key, repr(value)] for key, value in data.items()]
+
+
+                for row in info_items:
+                    if row[1] == "-*"*30:
+                        continue
+                    row[0] = "      " + row[0]
+
                 info_header = ["Option", "Value"]
                 info_data = {
                     "items": info_items,
@@ -2427,12 +2448,13 @@ class Picker:
                     options += [["sheet_next", "Go to the next sheet."]]
                     options += [["sheet_prev", "Go to the previous sheet."]]
                     options += [["unicode", "Toggle b/w using len and wcwidth to calculate char width."]]
-                    options += [[f"s{i}", f"Select col. {i}"] for i in range(len(self.items[0]))]
-                    options += [[f"!{i}", f"Toggle col. {i}"] for i in range(len(self.items[0]))]
                     options += [["ara", "Add empty row after cursor."]]
                     options += [["arb", "Add empty row before the cursor."]]
                     options += [["aca", "Add empty column after the selected column."]]
                     options += [["acb", "Add empty column before the selected column."]]
+                    options += [[f"col{i}", f"Select column {i}"] for i in range(len(self.items[0]))]
+                    options += [[f"s{i}", f"Sort by column {i}"] for i in range(len(self.items[0]))]
+                    options += [[f"!{i}", f"Toggle visibility of column {i}"] for i in range(len(self.items[0]))]
 
 
                 settings_options_header = ["Key", "Setting"]

@@ -11,6 +11,8 @@ ASAP
 >   - [ ] While being displayed.
 > - [ ] Add keys for next page, next sheet, info
 > - [ ] Sort out what to do when the width of the columns is less than the terminal.
+> - [ ] Sheet states remain the same when switching files.
+> - [ ] nan in xlsx and ods files.
 
 
 
@@ -348,6 +350,8 @@ ASAP
 > - [x] Pink flash when loading. Likely due to colour redefinitions before picker actually loads.
 >   - [x] Fixed. Created splashscreen class function which will be displayed after the colours are defined.
 > - [ ] If the longest string in a column is the header string and show_header=False, then get_column_widths still calculates based on the header string length.
+> - [x] Rows sometimes adjust position a second time after switching files.
+>   - [x] Was due to the height of the footer being set only at the end of the Footer.draw() method. Created a new Footer.adjust_sizes() method which is run at the start of the draw_screen() loop.
 
 
 

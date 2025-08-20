@@ -47,42 +47,51 @@ class StandardFooter(Footer):
             else: self.height = 2
         except:
             logger.error("Error encountered when running StandardFooter.get_state")
-    def draw(self, h, w):
+
+        self.footer_string_y = 0
+        self.picker_info_y = 1
+        self.sort_info_y = 2
+        self.sheets_y = 3
+        self.files_y = 4
+    def adjust_sizes(self, h, w):
         state = self.get_state()
-        # Fill background
 
-
-        sheets_y=-1
+        self.sheets_y=-1
         if state["footer_string"]:
-
-        
-            footer_string_y = h-1
-            picker_info_y = h-3
-            sort_info_y = h-2
+            self.footer_string_y = h-1
+            self.picker_info_y = h-3
+            self.sort_info_y = h-2
             
             self.height = 3
 
         else:
-            picker_info_y = h-2
-            sort_info_y = h-1
-            footer_string_y = -1
+            self.picker_info_y = h-2
+            self.sort_info_y = h-1
+            self.footer_string_y = -1
             self.height = 2
 
         if len(state["sheets"]) > 1:
             self.height += 1
-            picker_info_y -= 1
-            sort_info_y -= 1
-            footer_string_y -= 1
-            sheets_y = h-1
+            self.picker_info_y -= 1
+            self.sort_info_y -= 1
+            self.footer_string_y -= 1
+            self.sheets_y = h-1
 
         if len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
             self.height += 1
-            picker_info_y -= 1
-            sort_info_y -= 1
-            footer_string_y -= 1
-            sheets_y -= 1
+            self.picker_info_y -= 1
+            self.sort_info_y -= 1
+            self.footer_string_y -= 1
+            self.sheets_y -= 1
 
-            files_y = h-1
+            self.files_y = h-1
+
+    def draw(self, h, w):
+        state = self.get_state()
+        # Fill background
+
+        self.adjust_sizes(h, w)
+
 
 
         for i in range(self.height):
@@ -101,18 +110,18 @@ class StandardFooter(Footer):
             current_file_x = sum((len(x) for x in files[:idx])) + idx*len(sep)
             current_file_str = state["loaded_file"].split("/")[-1]
             current_file_x_end = current_file_x + len(current_file_str) + 2
-            self.stdscr.addstr(files_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
+            self.stdscr.addstr(self.files_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
             if current_file_x_end < w:
 
-                self.stdscr.addstr(files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
 
-                self.stdscr.addstr(files_y, current_file_x, f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+                self.stdscr.addstr(self.files_y, current_file_x, f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
             else:
                 files_str = sep.join(files)
                 files_str = files_str[current_file_x_end-w:current_file_x_end][:w-2]
-                self.stdscr.addstr(files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
 
-                self.stdscr.addstr(files_y, w - (len(current_file_str)+3), f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+                self.stdscr.addstr(self.files_y, w - (len(current_file_str)+3), f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
 
         if len(state["sheets"]) > 1:
 
@@ -127,18 +136,18 @@ class StandardFooter(Footer):
             current_sheet_x = sum((len(x) for x in sheets[:idx])) + idx*len(sep)
             current_sheet_str = state["sheet_name"].split("/")[-1]
             current_sheet_x_end = current_sheet_x + len(current_sheet_str) + 2
-            self.stdscr.addstr(sheets_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
+            self.stdscr.addstr(self.sheets_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
             if current_sheet_x_end < w:
 
-                self.stdscr.addstr(sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
 
-                self.stdscr.addstr(sheets_y, current_sheet_x, f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+                self.stdscr.addstr(self.sheets_y, current_sheet_x, f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
             else:
                 sheets_str = sep.join(sheets)
                 sheets_str = sheets_str[current_sheet_x_end-w:current_sheet_x_end][:w-2]
-                self.stdscr.addstr(sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
 
-                self.stdscr.addstr(sheets_y, w - (len(current_sheet_str)+3), f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+                self.stdscr.addstr(self.sheets_y, w - (len(current_sheet_str)+3), f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
                 
 
 
@@ -148,8 +157,8 @@ class StandardFooter(Footer):
 
             disp_string = f"{state["footer_string"][:footer_string_width]}"
             disp_string = f" {disp_string:>{footer_string_width-2}} "
-            self.stdscr.addstr(footer_string_y, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
-            self.stdscr.addstr(footer_string_y, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
+            self.stdscr.addstr(self.footer_string_y, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
+            self.stdscr.addstr(self.footer_string_y, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
 
         
 
@@ -177,7 +186,7 @@ class StandardFooter(Footer):
 
         # Maximum chars that should be displayed
         max_chars = min(len(cursor_disp_str)+2, w)
-        self.stdscr.addstr(picker_info_y, w-max_chars, f"{cursor_disp_str:>{max_chars-2}} ", curses.color_pair(self.colours_start+20))
+        self.stdscr.addstr(self.picker_info_y, w-max_chars, f"{cursor_disp_str:>{max_chars-2}} ", curses.color_pair(self.colours_start+20))
 
 
         # Sort info
@@ -187,7 +196,7 @@ class StandardFooter(Footer):
         sort_order_info = "▼" if state["sort_reverse"][state['sort_column']] else "▲"
         sort_disp_str = f" Sort: ({sort_column_info}, {sort_method_info}, {sort_order_info}) "
         max_chars = min(len(sort_disp_str)+2, w)
-        self.stdscr.addstr(sort_info_y, w-max_chars, f"{sort_disp_str:>{max_chars-1}}", curses.color_pair(self.colours_start+20))
+        self.stdscr.addstr(self.sort_info_y, w-max_chars, f"{sort_disp_str:>{max_chars-1}}", curses.color_pair(self.colours_start+20))
 
         self.stdscr.refresh()
 
@@ -204,6 +213,9 @@ class CompactFooter(Footer):
         self.colours_start = colours_start
         self.get_state = get_state_function
         self.height = 1
+
+    def adjust_sizes(self, h, w):
+        pass
 
     def draw(self, h, w):
         state = self.get_state()
@@ -268,6 +280,10 @@ class NoFooter(Footer):
         self.colours_start = colours_start
         self.get_state = get_state_function
         self.height = 0
+
+    def adjust_sizes(self, h, w):
+        pass
+
     def draw(self, h, w):
         state = self.get_state()
 
