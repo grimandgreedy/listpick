@@ -106,6 +106,7 @@ class Picker:
 
         selections: dict = {},
         cell_selections: dict[tuple[int,int], bool] = {},
+        selected_cells_by_row: dict = {},
         highlight_full_row: bool =False,
         cell_cursor: bool = False,
 
@@ -173,6 +174,19 @@ class Picker:
         debug: bool = False,
         debug_level: int = 1,
 
+        command_stack: list = [],
+
+        loaded_file: str = "Untitled",
+        loaded_files: list[str] = ["Untitled"],
+        loaded_file_index: int = 0,
+        loaded_file_states: list[dict] = [{}],
+
+
+        sheets = ["Untitled"],
+        sheet_name = "Untitled",
+        sheet_index = 0,
+        sheet_states = [{}],
+
     ):
         self.stdscr = stdscr
         self.items = items
@@ -225,6 +239,7 @@ class Picker:
 
         self.selections = selections
         self.cell_selections = cell_selections
+        self.selected_cells_by_row = selected_cells_by_row
         self.highlight_full_row = highlight_full_row
         self.cell_cursor = cell_cursor
 
@@ -283,7 +298,7 @@ class Picker:
         self.registers = {}
         
         self.SORT_METHODS = SORT_METHODS
-        self.command_stack = []
+        self.command_stack = command_stack
         self.leftmost_column = leftmost_column
         self.leftmost_char = leftmost_char
 
@@ -297,7 +312,6 @@ class Picker:
         self.cursor_pos_prev = 0
         self.ids = []
         self.ids_tuples = []
-        self.selected_cells_by_row = {}
 
         # History variables
         self.history_filter_and_search = history_filter_and_search
@@ -312,12 +326,25 @@ class Picker:
         self.debug = debug
         self.debug_level = debug_level
 
+        # Multiple file support
+        self.loaded_files = loaded_files
+        self.loaded_file = loaded_file
+        self.loaded_file_index = loaded_file_index
+        self.loaded_file_states = loaded_file_states
+
+        # Multiple sheet support
+        self.sheet_index = sheet_index
+        self.sheet_name = sheet_name
+        self.sheet_states = sheet_states
+        self.sheets = sheets
 
         self.initialise_picker_state(reset_colours=self.reset_colours)
 
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
         self.footer_options = [StandardFooter(self.stdscr, colours_start, self.get_function_data), CompactFooter(self.stdscr, colours_start, self.get_function_data), NoFooter(self.stdscr, colours_start, self.get_function_data)]
         self.footer = self.footer_options[self.footer_style]
+
+
 
 
     def calculate_section_sizes(self):
@@ -495,8 +522,12 @@ class Picker:
 
         if len(self.items) and len(self.cell_selections) != len(self.items)*len(self.items[0]):
             self.cell_selections = {(i, j) : False if (i, j) not in self.cell_selections else self.cell_selections[(i, j)] for i in range(len(self.items)) for j in range(len(self.items[0]))}
+            self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
         elif len(self.items) == 0:
             self.cell_selections = {}
+            self.selected_cells_by_row = {}
+
+        
 
         if len(self.require_option) < len(self.items):
             self.require_option += [self.require_option_default for i in range(len(self.items)-len(self.require_option))]
@@ -556,6 +587,20 @@ class Picker:
         assert new_pos < len(self.items)
         self.cursor_pos = new_pos
 
+        # Sheets and files
+        if len(self.sheet_states) < len(self.sheets):
+            self.sheet_states += [{} for _ in range(len(self.sheets) - len(self.sheet_states))]
+        if len(self.sheets):
+            if self.sheet_index >= len(self.sheets):
+                self.sheet_index = 0
+            self.sheet_name = self.sheets[self.sheet_index]
+
+        if len(self.loaded_file_states) < len(self.loaded_files):
+            self.loaded_file_states += [{} for _ in range(len(self.loaded_files) - len(self.loaded_file_states))]
+        if len(self.loaded_files):
+            if self.loaded_file_index >= len(self.loaded_files):
+                self.loaded_file_index = 0
+            self.loaded_file = self.loaded_files[self.loaded_file_index]
 
         # if tracking and len(self.items) > 1:
         # Ensure that selected indices are tracked upon data refresh
@@ -591,6 +636,7 @@ class Picker:
                             self.cursor_pos = [i[0] for i in self.indexed_items].index(cursor_pos_x)
             else:
                 self.cursor_pos = 0
+
         
 
 
@@ -1045,6 +1091,7 @@ class Picker:
         function_data = {
             "selections":                       self.selections,
             "cell_selections":                  self.cell_selections,
+            "selected_cells_by_row":            self.selected_cells_by_row,
             "items_per_page":                   self.items_per_page,
             "current_row":                      self.current_row,
             "current_page":                     self.current_page,
@@ -1136,17 +1183,55 @@ class Picker:
             "debug_level":                      self.debug_level,
             "reset_colours":                    self.reset_colours,
             "unicode_char_width":               self.unicode_char_width,
+            "command_stack":                    self.command_stack,
+            "loaded_file":                      self.loaded_file,
+            "loaded_files":                     self.loaded_files,
+            "loaded_file_index":                self.loaded_file_index,
+            "loaded_file_states":               self.loaded_file_states,
+            "sheet_index":                      self.sheet_index,
+            "sheets":                           self.sheets,
+            "sheet_name":                       self.sheet_name,
+            "sheet_states":                     self.sheet_states,
         }
         return function_data
 
-    def set_function_data(self, function_data: dict) -> None:
+    def set_function_data(self, function_data: dict, reset_absent_variables: bool = False, do_not_set: list=[]) -> None:
         """ Set variables from state dict containing core variables."""
         self.logger.info(f"function: set_function_data()")
         variables = self.get_function_data().keys()
 
+        x = Picker(self.stdscr, reset_colours=False)
+
+
+        common_picker_vars = [
+            "loaded_file_index",
+            "loaded_file_states",
+            "loaded_files",
+            "loaded_file",
+            "command_stack",
+            "colour_theme_number",
+            "reset_colours",
+            "show_footer",
+            "show_header",
+            "history_filter_and_search",
+            "history_settings",
+            "history_opts",
+            "history_edits",
+            "history_pipes",
+            "reset_colours",
+            "cell_cursor",
+            "top_gap",
+            "unicode_char_width",
+            "show_row_header",
+        ]
+
         for var in variables:
             if var in function_data:
                 setattr(self, var, function_data[var])
+            elif reset_absent_variables and var not in common_picker_vars and var not in do_not_set:
+                # Set value to the default for an empty picker
+                setattr(self, var, getattr(x, var))
+
 
         reset_colours = bool("colour_theme_number" in function_data)
         self.initialise_picker_state(reset_colours=reset_colours)
@@ -1275,6 +1360,7 @@ class Picker:
             h, w = stdscr.getmaxyx()
 
             submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+            # submenu_win = self.stdscr.subwin(notification_height, notification_width, 3, w - (notification_width+4))
             notification_data = {
                 "items": submenu_items,
                 "title": title,
@@ -1291,6 +1377,10 @@ class Picker:
                 "cancel_is_back": True,
                 "reset_colours": False,
 
+                "loaded_files": [],
+                "loaded_file_states": [],
+                "loaded_file": "",
+                "loaded_file_index": 0,
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
@@ -1343,15 +1433,15 @@ class Picker:
                     # highlights = [highlight for highlight in highlights if "type" not in highlight or highlight["type"] != "search" ]
                     
                     self.highlights_hide = not self.highlights_hide
-                elif setting[0] == "s":
-                    if 0 <= int(setting[1:]) < len(self.items[0]):
-                        self.sort_column = int(setting[1:])
-                        if len(self.indexed_items):
-                            current_pos = self.indexed_items[self.cursor_pos][0]
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
-                        if len(self.indexed_items):
-                            new_pos = [row[0] for row in self.indexed_items].index(current_pos)
-                            self.cursor_pos = new_pos
+                # elif setting[0] == "s":
+                #     if 0 <= int(setting[1:]) < len(self.items[0]):
+                #         self.sort_column = int(setting[1:])
+                #         if len(self.indexed_items):
+                #             current_pos = self.indexed_items[self.cursor_pos][0]
+                #         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort items based on new column
+                #         if len(self.indexed_items):
+                #             new_pos = [row[0] for row in self.indexed_items].index(current_pos)
+                #             self.cursor_pos = new_pos
                 elif setting == "ct":
                     self.centre_in_terminal = not self.centre_in_terminal
                 elif setting == "cc":
@@ -1396,6 +1486,47 @@ class Picker:
                     self.pin_cursor = not self.pin_cursor
                 elif setting == "unicode":
                     self.unicode_char_width = not self.unicode_char_width
+                elif setting == "file_next":
+                    if len(self.loaded_files) > 1:
+                        self.command_stack.append(Command("setting", self.user_settings))
+                        # Cache file state
+                        self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+
+                        self.loaded_file_index = (self.loaded_file_index + 1) % len(self.loaded_files)
+                        self.loaded_file = self.loaded_files[self.loaded_file_index]
+
+                        # If we already have a loaded state for this file
+                        if self.loaded_file_states[self.loaded_file_index]:
+                            self.set_function_data(self.loaded_file_states[self.loaded_file_index])
+                        else:
+                            self.set_function_data({}, reset_absent_variables=True)
+                            self.load_file(self.loaded_file)
+
+                elif setting == "sheet_next":
+                    if not os.path.exists(self.loaded_file):
+                        self.notification(self.stdscr, message=f"File {repr(self.loaded_file)} not found.")
+                        return None
+                    if len(self.sheets) > 1:
+                        self.command_stack.append(Command("setting", self.user_settings))
+
+                        # Cache sheet state
+                        self.sheet_states[self.sheet_index] = self.get_function_data()
+                        self.sheet_index = (self.sheet_index + 1) % len(self.sheets)
+                        self.sheet_name = self.sheets[self.sheet_index]
+
+                        # If we already have a loaded state for this file
+                        if self.sheet_states[self.sheet_index]:
+                            self.set_function_data(self.sheet_states[self.sheet_index])
+                        else:
+                            function_data = {
+                                "sheet_index": self.sheet_index,
+                                "sheet_name":  self.sheet_name,
+                                "sheet_states":self.sheet_states,
+                                "sheets":       self.sheets,
+                            }
+                            self.set_function_data(function_data, reset_absent_variables=True)
+                            self.load_sheet(self.loaded_file, sheet_number=self.sheet_index)
+
 
                 elif setting.startswith("ft"):
                     if len(setting) > 2 and setting[2:].isnumeric():
@@ -1463,9 +1594,9 @@ class Picker:
                     self.user_settings = ""
                     return None
 
-
-            self.command_stack.append(Command("setting", self.user_settings))
-            self.user_settings = ""
+            if self.user_settings:
+                self.command_stack.append(Command("setting", self.user_settings))
+                self.user_settings = ""
 
     def apply_command(self, command: Command):
         self.logger.info(f"function: apply_command()")
@@ -1773,17 +1904,41 @@ class Picker:
         ]
 
         if s:
-            file_to_load = file_picker()
-            if file_to_load:
+            restrict_curses(self.stdscr)
+            files_to_load = file_picker()
+            unrestrict_curses(self.stdscr)
+            if files_to_load:
                 index = list(s.keys())[0]
+                file_to_load = files_to_load[0]
                 return_val = funcs[index](file_to_load)
-                self.set_function_data(return_val)
 
+                self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+
+                self.stdscr.clear()
+                self.draw_screen(self.indexed_items, self.highlights)
+
+                tmp = self.stdscr
+
+                self.loaded_files += files_to_load
+                self.loaded_file_states += [{} for _ in files_to_load]
+                self.loaded_file = file_to_load
+                self.loaded_file_index = len(self.loaded_files)-len(files_to_load)
+
+
+                self.stdscr = tmp
+
+                h, w = self.stdscr.getmaxyx()
+                self.notification(self.stdscr, f"{repr(file_to_load)} has been loaded!")
+
+                self.set_function_data({}, reset_absent_variables=True)
+                self.load_file(self.loaded_file)
                 # items = return_val["items"]
                 # header = return_val["header"]
-                self.initialise_variables()
+                self.stdscr.clear()
+                # self.initialise_variables()
                 self.draw_screen(self.indexed_items, self.highlights)
-                self.notification(self.stdscr, f"{repr(file_to_load)} has been loaded!")
+                # self.stdscr.refresh()
+
                 # if return_val:
                 #     notification(stdscr, message=return_val, title="Error")
 
@@ -1915,6 +2070,36 @@ class Picker:
         self.cursor_pos = current_cursor_pos
 
 
+    def load_file(self, filename: str) -> None:
+        if not os.path.exists(filename):
+            self.notification(self.stdscr, message = f"File not found: {filename}")
+            return None
+
+        filetype = guess_file_type(filename)
+        items, header, sheets = table_to_list(filename, file_type=filetype)
+
+        if items != None:
+            self.items = items
+            self.header = header if header != None else []
+            self.sheets = sheets
+
+
+            self.initialise_variables()
+
+    def load_sheet(self, filename: str, sheet_number: int = 0):
+        filetype = guess_file_type(filename)
+        items, header, sheets = table_to_list(filename, file_type=filetype, sheet_number=sheet_number)
+
+        if items != None:
+            self.items = items
+            self.header = header if header != None else []
+            self.sheets = sheets
+
+            self.initialise_variables()
+
+
+
+
 
     def run(self) -> Tuple[list[int], str, dict]:
         """ Run the picker. """
@@ -1963,7 +2148,7 @@ class Picker:
 
         while True:
             key = self.stdscr.getch()
-            if key:
+            if key != -1:
                 self.logger.info(f"key={key}")
             h, w = self.stdscr.getmaxyx()
             if key in self.disabled_keys: continue
@@ -2045,9 +2230,24 @@ class Picker:
 
             elif self.check_key("exit", key, self.keys_dict):
                 self.stdscr.clear()
-                function_data = self.get_function_data()
-                function_data["last_key"] = key
-                return [], "", function_data
+                if len(self.loaded_files) <= 1:
+                    function_data = self.get_function_data()
+                    function_data["last_key"] = key
+                    return [], "", function_data
+                else:
+                    del self.loaded_files[self.loaded_file_index]
+                    del self.loaded_file_states[self.loaded_file_index]
+                    self.loaded_file_index = min(self.loaded_file_index, len(self.loaded_files)-1)
+                    self.loaded_file = self.loaded_files[self.loaded_file_index]
+
+
+                    # If we already have a loaded state for this file
+                    if self.loaded_file_states[self.loaded_file_index]:
+                        self.set_function_data(self.loaded_file_states[self.loaded_file_index])
+                    else:
+                        self.set_function_data({}, reset_absent_variables=True)
+                        self.load_file(self.loaded_file)
+
             elif self.check_key("full_exit", key, self.keys_dict):
                 close_curses(self.stdscr)
                 exit()
@@ -2612,6 +2812,7 @@ class Picker:
                 # 4. if self.cancel_is_back (e.g., notification) then we exit
                 # 4. selecting
 
+                pass
                 # Cancel visual de/selection
                 if self.is_selecting or self.is_deselecting:
                     self.start_selection = -1
@@ -2689,41 +2890,51 @@ class Picker:
 
             elif self.check_key("mode_next", key, self.keys_dict): # tab key
                 self.logger.info(f"key_function mode_next")
-                # apply setting 
-                prev_mode_index = self.mode_index
-                self.mode_index = (self.mode_index+1)%len(self.modes)
-                mode = self.modes[self.mode_index]
-                for key, val in mode.items():
-                    if key == 'filter':
-                        if 'filter' in self.modes[prev_mode_index]:
-                            self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
-                        self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
-                        prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
+                if len(self.modes):
+                    prev_mode_index = self.mode_index
+                    self.mode_index = (self.mode_index+1)%len(self.modes)
+                    mode = self.modes[self.mode_index]
+                    for key, val in mode.items():
+                        if key == 'filter':
+                            if 'filter' in self.modes[prev_mode_index]:
+                                self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
+                            self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
+                            prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
 
-                        self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
-                        if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
-                        else: new_index = 0
-                        self.cursor_pos = new_index
-                        # Re-sort self.items after applying filter
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+                            self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
+                            if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
+                            else: new_index = 0
+                            self.cursor_pos = new_index
+                            # Re-sort self.items after applying filter
+                            sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("mode_prev", key, self.keys_dict): # shift+tab key
                 self.logger.info(f"key_function mode_prev")
-                # apply setting 
-                prev_mode_index = self.mode_index
-                self.mode_index = (self.mode_index-1)%len(self.modes)
-                mode = self.modes[self.mode_index]
-                for key, val in mode.items():
-                    if key == 'filter':
-                        if 'filter' in self.modes[prev_mode_index]:
-                            self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
-                        self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
-                        prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
-                        self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
-                        if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
-                        else: new_index = 0
-                        self.cursor_pos = new_index
-                        # Re-sort self.items after applying filter
-                        sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+                if len(self.modes):
+                    prev_mode_index = self.mode_index
+                    self.mode_index = (self.mode_index-1)%len(self.modes)
+                    mode = self.modes[self.mode_index]
+                    for key, val in mode.items():
+                        if key == 'filter':
+                            if 'filter' in self.modes[prev_mode_index]:
+                                self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
+                            self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
+                            prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
+                            self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
+                            if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
+                            else: new_index = 0
+                            self.cursor_pos = new_index
+                            # Re-sort self.items after applying filter
+                            sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+            elif self.check_key("file_next", key, self.keys_dict):
+                if len(self.loaded_files):
+                    self.loaded_file_index = (self.loaded_file_index + 1) % len(self.loaded_files)
+                    self.loaded_file = self.loaded_files[self.loaded_file_index]
+
+            elif self.check_key("file_prev", key, self.keys_dict):
+                if len(self.loaded_files):
+                    self.loaded_file_index = (self.loaded_file_index - 1) % len(self.loaded_files)
+                    self.loaded_file = self.loaded_files[self.loaded_file_index]
+
             elif self.check_key("pipe_input", key, self.keys_dict):
                 self.logger.info(f"key_function pipe_input")
                 # usrtxt = "xargs -d '\n' -I{}  "
@@ -3036,7 +3247,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     """ Parse command line arguments. """
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')
     # parser.add_argument('filename', type=str, help='The file to process')
-    parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
+    # parser.add_argument('-i', dest='file', help='File containing the table to be converted.')
+    parser.add_argument('-i', dest='file', nargs='+', help='File containing the table to be converted.')
     parser.add_argument('--load', '-l', dest='load', type=str, help='Load file from Picker dump.')
     parser.add_argument('--stdin', dest='stdin', action='store_true', help='Table passed on stdin')
     parser.add_argument('--stdin2', action='store_true', help='Table passed on stdin')
@@ -3058,7 +3270,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     }
     
     if args.file:
-        input_arg = args.file
+        input_arg = args.file[0]
+
     elif args.stdin:
         input_arg = '--stdin'
     elif args.stdin2:
@@ -3096,9 +3309,14 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         filetype = args.file_type
     
 
-    items, header = table_to_list(input_arg, args.delimiter, filetype)
+    items, header, sheets = table_to_list(input_arg, args.delimiter, filetype)
     function_data["items"] = items
     if header: function_data["header"] = header
+    function_data["sheets"] = sheets
+    if args.file:
+        function_data["loaded_file"] = args.file[0]
+        function_data["loaded_files"] = args.file
+
     return args, function_data
 
 def start_curses() -> curses.window:
@@ -3189,7 +3407,7 @@ def main() -> None:
     # function_data["footer_string"] = "Title"
     function_data["highlights"] = highlights
     # function_data["show_footer"] = False
-    function_data["paginate"] = True
+    # function_data["paginate"] = True
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
     stdscr = start_curses()

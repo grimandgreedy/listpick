@@ -10,3 +10,4 @@ tmp==0.0.2
 toml==0.10.2
 traitlets==5.14.3
 wcwidth==0.2.13
+odfpy

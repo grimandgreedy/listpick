@@ -39,7 +39,7 @@ close_curses(stdscr)
 Use the listpick binary to generate and display rows based on a list of commands:
 
 ```
-wget https://raw.githubusercontent.com/grimandgreedy/listpick/refs/heads/master/examples/list_files.toml
+wget https://raw.githubusercontent.com/grimandgreedy/listpick/refs/heads/master/examples/data_generation/list_files.toml
 listpick -g list_files.py
 ```
 
@@ -59,9 +59,9 @@ The application allows you to:
 ## Examples
 
 
-### Identify video duplicates (./examples/video_duplicates.toml):
+### Identify video duplicates (./examples/data_generation//video_duplicates.toml):
 ```python 
-listpick -g ./examples/video_duplicates.toml
+listpick -g ./examples/data_generation/video_duplicates.toml
 ```
   - From the list of commands in the toml file we generate the properties we will use to identify the duplicates. 
 
@@ -101,7 +101,7 @@ listpick -i ~/dn.pkl -t pkl
 
 2. **Generate data based on an toml file with relevant commands to generate the rows.**
 ```python 
-listpick -g ./examples/video_duplicates.toml
+listpick -g ./examples/data_generation/video_duplicates.toml
 ```
 
   - See ./examples/

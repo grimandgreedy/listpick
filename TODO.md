@@ -5,6 +5,21 @@ ASAP
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Implement default_option_selector and pass the picker options (!!!)
 > - [ ] Make sure that all class initialisation variables are returned in the get_function_variables function.
+> - [ ] Go through each of the class variables and see which should be held as common in set_function_data
+> - [ ] Make input field look better:
+>   - [ ] During input
+>   - [ ] While being displayed.
+> - [ ] Handle multiple files
+>   - [x] Display 'open' files in footer
+>   - [x] Open multiple files with file_picker
+>   - [x] Switch between 'open' files
+>   - [ ] Handle unsaved files.
+>   - [x] Remember state when switching between files.
+>     - [x] Selections
+>  - [ ] Add support in the alternate footers
+> - [x] Handle files with multiple sheets.
+>  - [ ] Add support in the alternate footers
+> - [ ] Support opening multiple files from the command line.
 
 
 
@@ -259,6 +274,8 @@ ASAP
 > - [ ] Add a broader editor_picker option which enables/disables add/remove columns in the settings.
 > - [ ] If no -t type argument is given then guess filetype.
 > - [ ] Add row selection using 'V'--select all cells in a row.
+> - [ ] Add option for those who don't use a nerdfont.
+>   - [ ] refreshing symbol, pin cursor symbol,
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active

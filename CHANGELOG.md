@@ -10,6 +10,9 @@
  - Bug fixes:
    - When data was centred vertically it would take an extra draw_screen loop to determine the proper column widths when the column sizes changed. This has been fixed.
    - Refreshing sorted data would resort it on the selected column rather than the sort column. Fixed.
+   - Fixed error when padding uneven lists when a list of strings is passed instead of a list of lists.
+   - Fixed crash when showing certain notifications. The notification message was not being split into lines properly.
+   - Fixed wrong page number in the footer when paginate=True.
  - Added some extra options to the settings:
    - Toggle header
    - Toggle row header
@@ -31,6 +34,13 @@
      - Much faster with very large data sets as we need to determine selected_cells_by_row every time we run self.draw_screen()
  - We can now pipe data from cells in multiple columns to a command.
    - e.g., pipe two cols to gnuplot
+ - Features added:
+   - Listpick now supports multiple open files.
+     - 'file_next' setting
+   - Listpick now supports files with multiple sheets.
+     - 'sheet_next' setting
+ - Fixed error when opening xlsx files.
+ - Can now open multiple files from the command line: listpick -i file1.csv, file2.csv
 
 ## [0.1.13] 2025-07-28
  - Cell-based picker is now supported.

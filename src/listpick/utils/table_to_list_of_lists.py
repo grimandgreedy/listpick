@@ -37,10 +37,27 @@ def strip_whitespace(item: Iterable) -> Iterable:
 
 
 
-def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=None) -> Tuple[list[list[str]], list[str]]:
+def table_to_list(
+
+        input_arg: str,
+        delimiter:str='\t',
+        file_type:Optional[str]=None,
+        sheet_number:int = 0,
+
+) -> Tuple[list[list[str]], list[str], list[str]]:
     """ 
     Convert data string to list. The input_arg
     Currently accepts: csv, tsv, json, xlsx, ods
+
+
+    input_arg: filename
+
+
+    returns:
+        items: list[list[str]]
+        header: list[str]
+        sheets: list[str]
+    
     """
     logger.info("function: table_to_list (table_to_list_of_lists.py)")
     table_data = []
@@ -76,10 +93,10 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             table_data = csv_string_to_list(input_data)
             table_data = strip_whitespace(table_data)
             # table_data = parse_csv_like(input_data, ",")
-            return table_data, []
+            return table_data, [], []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
-            return [], []
+            return [], [], []
 
     elif file_type == 'tsv':
         try:
@@ -99,10 +116,10 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
             
             table_data = parse_csv_like(input_data, delimiter)
             table_data = strip_whitespace(table_data)
-            return table_data, []
+            return table_data, [], []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
-            return [], []
+            return [], [], []
 
     elif file_type == 'json':
         try:
@@ -115,55 +132,53 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
                 input_data = read_file_content(input_arg)
             
             table_data = json.loads(input_data)
-            return table_data, []
+            return table_data, [], []
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON input: {e}")
-            return [], []
+            return [], [], []
         except FileNotFoundError as e:
             print(f"File not found: {e}")
-            return [], []
+            return [], [], []
 
     elif file_type == 'xlsx':
-        from openpyxl import load_workbook
+        import pandas as pd
+        ef = pd.ExcelFile(input_arg)
+        sheets = ef.sheet_names
+        if sheet_number < len(sheets):
+            df = pd.read_excel(input_arg, sheet_name=sheet_number)
+        else:
+            df = pd.read_excel(input_arg)
+        table_data = df.values.tolist()
         try:
-            if input_arg == '--stdin':
-                input_data = sys.stdin.read()
-                with open('temp.xlsx', 'wb') as f:
-                    f.write(input_data.encode())
-            elif input_arg == '--stdin2':
-                input_count = int(sys.stdin.readline())
-                input_data = "\n".join([sys.stdin.readline() for i in range(input_count)])
-                with open('temp.xlsx', 'wb') as f:
-                    f.write(input_data.encode())
-            else:
-                input_data = read_file_content(input_arg)
-                with open('temp.xlsx', 'wb') as f:
-                    f.write(input_data.encode())
-            
-            wb = load_workbook(filename='temp.xlsx')
-            sheet = wb.active
-            for row in sheet.iter_rows(values_only=True):
-                table_data.append(list(row))
-            return table_data, []
-        except Exception as e:
-            print(f"Error loading Excel file: {e}")
-            return [], []
+            header = list(df.columns)
+        except:
+            header = []
+        return table_data, header, sheets
 
     elif file_type == 'ods':
         try:
             import pandas as pd
-            df = pd.read_excel(input_arg, engine='odf')
+            ef = pd.ExcelFile(input_arg)
+            sheets = ef.sheet_names
+            if sheet_number < len(sheets):
+                df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
+            else:
+                df = pd.read_excel(input_arg, engine='odf')
             table_data = df.values.tolist()
-            return table_data, []
+            try:
+                header = list(df.columns)
+            except:
+                header = []
+            return table_data, header, sheets
         except Exception as e:
             print(f"Error loading ODS file: {e}")
-            return [], []
+            return [], [], []
     elif file_type == 'pkl':
         with open(os.path.expandvars(os.path.expanduser(input_arg)), 'rb') as f:
             loaded_data = pickle.load(f)
         items = loaded_data["items"] if "items" in loaded_data else []
         header = loaded_data["header"] if "header" in loaded_data else []
-        return items, header
+        return items, header, []
 
     if input_arg == '--stdin':
         input_data = sys.stdin.read()
@@ -175,7 +190,7 @@ def table_to_list(input_arg: str, delimiter:str='\t', file_type:Optional[str]=No
     
     table_data = parse_csv_like(input_data, delimiter)
 
-    return table_data, []
+    return table_data, [], []
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')

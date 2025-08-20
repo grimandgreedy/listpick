@@ -311,7 +311,7 @@ def openFiles(files: list[str]) -> str:
         #     return result.stderr.read().decode("utf-8").strip()
     return ""
 
-def file_picker() -> str:
+def file_picker() -> list[str]:
     """ Run file picker (yazi by default) and return the path of the file picked. If no file is picked an empty string is returned. """
 
     logger.info("function: file_picker (utils.py)")
@@ -320,10 +320,11 @@ def file_picker() -> str:
 
         lines = tmpfile.readlines()
         if lines:
-            filename = lines[0].decode("utf-8").strip()
-            return filename
+            filenames = [line.decode("utf-8").strip() for line in lines]
+            # filename = lines[0].decode("utf-8").strip()
+            return filenames
         else:
-            return ""
+            return []
 
             
 def dir_picker() -> str:

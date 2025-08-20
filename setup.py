@@ -16,7 +16,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
     name = "listpick",
-    version = "0.1.13.61",
+    version = "0.1.13.62",
     author = "Grim",
     author_email = "grimandgreedy@protonmail.com",
     description = "Listpick is a powerful TUI data tool for creating TUI apps or viewing/comparing tabulated data.",
@@ -59,6 +59,7 @@ setuptools.setup(
             "pyperclip",
             "toml",
             "traitlets",
+            "odfpy",
         ]
     },
 
