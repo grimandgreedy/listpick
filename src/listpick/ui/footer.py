@@ -94,9 +94,11 @@ class StandardFooter(Footer):
 
 
 
+        ## Clear background of footer rows
         for i in range(self.height):
             self.stdscr.addstr(h-self.height+i, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
 
+        # Display loaded files
         if len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
 
             sep = "◢ "
@@ -172,17 +174,23 @@ class StandardFooter(Footer):
 
 
 
+
+        ## Cursor selection mode
         select_mode = "C"
         if state["is_selecting"]: select_mode = "VS"
         elif state["is_deselecting"]: select_mode = "VDS"
         if state["pin_cursor"]: select_mode = f"{select_mode} "
+
         # Cursor & selection info
         selected_count = sum(state["selections"].values())
         if state["paginate"]:
-            # cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])//state['items_per_page']} | {select_mode}"
             cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | Page {state['cursor_pos']//state['items_per_page']}/{len(state['indexed_items'])//state['items_per_page']} | {select_mode}"
         else:
-            cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | {select_mode}"
+            # cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1},{state['selected_column']}/{len(state['indexed_items'])},{len(state['column_widths'])} | {select_mode}"
+            if state["cell_cursor"]:
+                cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | {state['selected_column']}/{len(state['column_widths'])} | {select_mode}"
+            else:
+                cursor_disp_str = f" [{selected_count}] {state['cursor_pos']+1}/{len(state['indexed_items'])} | {select_mode}"
 
         # Maximum chars that should be displayed
         max_chars = min(len(cursor_disp_str)+2, w)

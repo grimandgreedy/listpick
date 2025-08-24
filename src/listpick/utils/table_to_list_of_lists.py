@@ -130,6 +130,11 @@ def ods_to_list_old(file_name: str, sheet_number:int = 0, extract_formulae: bool
             header = list(df.columns)
         except:
             header = []
+
+        if not first_row_is_header and header:
+            table_data = [header] + table_data
+            header = []
+
         return table_data, header, sheets
     except Exception as e:
         print(f"Error loading ODS file: {e}")
@@ -161,29 +166,54 @@ def table_to_list(
     logger.info("function: table_to_list (table_to_list_of_lists.py)")
     table_data = []
 
-    def parse_csv_like(data:str, delimiter:str) -> list[list[str]]:
+    def parse_csv_like2(data:str, delimiter:str) -> list[list[str]]:
         """ Convert value-separated data (e.g., CSV or TSV) to list of lists. """
         logger.info("function: parse_csv_like (table_to_list_of_lists.py)")
 
         try:
-            reader = csv.reader(StringIO(data), delimiter=delimiter)
+            # reader = csv.reader(StringIO(data), delimiter=delimiter)
+            reader = csv.reader(StringIO(data), dialect='unix')
             return [row for row in reader]
         except Exception as e:
             print(f"Error reading CSV-like input: {e}")
             return []
+    def parse_csv_like(data:str, delimiter: str=" "):
+        import re
+        def split_columns(line):
+            # Define the regex pattern to match quoted strings and split by whitespace
+            # pattern = r"(?:'[^']*'|[^'\s]+)"
+            pattern = r"(?:\"[^\"]*\"|'[^']*'|[^'\s]+)"
+            
+            # Find all matches using the defined pattern
+            columns = re.findall(pattern, line)
+    
+            return columns
 
-    def csv_string_to_list(csv_string:str) -> list[list[str]]:
+        lines = data.strip().split('\n')
+        result = []
+        
+        for line in lines:
+            result.append(split_columns(line))
+        
+        return result
+
+    def csv_string_to_list(csv_string:str, first_row_is_header: bool = True) -> list[list[str]]:
         """ Convert csv string to list of lists using csv.reader. """
         logger.info("function: csv_string_to_list (table_to_list_of_lists.py)")
         f = StringIO(csv_string)
         reader = csv.reader(f, skipinitialspace=True)
-        return [row for row in reader]
+        table_data = [row for row in reader]
+        if first_row_is_header and len(table_data) > 1:
+            header = table_data[0]
+            table_data = table_data[1:]
+        else:
+            header = []
+        return table_data, header
+            
 
     if input_arg == '--stdin':
-        os.system(f"notify-send stdin")
         input_data = sys.stdin.read()
     elif input_arg == '--stdin2':
-        os.system(f"notify-send stdin2")
         input_count = int(sys.stdin.readline())
         input_data = "\n".join([sys.stdin.readline() for i in range(input_count)])
         sys.stdin.flush()
@@ -199,10 +229,11 @@ def table_to_list(
             else:
                 input_data = read_file_content(input_arg)
 
-            table_data = csv_string_to_list(input_data)
+            table_data, header = csv_string_to_list(input_data, first_row_is_header)
             table_data = strip_whitespace(table_data)
+            header = strip_whitespace([header])[0]
             # table_data = parse_csv_like(input_data, ",")
-            return table_data, [], []
+            return table_data, header, []
         except Exception as e:
             print(f"Error reading CSV/TSV input: {e}")
             return [], [], []
@@ -251,11 +282,11 @@ def table_to_list(
 
     elif file_type == 'xlsx':
         extract_formulae = False
-        return xlsx_to_list(input_arg, sheet_number, extract_formulae)
+        return xlsx_to_list(input_arg, sheet_number, extract_formulae, first_row_is_header)
 
     elif file_type == 'ods':
         extract_formulae = False
-        return ods_to_list(input_arg, sheet_number, extract_formulae)
+        return ods_to_list(input_arg, sheet_number, extract_formulae, first_row_is_header)
     elif file_type == 'pkl':
         with open(os.path.expandvars(os.path.expanduser(input_arg)), 'rb') as f:
             loaded_data = pickle.load(f)

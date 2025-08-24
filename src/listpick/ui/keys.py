@@ -122,7 +122,7 @@ help_keys = {
 
 
 notification_keys = {
-    "exit":                             [ord('q'), ord('h'), curses.KEY_ENTER, ord('\n'), ord(' '), 27],
+    "exit":                             [ord('q'), ord('h'), curses.KEY_ENTER, ord('\n'), ord(' '), 27, 13],
     "full_exit":                        [3], # Ctrl+c
     "cursor_down":                      [ord('j'), curses.KEY_DOWN],
     "cursor_up":                        [ord('k'), curses.KEY_UP],

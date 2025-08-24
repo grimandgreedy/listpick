@@ -14,6 +14,14 @@ ASAP
 > - [ ] Sheet states remain the same when switching files.
 > - [x] Deal with nan values in xlsx and ods files.
 >   - [ ] They are set to empyt strings.
+> - [ ] Fix special keys not working:
+>   - [ ] May need to create separate keycodes...
+>   - [ ] F1-f12
+>   - [ ] Tab, shift+tab
+>   - [ ] Delete, shift+delete
+>   - [ ] Alt+KEY
+>   - [x] Arrow keys
+
 
 
 
@@ -356,6 +364,11 @@ ASAP
 > - [ ] If the longest string in a column is the header string and show_header=False, then get_column_widths still calculates based on the header string length.
 > - [x] Rows sometimes adjust position a second time after switching files.
 >   - [x] Was due to the height of the footer being set only at the end of the Footer.draw() method. Created a new Footer.adjust_sizes() method which is run at the start of the draw_screen() loop.
+> - [x] Issues switching between open files when some of them have been closed:
+>   - [x] Wrong data for some files.
+>   - [x] Some can't be switched to...
+>   - [x] Fixed.
+>  
 
 
 

@@ -110,7 +110,7 @@ class Picker:
         cell_selections: dict[tuple[int,int], bool] = {},
         selected_cells_by_row: dict = {},
         highlight_full_row: bool =False,
-        cell_cursor: bool = False,
+        cell_cursor: bool = True,
 
         items_per_page : int = -1,
         sort_method : int = 0,
@@ -1981,10 +1981,12 @@ class Picker:
             self.items, self.header = tmp_items, tmp_header
             self.data_ready = True
 
-    def save_input_history(self, file_path: str) -> bool:
+    def save_input_history(self, file_path: str, force_save: bool=True) -> bool:
         """ Save input field history. Returns True if successful save. """
         self.logger.info(f"function: save_input_history()")
         file_path = os.path.expanduser(file_path)
+        file_path = os.path.expandvars(file_path)
+        directory = os.path.dirname(file_path)
         history_dict = {
             "history_filter_and_search" :       self.history_filter_and_search,
             "history_pipes" :                   self.history_pipes,
@@ -1992,8 +1994,10 @@ class Picker:
             "history_edits" :                   self.history_edits,
             "history_settings":                 self.history_settings,
         }
-        with open(file_path, 'w') as f:
-            json.dump(history_dict, f)
+        if os.path.exists(directory) or force_save:
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                json.dump(history_dict, f)
 
         return True
 
@@ -2091,27 +2095,32 @@ class Picker:
             self.notification(self.stdscr, message = f"File not found: {filename}")
             return None
 
-        filetype = guess_file_type(filename)
-        items, header, sheets = table_to_list(filename, file_type=filetype)
+        try:
+            filetype = guess_file_type(filename)
+            items, header, sheets = table_to_list(filename, file_type=filetype)
 
-        if items != None:
-            self.items = items
-            self.header = header if header != None else []
-            self.sheets = sheets
+            if items != None:
+                self.items = items
+                self.header = header if header != None else []
+                self.sheets = sheets
 
 
-            self.initialise_variables()
+                self.initialise_variables()
+        except Exception as e:
+            self.notification(self.stdscr, message=f"Error loading {filename}: {e}")
 
     def load_sheet(self, filename: str, sheet_number: int = 0):
         filetype = guess_file_type(filename)
-        items, header, sheets = table_to_list(filename, file_type=filetype, sheet_number=sheet_number)
+        try:
+            items, header, sheets = table_to_list(filename, file_type=filetype, sheet_number=sheet_number)
+            if items != None:
+                self.items = items
+                self.header = header if header != None else []
+                self.sheets = sheets
 
-        if items != None:
-            self.items = items
-            self.header = header if header != None else []
-            self.sheets = sheets
-
-            self.initialise_variables()
+                self.initialise_variables()
+        except Exception as e:
+            self.notification(self.stdscr, message=f"Error loading {filename}, sheet {sheet_number}: {e}")
 
     def switch_file(self, increment=1) -> None:
         """ Go to the next file. """
@@ -2124,6 +2133,7 @@ class Picker:
         self.loaded_file_index = (self.loaded_file_index + increment) % len(self.loaded_files)
         self.loaded_file = self.loaded_files[self.loaded_file_index]
 
+        idx, file = self.loaded_file_index, self.loaded_file
         # If we already have a loaded state for this file
         if self.loaded_file_states[self.loaded_file_index]:
             self.set_function_data(self.loaded_file_states[self.loaded_file_index])
@@ -2131,6 +2141,7 @@ class Picker:
             self.set_function_data({}, reset_absent_variables=True)
             self.load_file(self.loaded_file)
 
+        self.loaded_file_index, self.loaded_file = idx, file
 
     def switch_sheet(self, increment=1) -> None:
         if not os.path.exists(self.loaded_file):
@@ -2414,6 +2425,7 @@ class Picker:
                     del self.loaded_file_states[self.loaded_file_index]
                     self.loaded_file_index = min(self.loaded_file_index, len(self.loaded_files)-1)
                     self.loaded_file = self.loaded_files[self.loaded_file_index]
+                    idx, file = self.loaded_file_index, self.loaded_file
 
 
                     # If we already have a loaded state for this file
@@ -2422,6 +2434,7 @@ class Picker:
                     else:
                         self.set_function_data({}, reset_absent_variables=True)
                         self.load_file(self.loaded_file)
+                    self.loaded_file_index, self.loaded_file = idx, file
                     self.draw_screen(self.indexed_items, self.highlights)
 
             elif self.check_key("full_exit", key, self.keys_dict):
@@ -3430,10 +3443,11 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     parser.add_argument('--stdin', dest='stdin', action='store_true', help='Table passed on stdin')
     parser.add_argument('--stdin2', action='store_true', help='Table passed on stdin')
     parser.add_argument('--generate', '-g', type=str, help='Pass file to generate data for listpick Picker.')
-    parser.add_argument('-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
+    parser.add_argument('--delimiter', '-d', dest='delimiter', default='\t', help='Delimiter for rows in the table (default: tab)')
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods', 'pkl'], help='Type of file (tsv, csv, json, xlsx, ods)')
     parser.add_argument('--debug', action="store_true", help="Enable debug log.")
     parser.add_argument('--debug-verbose', action="store_true", help="Enable debug verbose log.")
+    parser.add_argument('--headerless', action="store_false", help="By default the first row is interpreted as a header row. If --headerless is passed then there is no header.")
     args = parser.parse_args()
 
 
@@ -3486,13 +3500,31 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         filetype = args.file_type
     
 
-    items, header, sheets = table_to_list(input_arg, args.delimiter, filetype)
+    while True:
+        try:
+            items, header, sheets = table_to_list(
+                input_arg=input_arg, 
+                delimiter=args.delimiter, 
+                file_type = filetype,
+                first_row_is_header=args.headerless,
+            )
+            if args.file:
+                function_data["loaded_file"] = args.file[0]
+                function_data["loaded_files"] = args.file
+            break
+
+        except Exception as e:
+            items, header, sheets = [], [], []
+            function_data["startup_notification"] = f"Error loading {input_arg}. {e}"
+            if args.file:
+                args.file = args.file[1:]
+                input_arg = args.file[0]
+            else:
+                break
+
     function_data["items"] = items
     if header: function_data["header"] = header
     function_data["sheets"] = sheets
-    if args.file:
-        function_data["loaded_file"] = args.file[0]
-        function_data["loaded_files"] = args.file
 
     return args, function_data
 
@@ -3540,13 +3572,41 @@ def open_tty():
     tty.setraw(tty_fd)
     return tty_fd
 
-def get_char(tty_fd, timeout: float = 0.2) -> int:
+def get_char(tty_fd, timeout: float = 0.2, secondary: bool = False) -> int:
     """ Get character from a tty_fd with a timeout. """
     rlist, _, _ = select.select([tty_fd], [], [], timeout)
     if rlist:
         # key = ord(tty_fd.read(1))
         key = ord(os.read(tty_fd, 1))
-        # os.system(f"notify-send { key }")
+        if not secondary:
+            if key == 27:
+                key2 = get_char(tty_fd, timeout=0.01, secondary=True)
+                key3 = get_char(tty_fd, timeout=0.01, secondary=True)
+                key4 = get_char(tty_fd, timeout=0.01, secondary=True)
+                key5 = get_char(tty_fd, timeout=0.01, secondary=True)
+                if key2 == ord('O') and key3 == ord('B'):
+                    key = curses.KEY_DOWN
+                elif key2 == ord('O') and key3 == ord('A'):
+                    key = curses.KEY_UP
+                elif key2 == ord('O') and key3 == ord('D'):
+                    key = curses.KEY_LEFT
+                elif key2 == ord('O') and key3 == ord('C'):
+                    key = curses.KEY_RIGHT
+                elif key2 == ord('[') and key3 == ord('Z'):
+                    key = 353
+                elif key2 == ord('O') and key3 == ord('F'):
+                    key = curses.KEY_END
+                elif key2 == ord('O') and key3 == ord('H'):
+                    key = curses.KEY_HOME
+                elif key2 == ord('[') and key3 == ord('3') and key4 == ord('~'):
+                    key = curses.KEY_DC
+                elif key2 == ord('[') and key3 == ord('3') and key4 == ord('~'):
+                    key = curses.KEY_DC
+                elif key2 == ord('O') and key3 == ord('P'):
+                    key = curses.KEY_F1
+                elif key2 == ord('[') and key3 == ord('1') and key4 == ord('5') and key5 == ord('~'):
+                    key = curses.KEY_F5
+
     else:
         key = -1
     return key

@@ -12,6 +12,16 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
  - Can now take input on stdin -- e.g., `du -h | listpick --stdin`
  - We now get user input via '/dev/tty' rather than stdscr.getch() (which uses stdin). 
    - This was necessary to ensure that we can pipe data in via stdin and still receive user input.
+ - Bugs fixed:
+   - Closing files causes issues switching between files.
+ - Create ~/.config/listpick directory for storing input history if it doesn't already exist.
+ - Added error checking when opening files.
+ - Added --headerless flag to prevent interpreting the first line of the input as the header.
+ - Fixed special keys not working:
+   - arrow keys (main picker)
+   - meta+key (input_field)
+ - Added column number to footer
+ - Improved splitting of whitespace separated data passed on stdin.
 
 ## [0.1.14] 2025-08-20
  - Fixed bug when cells are centred vertically.
