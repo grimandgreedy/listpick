@@ -36,13 +36,112 @@ def strip_whitespace(item: Iterable) -> Iterable:
         return item
 
 
+def xlsx_to_list(file_name: str, sheet_number:int = 0, extract_formulae: bool = False, first_row_is_header: bool = True):
+    import pandas as pd
+    from openpyxl import load_workbook
+    # wb = load_workbook(filename=input_arg, read_only=True)
+    # values or formulae
+    if not os.path.exists(file_name):
+        return [], [], []
+    wb = load_workbook(filename=file_name, read_only=True, data_only=not extract_formulae)
+    
+    if not isinstance(sheet_number, int): sheet_number = 0
+    sheet_number = max(0, min(sheet_number, len(wb.sheetnames)-1))
+    ws = wb.worksheets[sheet_number]
+    
+    # Read data and formulas from the sheet
+    table_data = []
+    # table_data = [[cell for cell in row] for row in ws.iter_rows(min_row=1, values_only=False)]
+    # table_data = [[cell.value for cell in row] for row in ws.iter_rows(min_row=1, values_only=False)]
+    table_data = [[cell if cell != None else "" for cell in row] for row in ws.iter_rows(min_row=1, values_only=True)]
+    header = []
+    # header = [cell for cell in list(ws.iter_rows(values_only=True))[0]]  # Assuming the first row is the header
+    if first_row_is_header and len(table_data) > 1:
+        header = table_data[0]
+        table_data = table_data[1:]
+    else:
+        header = []
+    #
+    # for row in ws.iter_rows(min_row=2, values_only=True):  # Skip the header row
+    #     row_data = []
+    #     for cell in row:
+    #         if isinstance(cell, str) and '=' in cell:  # Check if it's a formula
+    #             row_data.append(cell)
+    #         else:
+    #             row_data.append(str(cell))
+    #     table_data.append(row_data)
+    
+    return table_data, header, wb.sheetnames
+
+def ods_to_list(filename: str, sheet_number: int = 0, extract_formulas: bool = False, first_row_is_header: bool = True):
+    from odf.opendocument import load
+    from odf import table, text
+
+    from odf.namespaces import TABLENS
+    # Load the ODS file
+    doc = load(filename)
+
+    sheets = doc.spreadsheet.getElementsByType(table.Table)
+    sheet_names = [s.attributes.get((TABLENS, 'name')) for s in sheets]
+
+
+    # Get the sheet by index
+    sheet = doc.spreadsheet.getElementsByType(table.Table)[sheet_number]
+
+    data = []
+    for row in sheet.getElementsByType(table.TableRow):
+        row_data = []
+        for cell in row.getElementsByType(table.TableCell):
+            if extract_formulas:
+                formula = cell.attributes.get((TABLENS, 'formula'))
+                if formula is not None:
+                    row_data.append(formula)
+                    continue  # Skip extracting value if formula found
+            
+            # Extract value (as text) from <text:p> elements
+            cell_text = ""
+            for p in cell.getElementsByType(text.P):
+                cell_text += str(p.firstChild) if p.firstChild is not None else ""
+            row_data.append(cell_text)
+        data.append(row_data)
+    if first_row_is_header and len(data) > 1:
+        header = data[0]
+        data = data[1:]
+    else:
+        header = []
+
+    return data, header, sheet_names
+
+def ods_to_list_old(file_name: str, sheet_number:int = 0, extract_formulae: bool = False, first_row_is_header: bool = True):
+    try:
+        import pandas as pd
+        ef = pd.ExcelFile(file_name)
+        sheets = ef.sheet_names
+        sheet_number = max(0, min(sheet_number, len(sheets)-1))
+        df = pd.read_excel(file_name, engine='odf', sheet_name=sheet_number)
+        # if sheet_number < len(sheets):
+        #     df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
+        # else:
+        #     df = pd.read_excel(input_arg, engine='odf')
+        table_data = df.values.tolist()
+        table_data = [[x if not pd.isna(x) else "" for x in row] for row in table_data]
+        
+        try:
+            header = list(df.columns)
+        except:
+            header = []
+        return table_data, header, sheets
+    except Exception as e:
+        print(f"Error loading ODS file: {e}")
+        return [], [], []
+
 
 def table_to_list(
-
-        input_arg: str,
-        delimiter:str='\t',
-        file_type:Optional[str]=None,
-        sheet_number:int = 0,
+    input_arg: str,
+    delimiter:str='\t',
+    file_type:Optional[str]=None,
+    sheet_number:int = 0,
+    first_row_is_header:bool = True,
 
 ) -> Tuple[list[list[str]], list[str], list[str]]:
     """ 
@@ -80,7 +179,17 @@ def table_to_list(
         reader = csv.reader(f, skipinitialspace=True)
         return [row for row in reader]
 
-    if file_type == 'csv' or delimiter in [',']:
+    if input_arg == '--stdin':
+        os.system(f"notify-send stdin")
+        input_data = sys.stdin.read()
+    elif input_arg == '--stdin2':
+        os.system(f"notify-send stdin2")
+        input_count = int(sys.stdin.readline())
+        input_data = "\n".join([sys.stdin.readline() for i in range(input_count)])
+        sys.stdin.flush()
+        # sys.stdin.close()
+        # sys.stdin = open('/dev/tty', 'r')
+    elif file_type == 'csv' or delimiter in [',']:
         try:
             if input_arg == '--stdin':
                 input_data = sys.stdin.read()
@@ -141,45 +250,12 @@ def table_to_list(
             return [], [], []
 
     elif file_type == 'xlsx':
-        import pandas as pd
-        ef = pd.ExcelFile(input_arg)
-        sheets = ef.sheet_names
-        sheet_number = min(0, max(sheet_number, len(sheets)-1))
-        df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
-        # if sheet_number < len(sheets):
-        #     df = pd.read_excel(input_arg, sheet_name=sheet_number)
-        # else:
-        #     df = pd.read_excel(input_arg)
-        table_data = df.values.tolist()
-        table_data = [[x if not pd.isna(x) else "" for x in row] for row in table_data]
-        try:
-            header = list(df.columns)
-        except:
-            header = []
-        return table_data, header, sheets
+        extract_formulae = False
+        return xlsx_to_list(input_arg, sheet_number, extract_formulae)
 
     elif file_type == 'ods':
-        try:
-            import pandas as pd
-            ef = pd.ExcelFile(input_arg)
-            sheets = ef.sheet_names
-            sheet_number = min(0, max(sheet_number, len(sheets)-1))
-            df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
-            # if sheet_number < len(sheets):
-            #     df = pd.read_excel(input_arg, engine='odf', sheet_name=sheet_number)
-            # else:
-            #     df = pd.read_excel(input_arg, engine='odf')
-            table_data = df.values.tolist()
-            table_data = [[x if not pd.isna(x) else "" for x in row] for row in table_data]
-            
-            try:
-                header = list(df.columns)
-            except:
-                header = []
-            return table_data, header, sheets
-        except Exception as e:
-            print(f"Error loading ODS file: {e}")
-            return [], [], []
+        extract_formulae = False
+        return ods_to_list(input_arg, sheet_number, extract_formulae)
     elif file_type == 'pkl':
         with open(os.path.expandvars(os.path.expanduser(input_arg)), 'rb') as f:
             loaded_data = pickle.load(f)
@@ -187,17 +263,18 @@ def table_to_list(
         header = loaded_data["header"] if "header" in loaded_data else []
         return items, header, []
 
-    if input_arg == '--stdin':
-        input_data = sys.stdin.read()
-    elif input_arg == '--stdin2':
-        input_count = int(sys.stdin.readline())
-        input_data = "\n".join([sys.stdin.readline() for i in range(input_count)])
     else:
         input_data = read_file_content(input_arg)
     
     table_data = parse_csv_like(input_data, delimiter)
+    if first_row_is_header and len(table_data) > 1:
+        header = table_data[0]
+        table_data = table_data[1:]
+    else:
+        header = []
 
-    return table_data, [], []
+
+    return table_data, header, []
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert table to list of lists.')

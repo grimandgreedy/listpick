@@ -20,6 +20,8 @@ import json
 import threading
 import string
 import logging
+import tty
+import select
 
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
@@ -349,6 +351,28 @@ class Picker:
             if not attr_name.startswith('__') and not callable(getattr(self, attr_name)):
                 size += sys.getsizeof(getattr(self, attr_name))
         return size
+    
+    def set_config(self, path: str ="~/.config/listpick/config.toml"):
+        """ Set config from toml file. """
+        config = self.get_config(path)
+        self.logger.info(f"function: set_config()")
+        if "general" in config:
+            for key, val in config["general"].items():
+                self.logger.info(f"set_config: key={key}, val={val}.")
+                try:
+                    setattr(self, key, val)
+                except Exception as e:
+                    self.logger.error(f"set_config: key={key}, val={val}. {e}")
+
+
+    def get_config(self, path: str ="~/.config/listpick/config.toml") -> dict:
+        """ Get config from file. """
+        self.logger.info(f"function: get_config()")
+        import toml
+        if os.path.exists(os.path.expanduser(path)):
+            with open(os.path.expanduser(path), "r") as f:
+                config = toml.load(f)
+                return config
 
     def calculate_section_sizes(self):
         """
@@ -2179,10 +2203,14 @@ class Picker:
             function_data = self.get_function_data()
             return [], "", function_data
 
-        # Main loop
+        # Open tty to accept input
+        tty_fd = open_tty()
 
+        # Main loop
         while True:
-            key = self.stdscr.getch()
+            # key = self.stdscr.getch()
+
+            key = get_char(tty_fd, timeout=0.2)
             if key != -1:
                 self.logger.info(f"key={key}")
             h, w = self.stdscr.getmaxyx()
@@ -2421,7 +2449,7 @@ class Picker:
                     formula_auto_complete=False,
                     function_auto_complete=False,
                     word_auto_complete=True,
-                    auto_complete_words=["ft", "ct", "cv"]
+                    auto_complete_words=["ft", "ct", "cv"],
                 )
                 if return_val:
                     self.user_settings = usrtxt
@@ -3505,6 +3533,24 @@ def unrestrict_curses(stdscr: curses.window) -> None:
     curses.raw() # Disable control keys (ctrl-c, ctrl-s, ctrl-q, etc.)
     curses.curs_set(False)
 
+
+def open_tty():
+    """ Return a file descriptor for the tty that we are opening"""
+    tty_fd = os.open('/dev/tty', os.O_RDONLY)
+    tty.setraw(tty_fd)
+    return tty_fd
+
+def get_char(tty_fd, timeout: float = 0.2) -> int:
+    """ Get character from a tty_fd with a timeout. """
+    rlist, _, _ = select.select([tty_fd], [], [], timeout)
+    if rlist:
+        # key = ord(tty_fd.read(1))
+        key = ord(os.read(tty_fd, 1))
+        # os.system(f"notify-send { key }")
+    else:
+        key = -1
+    return key
+
 def main() -> None:
     """ Main function when listpick is executed. Deals with command line arguments and starts a Picker. """
     args, function_data = parse_arguments()
@@ -3540,16 +3586,16 @@ def main() -> None:
             "color": 8,
         }
     ]
-    function_data["cell_cursor"] = True
-    function_data["display_modes"] = True
-    function_data["centre_in_cols"] = True
-    function_data["show_row_header"] = True
-    function_data["keys_dict"] = picker_keys
-    function_data["id_column"] = -1
-    function_data["track_entries_upon_refresh"] = True
-    function_data["centre_in_terminal_vertical"] = True
-    function_data["highlight_full_row"] = True
-    function_data["pin_cursor"] = True
+    # function_data["cell_cursor"] = True
+    # function_data["display_modes"] = True
+    # function_data["centre_in_cols"] = True
+    # function_data["show_row_header"] = True
+    # function_data["keys_dict"] = picker_keys
+    # function_data["id_column"] = -1
+    # function_data["track_entries_upon_refresh"] = True
+    # function_data["centre_in_terminal_vertical"] = True
+    # function_data["highlight_full_row"] = True
+    # function_data["pin_cursor"] = True
     # function_data["display_infobox"] = True
     # function_data["infobox_items"] = [["1"], ["2"], ["3"]]
     # function_data["infobox_title"] = "Title"
@@ -3572,6 +3618,7 @@ def main() -> None:
 
         # app = Picker(stdscr, **function_data)
         app = Picker(stdscr)
+        app.set_config("~/.config/listpick/config.toml")
         app.set_function_data(function_data)
         app.splash_screen("Listpick is loading your data...")
         app.load_input_history("~/.config/listpick/cmdhist.json")

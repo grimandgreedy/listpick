@@ -7,6 +7,11 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
  - Added __sizeof__() function for the Picker class.
  - Fixed rows resizing twice when opening/switching between some files.
  - Added to settings: goto row, goto column
+ - NaN replaced with empty string when loading empty cells from xlsx or ods files.
+ - Added Picker.get_config(path) method.
+ - Can now take input on stdin -- e.g., `du -h | listpick --stdin`
+ - We now get user input via '/dev/tty' rather than stdscr.getch() (which uses stdin). 
+   - This was necessary to ensure that we can pipe data in via stdin and still receive user input.
 
 ## [0.1.14] 2025-08-20
  - Fixed bug when cells are centred vertically.

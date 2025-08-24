@@ -16,7 +16,25 @@ from datetime import datetime
 import logging
 
 logger = logging.getLogger('picker_log')
+import select
+import tty
 
+def open_tty():
+    """ Return a file descriptor for the tty that we are opening"""
+    tty_fd = os.open('/dev/tty', os.O_RDONLY)
+    tty.setraw(tty_fd)
+    return tty_fd
+
+def get_char(tty_fd, timeout: float = 0.2) -> int:
+    """ Get character from a tty_fd with a timeout. """
+    rlist, _, _ = select.select([tty_fd], [], [], timeout)
+    if rlist:
+        # key = ord(tty_fd.read(1))
+        key = ord(os.read(tty_fd, 1))
+    else:
+        key = -1
+    return key
+    
 def input_field(
     stdscr: curses.window,
     usrtxt:str="",
@@ -106,6 +124,8 @@ def input_field(
     offscreen_x, offscreen_y = False, False
     orig_x, orig_y = x, y
 
+    tty_fd = open_tty()
+
     # Input field loop
     while True:
 
@@ -131,7 +151,7 @@ def input_field(
 
         # Clear background to end of the input field
         stdscr.addstr(field_y, x(), " "*(max_field_length), curses.color_pair(colours_start+colour_pair_bg))
-        stdscr.refresh()
+        # stdscr.refresh()
 
         if literal:
             field_string_length = len(repr(usrtxt)) + len(field_prefix)
@@ -206,12 +226,15 @@ def input_field(
                     pass
 
 
-        key = stdscr.getch()
+        stdscr.refresh()
+        key = get_char(tty_fd, timeout=0.5)
+        # key = stdscr.getch()
 
         if key in [27, 7]:                                                           # ESC/ALT key or Ctrl+g
             # For Alt-key combinations: set nodelay and get the second key
-            stdscr.nodelay(True)
-            key2 = stdscr.getch()
+            # stdscr.nodelay(True)
+            # key2 = stdscr.getch()
+            key2 = get_char(tty_fd, timeout=0.05)
 
             if key2 == -1:                  # ESCAPE key (no key-combination)
                 stdscr.nodelay(False)
@@ -311,7 +334,7 @@ def input_field(
             curses.endwin()
             exit()
 
-        elif key == 10:                                                         # Enter/return key
+        elif key in [10, 13]:                                                         # Enter/return key
             # Return
             return usrtxt, True
 

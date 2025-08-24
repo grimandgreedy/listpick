@@ -32,7 +32,7 @@ picker_keys = {
     "select_none":                      [ord('M'), 18],   # Ctrl-r
     "visual_selection_toggle":          [ord('v')],
     "visual_deselection_toggle":        [ord('V')],
-    "enter":                            [ord('\n'), curses.KEY_ENTER],
+    "enter":                            [ord('\n'), curses.KEY_ENTER, 13],
     "redraw_screen":                    [12], # Ctrl-l
     "cycle_sort_method":                [ord('s')],
     "cycle_sort_method_reverse":        [ord('S')],
@@ -152,7 +152,7 @@ menu_keys = {
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],
     "five_down":                        [ord('J')],
-    "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l')],
+    "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l'), 13],
     "redraw_screen":                    [12], # Ctrl-l
     "filter_input":                     [ord('f')],
     "search_input":                     [ord('/')],
@@ -183,7 +183,7 @@ options_keys = {
     "select_none":                      [ord('M'), 18],   # Ctrl-r
     "visual_selection_toggle":          [ord('v')],
     "visual_deselection_toggle":        [ord('V')],
-    "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l')],
+    "enter":                            [ord('\n'), curses.KEY_ENTER, ord('l'), 13],
     "redraw_screen":                    [12], # Ctrl-l
     "cycle_sort_method":                [ord('s')],
     "cycle_sort_method_reverse":        [ord('S')],
@@ -213,7 +213,7 @@ edit_menu_keys = {
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
     "five_up":                          [ord('K')],
     "five_down":                        [ord('J')],
-    "enter":                            [ord('\n'), curses.KEY_ENTER],
+    "enter":                            [ord('\n'), curses.KEY_ENTER, 13],
     "redraw_screen":                    [12], # Ctrl-l
     "cycle_sort_method":                [ord('s')],
     "cycle_sort_method_reverse":        [ord('S')],

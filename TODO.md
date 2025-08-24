@@ -12,7 +12,8 @@ ASAP
 > - [ ] Add keys for next page, next sheet, info
 > - [ ] Sort out what to do when the width of the columns is less than the terminal.
 > - [ ] Sheet states remain the same when switching files.
-> - [ ] nan in xlsx and ods files.
+> - [x] Deal with nan values in xlsx and ods files.
+>   - [ ] They are set to empyt strings.
 
 
 
@@ -109,7 +110,7 @@ ASAP
 > - [ ] Implement default_option_selector (!!!)
 > - [ ] Implement macros
 >   - [ ] e.g., ctrl+shift+r turns off auto refresh
-> - [ ] Implement config loading
+> - [x] Implement config loading
 >   - [ ] Allow config to be passed as an argument.
 > - [ ] Make aria2tui compatible with windows.
 > - [ ] Add different highlight styles:
@@ -129,6 +130,9 @@ ASAP
 >   - [x] Basic log setup complete
 >   - [ ] Need more useful messages to determine where an error is thrown.
 > - [ ] Pin cursor.
+> - [x] Allow data to be piped into listpick.
+>   - [x] When data is piped in it links stdin with the pipe...
+>     - [x] Rather than getting user input from stdin we can get it by getting a fd for /dev/tty and reading chars from there.
 
 
 
