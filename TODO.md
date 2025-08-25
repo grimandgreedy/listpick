@@ -368,7 +368,7 @@ ASAP
 >   - [x] Wrong data for some files.
 >   - [x] Some can't be switched to...
 >   - [x] Fixed.
->  
+> - [x] Highlighted cells display padded cell string when it should not be padded.
 
 
 

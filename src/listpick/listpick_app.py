@@ -876,10 +876,10 @@ class Picker:
                     else:
                         cell_value = self.indexed_items[row][1][col] + self.separator
                     # cell_value = cell_value[:min(cell_width, cell_max_width)-len(self.separator)]
-                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width)-len(self.separator), self.unicode_char_width)
+                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width)-len(self.separator), self.centre_in_cols, self.unicode_char_width)
                     cell_value = cell_value + self.separator
                     # cell_value = cell_value
-                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.unicode_char_width)
+                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
                     # row_str = truncate_to_display_width(row_str_left_adj, min(w-self.startx, visible_columns_total_width))
                     self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
                 # Part of the cell is on screen
@@ -1121,6 +1121,7 @@ class Picker:
                 "hidden_columns": [],
                 "title": title,
                 "reset_colours": False,
+                "cell_cursor": False,
             }
 
             OptionPicker = Picker(submenu_win, **infobox_data)
@@ -1361,6 +1362,7 @@ class Picker:
             "cancel_is_back": True,
             "number_columns": False,
             "reset_colours": False,
+            "cell_cursor": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1427,6 +1429,7 @@ class Picker:
                 "loaded_file_states": [],
                 "loaded_file": "",
                 "loaded_file_index": 0,
+                "cell_cursor": False,
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
@@ -2306,6 +2309,7 @@ class Picker:
                     "centre_in_terminal_vertical": True,
                     "hidden_columns": [],
                     "reset_colours": False,
+                    "cell_cursor": False,
 
                 }
                 OptionPicker = Picker(self.stdscr, **help_data)
@@ -2416,6 +2420,7 @@ class Picker:
                     "centre_in_terminal_vertical": True,
                     "hidden_columns": [],
                     "reset_colours": False,
+                    "cell_cursor": False,
 
                 }
                 OptionPicker = Picker(self.stdscr, **info_data)
