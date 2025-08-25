@@ -9,6 +9,7 @@ License: MIT
 """
 
 import curses
+from listpick.utils import keycodes
 
 picker_keys = {
     "refresh":                          [curses.KEY_F5],
@@ -25,8 +26,8 @@ picker_keys = {
     "page_down":                        [curses.KEY_NPAGE, 6], # Ctrl+f
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
-    "five_up":                          [ord('K')],
-    "five_down":                        [ord('J')],
+    "five_up":                          [ord('K'), keycodes.META_k],
+    "five_down":                        [ord('J'), keycodes.META_j],
     "toggle_select":                    [ord(' ')],
     "select_all":                       [ord('m'), 1], # Ctrl-a
     "select_none":                      [ord('M'), 18],   # Ctrl-r
@@ -135,6 +136,7 @@ notification_keys = {
     "five_up":                          [ord('K')],
     "five_down":                        [ord('J')],
     "redraw_screen":                    [12], # Ctrl-l
+    "refresh":                          [curses.KEY_F5, curses.KEY_RESIZE],
 }
 
 

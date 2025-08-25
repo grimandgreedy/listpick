@@ -18,22 +18,24 @@ import logging
 logger = logging.getLogger('picker_log')
 import select
 import tty
+from listpick.utils.user_input import get_char, open_tty
+from listpick.utils import keycodes
 
-def open_tty():
-    """ Return a file descriptor for the tty that we are opening"""
-    tty_fd = os.open('/dev/tty', os.O_RDONLY)
-    tty.setraw(tty_fd)
-    return tty_fd
-
-def get_char(tty_fd, timeout: float = 0.2) -> int:
-    """ Get character from a tty_fd with a timeout. """
-    rlist, _, _ = select.select([tty_fd], [], [], timeout)
-    if rlist:
-        # key = ord(tty_fd.read(1))
-        key = ord(os.read(tty_fd, 1))
-    else:
-        key = -1
-    return key
+# def open_tty():
+#     """ Return a file descriptor for the tty that we are opening"""
+#     tty_fd = os.open('/dev/tty', os.O_RDONLY)
+#     tty.setraw(tty_fd)
+#     return tty_fd
+#
+# def get_char(tty_fd, timeout: float = 0.2) -> int:
+#     """ Get character from a tty_fd with a timeout. """
+#     rlist, _, _ = select.select([tty_fd], [], [], timeout)
+#     if rlist:
+#         # key = ord(tty_fd.read(1))
+#         key = ord(os.read(tty_fd, 1))
+#     else:
+#         key = -1
+#     return key
     
 def input_field(
     stdscr: curses.window,
@@ -230,100 +232,94 @@ def input_field(
         key = get_char(tty_fd, timeout=0.5)
         # key = stdscr.getch()
 
-        if key in [27, 7]:                                                           # ESC/ALT key or Ctrl+g
-            # For Alt-key combinations: set nodelay and get the second key
-            # stdscr.nodelay(True)
-            # key2 = stdscr.getch()
-            key2 = get_char(tty_fd, timeout=0.05)
 
-            if key2 == -1:                  # ESCAPE key (no key-combination)
-                stdscr.nodelay(False)
-                return "", False
-            elif key2 == curses.KEY_BACKSPACE:
-                # Delete to backslash or space (word_separator_chars)
-                search_txt = usrtxt[:-cursor] if cursor > 0 else usrtxt
-                index = -1
-                for word_separator_char in word_separator_chars:
-                    tmp_index = search_txt[::-1].find(word_separator_char)
-                    if tmp_index > -1:
-                        if index == -1:
-                            index = tmp_index
-                        else:
-                            index = min(index, tmp_index)
+        if key in [27, 7]:                                                  # ESC/ALT key or Ctrl+g
+            return "", False
 
-                if index == -1:
-                    if cursor == 0:
-                        kill_ring.append(usrtxt)
-                        usrtxt = ""
+        elif key == keycodes.META_BS:
+            # Delete to backslash or space (word_separator_chars)
+            search_txt = usrtxt[:-cursor] if cursor > 0 else usrtxt
+            index = -1
+            for word_separator_char in word_separator_chars:
+                tmp_index = search_txt[::-1].find(word_separator_char)
+                if tmp_index > -1:
+                    if index == -1:
+                        index = tmp_index
                     else:
-                        kill_ring.append(usrtxt[:-(cursor+1)])
-                        usrtxt = usrtxt[-(cursor+1):]
-                    cursor = len(usrtxt)
+                        index = min(index, tmp_index)
+
+            if index == -1:
+                if cursor == 0:
+                    kill_ring.append(usrtxt)
+                    usrtxt = ""
                 else:
-                    if index == 0:
-                        kill_ring.append(search_txt[-1:])
-                        usrtxt = search_txt[:-1] + usrtxt[len(search_txt):]
+                    kill_ring.append(usrtxt[:-(cursor+1)])
+                    usrtxt = usrtxt[-(cursor+1):]
+                cursor = len(usrtxt)
+            else:
+                if index == 0:
+                    kill_ring.append(search_txt[-1:])
+                    usrtxt = search_txt[:-1] + usrtxt[len(search_txt):]
+                else:
+                    kill_ring.append(search_txt[-index:])
+                    usrtxt = search_txt[:-index] + usrtxt[len(search_txt):]
+
+            potential_path = usrtxt
+            kill_ring_active = False
+
+        elif key == keycodes.META_f:
+            # Forward word
+            search_txt = usrtxt[-cursor:]
+            index = -1
+            for word_separator_char in word_separator_chars:
+                tmp_index = search_txt.find(word_separator_char)
+
+                if tmp_index > -1:
+                    if index == -1:
+                        index = tmp_index
                     else:
-                        kill_ring.append(search_txt[-index:])
-                        usrtxt = search_txt[:-index] + usrtxt[len(search_txt):]
+                        index = min(index, tmp_index)
 
-                potential_path = usrtxt
-                kill_ring_active = False
+            if index == -1:
+                cursor = 0
+            else:
+                cursor -= index + 1
+                cursor = max(cursor, 0)
+            kill_ring_active = False
 
-            elif key2 == ord('f'):
-                # Forward word
-                search_txt = usrtxt[-cursor:]
-                index = -1
-                for word_separator_char in word_separator_chars:
-                    tmp_index = search_txt.find(word_separator_char)
+        elif key == keycodes.META_b:
+            # Backwards word
+            search_txt = usrtxt[:-cursor] if cursor > 0 else usrtxt
+            index = -1
+            for word_separator_char in word_separator_chars:
+                tmp_index = search_txt[::-1].find(word_separator_char)
 
-                    if tmp_index > -1:
-                        if index == -1:
-                            index = tmp_index
-                        else:
-                            index = min(index, tmp_index)
+                if tmp_index == 0:
+                    tmp_index = search_txt[:-1][::-1].find(word_separator_char)
 
-                if index == -1:
-                    cursor = 0
-                else:
-                    cursor -= index + 1
-                    cursor = max(cursor, 0)
-                kill_ring_active = False
-
-            elif key2 == ord('b'):
-                # Backwards word
-                search_txt = usrtxt[:-cursor] if cursor > 0 else usrtxt
-                index = -1
-                for word_separator_char in word_separator_chars:
-                    tmp_index = search_txt[::-1].find(word_separator_char)
-
-                    if tmp_index == 0:
-                        tmp_index = search_txt[:-1][::-1].find(word_separator_char)
-
-                    if tmp_index > -1:
-                        if index == -1:
-                            index = tmp_index
-                        else:
-                            index = min(index, tmp_index)
-
-                if index == -1:
-                    cursor = len(usrtxt)
-                else:
-                    cursor += index + 1
-                kill_ring_active = False
-
-            elif key2 == ord('y'):
-                prev_kill_ring_index = kill_ring_index
-                kill_ring_index = (kill_ring_index + 1)%len(kill_ring)
-                if kill_ring_active and len(kill_ring):
-                    if cursor == 0:
-                        usrtxt = usrtxt[:-len(kill_ring[prev_kill_ring_index])]
-                        usrtxt += kill_ring[kill_ring_index]
+                if tmp_index > -1:
+                    if index == -1:
+                        index = tmp_index
                     else:
-                        usrtxt = usrtxt[-cursor:-(cursor+len(kill_ring[prev_kill_ring_index]))]
-                        usrtxt = usrtxt[:-cursor] + kill_ring[kill_ring_index] + usrtxt[-cursor:]
-            # Return to delayed getch
-            stdscr.nodelay(False)
+                        index = min(index, tmp_index)
+
+            if index == -1:
+                cursor = len(usrtxt)
+            else:
+                cursor += index + 1
+            kill_ring_active = False
+
+        elif key == keycodes.META_y:
+            # Kill ring
+            prev_kill_ring_index = kill_ring_index
+            kill_ring_index = (kill_ring_index + 1)%len(kill_ring)
+            if kill_ring_active and len(kill_ring):
+                if cursor == 0:
+                    usrtxt = usrtxt[:-len(kill_ring[prev_kill_ring_index])]
+                    usrtxt += kill_ring[kill_ring_index]
+                else:
+                    usrtxt = usrtxt[-cursor:-(cursor+len(kill_ring[prev_kill_ring_index]))]
+                    usrtxt = usrtxt[:-cursor] + kill_ring[kill_ring_index] + usrtxt[-cursor:]
 
         elif key == 3:                                                           # ctrl+c
             # Immediate exit

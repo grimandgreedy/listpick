@@ -40,6 +40,7 @@ from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
 from listpick.ui.footer import StandardFooter, CompactFooter, NoFooter
 from listpick.utils.picker_log import setup_logger
+from listpick.utils.user_input import get_char, open_tty
 
 
 try:
@@ -186,6 +187,8 @@ class Picker:
         sheet_name = "Untitled",
         sheet_index = 0,
         sheet_states = [{}],
+
+        redraw_screen_accessory: Callable = lambda : None,
 
     ):
         self.stdscr = stdscr
@@ -335,6 +338,7 @@ class Picker:
         self.sheet_states = sheet_states
         self.sheets = sheets
 
+        self.redraw_screen_accessory = redraw_screen_accessory
         self.initialise_picker_state(reset_colours=self.reset_colours)
 
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
@@ -747,6 +751,8 @@ class Picker:
 
     def draw_screen_(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
+
+        self.redraw_screen_accessory()
         self.logger.debug("Draw screen.")
 
         if clear:
@@ -1236,6 +1242,7 @@ class Picker:
             "sheets":                           self.sheets,
             "sheet_name":                       self.sheet_name,
             "sheet_states":                     self.sheet_states,
+            "redraw_screen_accessory":          self.redraw_screen_accessory,
         }
         return function_data
 
@@ -1270,6 +1277,7 @@ class Picker:
             "centre_in_terminal_vertical",
             "centre_in_cols",
             "centre_in_terminal",
+            "redraw_screen_accessory",
         ]
 
         for var in variables:
@@ -1409,6 +1417,11 @@ class Picker:
 
             submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
             # submenu_win = self.stdscr.subwin(notification_height, notification_width, 3, w - (notification_width+4))
+            def update_after_resize():
+                h, w = self.stdscr.getmaxyx()
+                submenu_win.mvwin(3, w - (notification_width+4))
+                self.draw_screen(self.indexed_items, self.highlights)
+                
             notification_data = {
                 "items": submenu_items,
                 "title": title,
@@ -1430,9 +1443,14 @@ class Picker:
                 "loaded_file": "",
                 "loaded_file_index": 0,
                 "cell_cursor": False,
+                # "redraw_screen_accessory": lambda : self.draw_screen(self.indexed_items, self.highlights),
+                "redraw_screen_accessory": update_after_resize,
+                "get_new_data": False,
+                # "key_remappings": notification_remap_keys,
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
+            os.system(f"notify-send resizing")
 
             if o != "refresh": break
             submenu_win.clear()
@@ -1441,6 +1459,7 @@ class Picker:
             stdscr.clear()
             stdscr.refresh()
             self.draw_screen(self.indexed_items, self.highlights)
+
         # set_colours(colours=get_colours(0))
 
     def toggle_column_visibility(self, col_index:int) -> None:
@@ -3580,50 +3599,6 @@ def unrestrict_curses(stdscr: curses.window) -> None:
     curses.curs_set(False)
 
 
-def open_tty():
-    """ Return a file descriptor for the tty that we are opening"""
-    tty_fd = os.open('/dev/tty', os.O_RDONLY)
-    tty.setraw(tty_fd)
-    return tty_fd
-
-def get_char(tty_fd, timeout: float = 0.2, secondary: bool = False) -> int:
-    """ Get character from a tty_fd with a timeout. """
-    rlist, _, _ = select.select([tty_fd], [], [], timeout)
-    if rlist:
-        # key = ord(tty_fd.read(1))
-        key = ord(os.read(tty_fd, 1))
-        if not secondary:
-            if key == 27:
-                key2 = get_char(tty_fd, timeout=0.01, secondary=True)
-                key3 = get_char(tty_fd, timeout=0.01, secondary=True)
-                key4 = get_char(tty_fd, timeout=0.01, secondary=True)
-                key5 = get_char(tty_fd, timeout=0.01, secondary=True)
-                if key2 == ord('O') and key3 == ord('B'):
-                    key = curses.KEY_DOWN
-                elif key2 == ord('O') and key3 == ord('A'):
-                    key = curses.KEY_UP
-                elif key2 == ord('O') and key3 == ord('D'):
-                    key = curses.KEY_LEFT
-                elif key2 == ord('O') and key3 == ord('C'):
-                    key = curses.KEY_RIGHT
-                elif key2 == ord('[') and key3 == ord('Z'):
-                    key = 353
-                elif key2 == ord('O') and key3 == ord('F'):
-                    key = curses.KEY_END
-                elif key2 == ord('O') and key3 == ord('H'):
-                    key = curses.KEY_HOME
-                elif key2 == ord('[') and key3 == ord('3') and key4 == ord('~'):
-                    key = curses.KEY_DC
-                elif key2 == ord('[') and key3 == ord('3') and key4 == ord('~'):
-                    key = curses.KEY_DC
-                elif key2 == ord('O') and key3 == ord('P'):
-                    key = curses.KEY_F1
-                elif key2 == ord('[') and key3 == ord('1') and key4 == ord('5') and key5 == ord('~'):
-                    key = curses.KEY_F5
-
-    else:
-        key = -1
-    return key
 
 def main() -> None:
     """ Main function when listpick is executed. Deals with command line arguments and starts a Picker. """
