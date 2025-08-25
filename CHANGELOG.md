@@ -24,6 +24,9 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
    - meta+key (input_field)
  - Added column number to footer
  - Improved splitting of whitespace separated data passed on stdin.
+ - Ensured that main picker elements resize if the terminal is resized when other dialogues are in focus: notifications, options, settings.
+ - Added method to check for terminal resize.
+   - Was necessary since we are no longer using getch from curses so we can't test whether getch() == curses.KEY_RESIZE.
 
 ## [0.1.14] 2025-08-20
  - Fixed bug when cells are centred vertically.

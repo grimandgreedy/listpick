@@ -14,12 +14,12 @@ ASAP
 > - [ ] Sheet states remain the same when switching files.
 > - [x] Deal with nan values in xlsx and ods files.
 >   - [ ] They are set to empyt strings.
-> - [ ] Fix special keys not working:
->   - [ ] May need to create separate keycodes...
->   - [ ] F1-f12
->   - [ ] Tab, shift+tab
->   - [ ] Delete, shift+delete
->   - [ ] Alt+KEY
+> - [x] Fix special keys not working:
+>   - [x] May need to create separate keycodes...
+>   - [x] F1-f12
+>   - [x] Tab, shift+tab
+>   - [x] Delete, shift+delete
+>   - [x] Alt+KEY
 >   - [x] Arrow keys
 
 

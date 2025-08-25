@@ -1370,7 +1370,6 @@ class Picker:
             "cancel_is_back": True,
             "number_columns": False,
             "reset_colours": False,
-            "cell_cursor": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1390,7 +1389,7 @@ class Picker:
             if s:
                 return {x: options[x] for x in s}, o, f
             return {}, "", f
-
+            
 
 
     def notification(self, stdscr: curses.window, message: str="", title:str="Notification", colours_end: int=0, duration:int=4) -> None:
@@ -1401,12 +1400,7 @@ class Picker:
         message_width = notification_width-5
 
         if not message: message = "!!"
-        if type(message) == type(""):
-            mw = message_width
-            submenu_items = [[message[i*mw:(i+1)*mw]] for i in range(len(message)//mw+1)]
-        elif type(message) != type([]):
-            submenu_items = [["  !!"]]
-
+        submenu_items = ["  "+message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
 
         notification_remap_keys = { 
             curses.KEY_RESIZE: curses.KEY_F5,
@@ -1416,12 +1410,6 @@ class Picker:
             h, w = stdscr.getmaxyx()
 
             submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
-            # submenu_win = self.stdscr.subwin(notification_height, notification_width, 3, w - (notification_width+4))
-            def update_after_resize():
-                h, w = self.stdscr.getmaxyx()
-                submenu_win.mvwin(3, w - (notification_width+4))
-                self.draw_screen(self.indexed_items, self.highlights)
-                
             notification_data = {
                 "items": submenu_items,
                 "title": title,
@@ -1438,19 +1426,9 @@ class Picker:
                 "cancel_is_back": True,
                 "reset_colours": False,
 
-                "loaded_files": [],
-                "loaded_file_states": [],
-                "loaded_file": "",
-                "loaded_file_index": 0,
-                "cell_cursor": False,
-                # "redraw_screen_accessory": lambda : self.draw_screen(self.indexed_items, self.highlights),
-                "redraw_screen_accessory": update_after_resize,
-                "get_new_data": False,
-                # "key_remappings": notification_remap_keys,
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
-            os.system(f"notify-send resizing")
 
             if o != "refresh": break
             submenu_win.clear()
@@ -1459,7 +1437,6 @@ class Picker:
             stdscr.clear()
             stdscr.refresh()
             self.draw_screen(self.indexed_items, self.highlights)
-
         # set_colours(colours=get_colours(0))
 
     def toggle_column_visibility(self, col_index:int) -> None:
@@ -2248,6 +2225,13 @@ class Picker:
         # Open tty to accept input
         tty_fd = open_tty()
 
+        h, w = self.stdscr.getmaxyx()
+        def terminal_resized(old_w, old_h) -> bool:
+            w, h = os.get_terminal_size()
+            if old_h != h or old_w != w: return True
+            else: return False
+
+        COLS, LINES = os.get_terminal_size()
         # Main loop
         while True:
             # key = self.stdscr.getch()
@@ -2255,7 +2239,14 @@ class Picker:
             key = get_char(tty_fd, timeout=0.2)
             if key != -1:
                 self.logger.info(f"key={key}")
+
+            self.term_resize_event = terminal_resized(COLS, LINES)
+            COLS, LINES = os.get_terminal_size()
+            if self.term_resize_event: 
+                key = curses.KEY_RESIZE
+
             h, w = self.stdscr.getmaxyx()
+
             if key in self.disabled_keys: continue
             clear_screen=True
 
@@ -3110,7 +3101,7 @@ class Picker:
                 self.logger.info(f"key_function opts_select")
                 s, o, f = self.choose_option(self.stdscr, self.options_list)
                 if self.user_opts.strip(): self.user_opts += " "
-                self.user_opts += " ".join([x for x in s.values()])
+                self.user_opts += " ".join([x[0] for x in s.values()])
             elif self.check_key("notification_toggle", key, self.keys_dict):
                 self.logger.info(f"key_function notification_toggle")
                 self.notification(self.stdscr, colours_end=self.colours_end)
