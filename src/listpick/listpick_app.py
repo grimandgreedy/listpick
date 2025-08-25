@@ -352,9 +352,17 @@ class Picker:
                 size += sys.getsizeof(getattr(self, attr_name))
         return size
     
-    def set_config(self, path: str ="~/.config/listpick/config.toml"):
+    def set_config(self, path: str ="~/.config/listpick/config.toml") -> bool:
         """ Set config from toml file. """
-        config = self.get_config(path)
+        path = os.path.expanduser(os.path.expandvars(path))
+        if not os.path.exists(path):
+            return False
+        try:
+            config = self.get_config(path)
+        except Exception as e:
+            self.logger.error(f"get_config({path}) load error. {e}")
+            return False
+
         self.logger.info(f"function: set_config()")
         if "general" in config:
             for key, val in config["general"].items():
@@ -363,16 +371,17 @@ class Picker:
                     setattr(self, key, val)
                 except Exception as e:
                     self.logger.error(f"set_config: key={key}, val={val}. {e}")
+        return True
+
 
 
     def get_config(self, path: str ="~/.config/listpick/config.toml") -> dict:
         """ Get config from file. """
         self.logger.info(f"function: get_config()")
         import toml
-        if os.path.exists(os.path.expanduser(path)):
-            with open(os.path.expanduser(path), "r") as f:
-                config = toml.load(f)
-                return config
+        with open(os.path.expanduser(path), "r") as f:
+            config = toml.load(f)
+            return config
 
     def calculate_section_sizes(self):
         """

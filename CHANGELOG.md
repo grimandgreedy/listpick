@@ -14,6 +14,7 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
    - This was necessary to ensure that we can pipe data in via stdin and still receive user input.
  - Bugs fixed:
    - Closing files causes issues switching between files.
+   - Fixed crash when loading non-existent config file.
  - Create ~/.config/listpick directory for storing input history if it doesn't already exist.
  - Added error checking when opening files.
  - Added --headerless flag to prevent interpreting the first line of the input as the header.
