@@ -360,3 +360,26 @@ def get_theme_count() -> int:
             break
         col_list.append(x)
     return i
+
+def check_for_missing_keys():
+    """ Check if any of the colour_dicts have missing keys--i.e., if their keys are incongruous. """
+    ref = 0
+    count = get_theme_count()
+
+    colours = [get_colours(i) for i in range(count)]
+
+    diffs = []
+    for i in range(count):
+        print(f"{i}")
+        for j in range(count):
+            diff = set(colours[i].keys()) - set(colours[j].keys())
+            print(f"    colours[{i}] - colours[{j}] = {diff}")
+            if diff:
+                diffs.append(f"    colours[{i}] - colours[{j}] = {diff}")
+
+    if diffs:
+        print("*"*80)
+        print("*"*80)
+        for d in diffs:
+            print(d)
+
