@@ -3190,10 +3190,11 @@ class Picker:
 
                     if not selected_indices:
                         if len(self.indexed_items):
-                            if " " in self.items[self.cursor_pos][self.selected_column]:
-                                full_values = [repr(self.items[self.cursor_pos][self.selected_column])]
+                            pos = self.indexed_items[self.cursor_pos][0]
+                            if " " in self.items[pos][self.selected_column]:
+                                full_values = [repr(self.items[pos][self.selected_column])]
                             else:
-                                full_values = [self.items[self.cursor_pos][self.selected_column]]
+                                full_values = [self.items[pos][self.selected_column]]
 
                         else:
                             return None

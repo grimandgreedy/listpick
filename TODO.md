@@ -22,6 +22,7 @@ ASAP
 >   - [x] Alt+KEY
 >   - [x] Arrow keys
 > - [x] Add new keycodes to build_help().
+> - [ ] Search count is off
 
 
 
