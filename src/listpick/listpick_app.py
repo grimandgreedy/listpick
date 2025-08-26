@@ -3182,11 +3182,17 @@ class Picker:
                 if return_val:
                     selected_indices = get_selected_indices(self.selections)
                     self.history_pipes.append(usrtxt)
-                    if not selected_indices:
-                        selected_indices = [self.indexed_items[self.cursor_pos][0]]
 
-                    # full_values = [format_row_full(self.items[i], self.hidden_columns) for i in selected_indices]  # Use format_row_full for full data
-                    if self.cell_cursor:
+                    if not selected_indices:
+                        if len(self.indexed_items):
+                            if " " in self.items[self.cursor_pos][self.selected_column]:
+                                full_values = [repr(self.items[self.cursor_pos][self.selected_column])]
+                            else:
+                                full_values = [self.items[self.cursor_pos][self.selected_column]]
+
+                        else:
+                            return None
+                    elif self.cell_cursor:
                         
                         full_values = []
                         for row in self.selected_cells_by_row.keys():
@@ -3199,11 +3205,16 @@ class Picker:
                                 selected_cell_row_str += "\t"
                             full_values.append(selected_cell_row_str.strip())
 
-
-                        # full_values = ["\t".join([repr(self.items[key][cell]) for cell in self.selected_cells_by_row[key]]) for key in self.selected_cells_by_row.keys()]
-                        # full_values = ["\t".join([self.items[key][cell] for cell in self.selected_cells_by_row[key]]) for key in self.selected_cells_by_row.keys()]
                     else:
-                        full_values = [self.items[i][self.selected_column] for i in selected_indices]
+                        full_values = []
+                        for i in selected_indices:
+                            selected_cell_row_str = ""
+                            if " " in self.items[i][self.selected_column]:
+                                selected_cell_row_str += repr(self.items[i][self.selected_column])
+                            else:
+                                selected_cell_row_str += str(self.items[i][self.selected_column])
+                            full_values.append(selected_cell_row_str)
+
                     if full_values:
                         # command = usrtxt.split()
                         command = usrtxt

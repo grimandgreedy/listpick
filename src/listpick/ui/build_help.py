@@ -124,7 +124,7 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "paste":                            "Paste into picker.",
         "save":                             "Save selections.",
         "load":                             "Load from file.",
-        "open":                             "Open from file.",
+        "open":                             "Attempt to open file with selected cell value(s).",
         "toggle_footer":                    "Toggle footer.",
         "notification_toggle":              "Toggle empty notification.",
         "redo":                             "Redo.",
