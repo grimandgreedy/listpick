@@ -21,6 +21,7 @@ ASAP
 >   - [x] Delete, shift+delete
 >   - [x] Alt+KEY
 >   - [x] Arrow keys
+> - [x] Add new keycodes to build_help().
 
 
 

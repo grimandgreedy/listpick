@@ -188,7 +188,6 @@ class Picker:
         sheet_index = 0,
         sheet_states = [{}],
 
-        redraw_screen_accessory: Callable = lambda : None,
 
     ):
         self.stdscr = stdscr
@@ -338,7 +337,6 @@ class Picker:
         self.sheet_states = sheet_states
         self.sheets = sheets
 
-        self.redraw_screen_accessory = redraw_screen_accessory
         self.initialise_picker_state(reset_colours=self.reset_colours)
 
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
@@ -752,7 +750,6 @@ class Picker:
     def draw_screen_(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
         """ Draw Picker screen. """
 
-        self.redraw_screen_accessory()
         self.logger.debug("Draw screen.")
 
         if clear:
@@ -1242,7 +1239,6 @@ class Picker:
             "sheets":                           self.sheets,
             "sheet_name":                       self.sheet_name,
             "sheet_states":                     self.sheet_states,
-            "redraw_screen_accessory":          self.redraw_screen_accessory,
         }
         return function_data
 
@@ -1277,7 +1273,6 @@ class Picker:
             "centre_in_terminal_vertical",
             "centre_in_cols",
             "centre_in_terminal",
-            "redraw_screen_accessory",
         ]
 
         for var in variables:

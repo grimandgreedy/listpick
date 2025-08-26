@@ -7,16 +7,18 @@ Author: GrimAndGreedy
 License: MIT
 """
 
-from listpick.ui.keys import picker_keys
+from listpick.ui.keys import picker_keys, notification_keys
 import curses
 import logging
+from listpick.utils import keycodes
 
 logger = logging.getLogger('picker_log')
 
-def build_help_rows(keys_dict: dict) -> list[list[str]]:
+def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
     """ Build help rows based on the keys_dict. """
 
     logger.info(f"function: build_help_rows() (build_help.py)")
+
     ## Key names
     special_keys = {
 
@@ -35,15 +37,34 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
             ord('\n'): "\n",
             curses.KEY_DC: "Delete",
             383: "Shift+Delete",
+            ord("\t"): "Tab",
+            curses.KEY_BACKSPACE: "Backspace",
+            keycodes.META_BS: "Alt+Backspace",
     }
 
     # Ctrl + [a-z]
     for i in range(26):
         special_keys[i+1] = f"Ctrl+{chr(ord('a')+i)}"
+        if i == 8:
+            special_keys[i+1] = f"Tab/Ctrl+{chr(ord('a')+i)}"
+
 
     # F1-F12
     for i in range(12):
         special_keys[curses.KEY_F1+i] = f"F{i+1}"
+
+    # Alt+[a-z]
+    for i in range(26):
+        special_keys[keycodes.META_a +i] = f"Alt+{chr(ord('a')+i)}"
+
+    # Alt+[A-Z]
+    for i in range(26):
+        special_keys[keycodes.META_A +i] = f"Alt+{chr(ord('A')+i)}"
+
+    # Alt+[0-9]
+    for i in range(10):
+        special_keys[keycodes.META_0] = f"Alt+{i}"
+
 
     ## Key descriptions
     help_descriptions = {
@@ -119,14 +140,16 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         "info":                             "Display info screen.",
         "file_next":                        "Go to the next open file.",
         "file_prev":                        "Go to the previous open file.",
+        "sheet_next":                       "Go to the next sheet.",
+        "sheet_prev":                       "Go to the previous sheet.",
     }
     sections = {
         "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_far_right", "scroll_far_left" ],
         "Selection:": [ "toggle_select", "select_all", "select_none", "visual_selection_toggle", "visual_deselection_toggle", "enter" ],
         "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle" ],
         "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
-        "Data manipulation:": [ "delete", "delete_column", "edit", "edit_picker", "edit_ipython", "add_column", "add_row" ],
-        "Filter and sort:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
+        "Data manipulation:": [ "delete", "delete_column", "edit", "edit_picker", "edit_ipython", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
+        "Filter and sort:": [ "filter_input", "x", "search_input", "continue_search_forward", "continue_search_backward", ] ,
         "Settings:": [ "settings_input", "settings_options" ],
         "Cancel:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
         "Save, load, copy and paste:": [ "save", "load", "open", "copy", "paste" ],
@@ -148,36 +171,48 @@ def build_help_rows(keys_dict: dict) -> list[list[str]]:
         section_rows = []
         
         for operation in section_operations:
-            try:
-                keys = [chr(int(key)) if key not in special_keys else special_keys[key] for key in keys_dict[operation]]
+            keys = []
+            if operation in keys_dict:
+                for key in keys_dict[operation]:
+                    if key in special_keys:
+                        keys.append(special_keys[key])
+                    else:
+                        try:
+                            keys.append(chr(int(key)))
+                        except Exception as e:
+                            keys.append(f"keycode={key}")
+                            if debug: print(f"Error chr({key}): {e}")
+            else:
+                if debug: print(f"Note that {operation} is not in the keys_dict")
+                continue
+
+
+
+            if operation in help_descriptions:
                 description = help_descriptions[operation]
-                row = [f"    {str(keys)[1:-1]}", description]
-                section_rows.append(row)
-            except:
-                pass
+            else:
+                if debug: print(f"Operation={operation} has no description.")
+                description = "..."
+
+            row = [f"    {str(keys)[1:-1]}", description]
+            section_rows.append(row)
         if section_rows:
             items.append([section_name, ""])
             items += section_rows
             items.append(["",""])
 
-    # [[key_name, key_function_description], ...]
-    # for val, keys in keys_dict.items():
-    #     try: 
-    #         row = [[chr(int(key)) if key not in special_keys else special_keys[key] for key in keys], help_descriptions[val]]
-    #         items.append(row)
-    #     except:
-    #         pass
-
     return items
 
 if __name__ == "__main__":
-    from listpick.listpick_app import Picker, start_curses, close_curses
-    items = build_help_rows(picker_keys)
-    stdscr = start_curses()
-    x = Picker(
-        stdscr,
-        items=items
-    )
-    x.run()
+    items = build_help_rows(picker_keys, debug=True)
+    items = build_help_rows(notification_keys, debug=True)
 
-    close_curses(stdscr)
+    # from listpick.listpick_app import Picker, start_curses, close_curses
+    # stdscr = start_curses()
+    # x = Picker(
+    #     stdscr,
+    #     items=items
+    # )
+    # x.run()
+    #
+    # close_curses(stdscr)
