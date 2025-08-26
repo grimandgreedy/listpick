@@ -365,6 +365,12 @@ class Picker:
             self.logger.error(f"get_config({path}) load error. {e}")
             return False
 
+        if "general" in config:
+            if "colour_theme_number" in config["general"] and config["general"]["colour_theme_number"] != self.colour_theme_number:
+                global COLOURS_SET 
+                COLOURS_SET = False
+                self.colours_end = set_colours(pick=config["general"]["colour_theme_number"], start=1)
+
         self.logger.info(f"function: set_config()")
         if "general" in config:
             for key, val in config["general"].items():
@@ -373,9 +379,8 @@ class Picker:
                     setattr(self, key, val)
                 except Exception as e:
                     self.logger.error(f"set_config: key={key}, val={val}. {e}")
+                    
         return True
-
-
 
     def get_config(self, path: str ="~/.config/listpick/config.toml") -> dict:
         """ Get config from file. """
