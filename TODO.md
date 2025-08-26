@@ -370,6 +370,8 @@ ASAP
 >   - [x] Some can't be switched to...
 >   - [x] Fixed.
 > - [x] Highlighted cells display padded cell string when it should not be padded.
+> - [x] When there is an active search it overlaps the last row.
+>   - [x] Update footer height when there is a search query.
 
 
 

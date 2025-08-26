@@ -85,6 +85,9 @@ class StandardFooter(Footer):
             self.sheets_y -= 1
 
             self.files_y = h-1
+        if state["search_query"] and self.height < 3:
+            self.height = 3
+
 
     def draw(self, h, w):
         state = self.get_state()

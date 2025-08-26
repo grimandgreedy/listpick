@@ -16,6 +16,7 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
    - Closing files causes issues switching between files.
    - Fixed crash when loading non-existent config file.
    - Fixed highlighted cell not being aligned in the way that we expect.
+   - Fixed search query covering last row of data.
  - Create ~/.config/listpick directory for storing input history if it doesn't already exist.
  - Added error checking when opening files.
  - Added --headerless flag to prevent interpreting the first line of the input as the header.
