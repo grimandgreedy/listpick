@@ -17,12 +17,13 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
    - Fixed crash when loading non-existent config file.
    - Fixed highlighted cell not being aligned in the way that we expect.
    - Fixed search query covering last row of data.
+   - Discovered missing keys from colour_theme 0 which caused menus not to be displayed.
  - Create ~/.config/listpick directory for storing input history if it doesn't already exist.
  - Added error checking when opening files.
  - Added --headerless flag to prevent interpreting the first line of the input as the header.
  - Fixed special keys not working:
-   - arrow keys (main picker)
-   - meta+key (input_field)
+   - arrow keys (main picker, input_field)
+   - meta+key (input_field, main picker)
  - Added column number to footer
  - Improved splitting of whitespace separated data passed on stdin.
  - Ensured that main picker elements resize if the terminal is resized when other dialogues are in focus: notifications, options, settings.

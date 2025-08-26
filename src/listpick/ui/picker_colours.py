@@ -67,6 +67,8 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         'footer_string_fg': 253,
         'selected_cell_bg': 237,
         'selected_cell_fg': 253,
+        'deselecting_cell_bg': 162,
+        'deselecting_cell_fg': 253,
     },
         ### (1) Black and white
     {
@@ -286,6 +288,9 @@ def get_colours(pick:int=0) -> Dict[str, int]:
         colour["paused_bg"] = colour["background"]
         colour["paused_bg"] = colour["background"]
         # colour["search_bg"] = colour["background"]
+    # tmp = colours[0]
+    # colours[0] = colours[2]
+    # colours[2] = tmp
     if pick > len(colours) - 1:
         return colours[0]
     return colours[pick]

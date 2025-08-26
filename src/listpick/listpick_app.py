@@ -451,7 +451,7 @@ class Picker:
             if reset_colours:
                 global COLOURS_SET
                 COLOURS_SET = False
-                colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+                self.colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
             if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
                 self.colours_start = self.colours_start
                 self.notification_colours_start = self.colours_start+50
@@ -3447,7 +3447,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
         curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
         curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
         curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
-    except:
+    except Exception as e:
         pass
     COLOURS_SET = True
     return start+21
@@ -3598,7 +3598,7 @@ def main() -> None:
     except:
         pass
         
-    function_data["colour_theme_number"] = 3
+    # function_data["colour_theme_number"] = 3
     # function_data["modes"]  = [ 
     #     {
     #         'filter': '',
