@@ -84,6 +84,9 @@ picker_keys = {
     "info":                             [ord('i')], 
     "file_next":                             [ord('}')], 
     "file_prev":                             [ord('{')], 
+    # "sheet_next":                           [],
+    # "sheet_prev":                           [],
+    "toggle_right_pane":                             [ord("'")], 
 }
 
 

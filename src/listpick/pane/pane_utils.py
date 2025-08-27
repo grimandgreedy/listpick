@@ -27,7 +27,6 @@ def get_graph_string(x_vals, y_vals, width=50, height=20, title=None, x_label=No
     fig.plot(x_vals, y_vals)
     
     # Set the dimensions of the graph
-    fig.title = "hi"
     fig.width = width-10
     fig.height = height-4
     fig.x_ticks_fkt = lambda x, _: f"{int(x)}s"

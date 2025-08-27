@@ -1,12 +1,16 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
-## [0.1.16] 2025-??-??
+## [0.1.15.1] 2025-07-27
+ - Added key to toggle right pane.
+ - Improved appearance of help screen.
+
+## [0.1.15.0] 2025-07-27
  - Feature added: support for dynamic data display in a right pane.
  - Bugs fixed:
    - Fixed ipython not working when data is piped into the picker.
 
-## [0.1.15] 2025-08-27
+## [0.1.14.0] - [0.1.14.14] 2025-08-24
  - Added info screen to display all information on the running Picker.
  - Added keys for file_next and file_prev
  - Added __sizeof__() function for the Picker class.

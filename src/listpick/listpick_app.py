@@ -2386,7 +2386,7 @@ class Picker:
                     "highlight_full_row": True,
                     "top_gap": 0,
                     "paginate": self.paginate,
-                    "centre_in_terminal": True,
+                    "centre_in_terminal": False,
                     "centre_in_terminal_vertical": True,
                     "hidden_columns": [],
                     "reset_colours": False,
@@ -3222,6 +3222,9 @@ class Picker:
             elif self.check_key("file_prev", key, self.keys_dict):
                 self.switch_file(increment=-1)
 
+            elif self.check_key("toggle_right_pane", key, self.keys_dict):
+                self.toggle_right_pane()
+
             elif self.check_key("pipe_input", key, self.keys_dict):
                 self.logger.info(f"key_function pipe_input")
                 # usrtxt = "xargs -d '\n' -I{}  "
@@ -3744,17 +3747,20 @@ def main() -> None:
     # function_data["paginate"] = True
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
-    # function_data["split_right"] = True
-    # function_data["split_right_proportion"] = 2/3
-    # function_data["split_right_refresh_data"] = data_refresh_randint_title
+
+    function_data["split_right"] = True
+    function_data["split_right_proportion"] = 2/3
+    function_data["split_right_refresh_data"] = data_refresh_randint_title
+    function_data["split_right_function"] = right_split_display_list
+    function_data["split_right_data"] = ["Files", [str(x) for x in range(100)]]
+
+
     # function_data["split_right_refresh_data"] = get_dl
 
 
     # function_data["split_right_function"] = right_split_file_attributes
     # function_data["split_right_auto_refresh"] = True
     # function_data["split_right_function"] = right_split_graph
-    # function_data["split_right_function"] = right_split_display_list
-    # function_data["split_right_data"] = ["Files", [str(x) for x in range(100)]]
 
     stdscr = start_curses()
     try:
