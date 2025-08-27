@@ -2037,7 +2037,11 @@ class Picker:
             self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
 
             if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
-                self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
+                try:
+                    self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
+                except:
+                    self.logger.warning(f"fetch_data() len(indexed_items)={len(self.indexed_items)}, cusor_pos={self.cursor_pos}")
+                    self.cursor_pos_id = -1
                 self.cursor_pos_prev = self.cursor_pos
         with self.data_lock:
             self.items, self.header = tmp_items, tmp_header
@@ -2365,7 +2369,8 @@ class Picker:
                 self.footer_string = self.footer_string_refresh_function()
                 initial_time_footer = time.time()
                 self.draw_screen(self.indexed_items, self.highlights)
-            if self.split_right_auto_refresh and ((time.time() - initial_split_time) > self.split_right_refresh_data_timer):
+
+            if self.split_right and self.split_right_auto_refresh and ((time.time() - initial_split_time) > self.split_right_refresh_data_timer):
                 self.split_right_data = self.split_right_refresh_data(self.split_right_data, self.get_function_data())
                 initial_split_time = time.time()
 

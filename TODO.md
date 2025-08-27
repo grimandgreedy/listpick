@@ -143,6 +143,14 @@ ASAP
 > - [x] Allow data to be piped into listpick.
 >   - [x] When data is piped in it links stdin with the pipe...
 >     - [x] Rather than getting user input from stdin we can get it by getting a fd for /dev/tty and reading chars from there.
+> - [ ] Implement panes which can display various data
+>   - [x] Right pane
+>   - [ ] Types of data:
+>     - [x] Lists
+>     - [x] Graphs
+>  - [ ] Left pane
+>  - [ ] top/bottom panes?
+
 
 
 

@@ -1,6 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.15.3] 2025-07-27
+ - Added error checking when setting the cursor_pos_id in fetch_data.
+
 ## [0.1.15.1] 2025-07-27
  - Added key to toggle right pane.
  - Improved appearance of help screen.
