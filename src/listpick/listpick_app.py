@@ -3195,14 +3195,21 @@ class Picker:
                             if 'filter' in self.modes[prev_mode_index]:
                                 self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
                             self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
-                            prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
+
+                            if len(self.indexed_items) == 0:
+                                prev_index = -1
+                            else:
+                                prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
 
                             self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
-                            if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
-                            else: new_index = 0
+                            if prev_index >= 0 and prev_index in [x[0] for x in self.indexed_items]:
+                                new_index = [x[0] for x in self.indexed_items].index(prev_index)
+                            else:
+                                new_index = 0
                             self.cursor_pos = new_index
                             # Re-sort self.items after applying filter
-                            sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
+                            if len(self.items) and self.items != [[]]:
+                                sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("mode_prev", key, self.keys_dict): # shift+tab key
                 self.logger.info(f"key_function mode_prev")
                 if len(self.modes):
@@ -3215,6 +3222,8 @@ class Picker:
                                 self.filter_query = self.filter_query.replace(self.modes[prev_mode_index]['filter'], '')
                             self.filter_query = f"{self.filter_query.strip()} {val.strip()}".strip()
                             prev_index = self.indexed_items[self.cursor_pos][0] if len(self.indexed_items)>0 else 0
+
+                            # if len(self.items) and self.items != [[]]:
                             self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
                             if prev_index in [x[0] for x in self.indexed_items]: new_index = [x[0] for x in self.indexed_items].index(prev_index)
                             else: new_index = 0
@@ -3726,13 +3735,14 @@ def main() -> None:
     #         'name': 'mp4',
     #     },
     # ]
-    highlights = [
-        {
-            "field": 1,
-            "match": "a",
-            "color": 8,
-        }
-    ]
+    # function_data["highlights"] = [
+    #     {
+    #         "field": 1,
+    #         "match": "a",
+    #         "color": 8,
+    #     }
+    # ]
+
     # function_data["cell_cursor"] = True
     # function_data["display_modes"] = True
     # function_data["centre_in_cols"] = True
@@ -3747,17 +3757,17 @@ def main() -> None:
     # function_data["infobox_items"] = [["1"], ["2"], ["3"]]
     # function_data["infobox_title"] = "Title"
     # function_data["footer_string"] = "Title"
-    function_data["highlights"] = highlights
     # function_data["show_footer"] = False
     # function_data["paginate"] = True
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
 
-    function_data["split_right"] = True
-    function_data["split_right_proportion"] = 2/3
-    function_data["split_right_refresh_data"] = data_refresh_randint_title
-    function_data["split_right_function"] = right_split_display_list
-    function_data["split_right_data"] = ["Files", [str(x) for x in range(100)]]
+
+    # function_data["split_right"] = True
+    # function_data["split_right_proportion"] = 2/3
+    # function_data["split_right_refresh_data"] = data_refresh_randint_title
+    # function_data["split_right_function"] = right_split_display_list
+    # function_data["split_right_data"] = ["Files", [str(x) for x in range(100)]]
 
 
     # function_data["split_right_refresh_data"] = get_dl

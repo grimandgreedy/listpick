@@ -1,6 +1,11 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.15.5] 2025-07-27
+ - Fixed error with filtering when there are no rows (i.e., items=[[]])
+ - Fixed error with changing modes when there are no rows (i.e., items=[[]]).
+
+Fixed errors caused by filtering when items=[[]]; this also fixed problems changing modes when items=[[]].
 ## [0.1.15.3] 2025-07-27
  - Added error checking when setting the cursor_pos_id in fetch_data.
 

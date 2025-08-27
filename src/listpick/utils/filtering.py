@@ -34,6 +34,7 @@ def filter_items(items: list[list[str]], indexed_items: list[Tuple[int, list[str
     Returns indexed_items, which is a list of tuples; each tuple consists of the index and the data of the matching row in the original items list. 
     """
     logger.info("function: filter_items (filtering.py)")
+    if items in [[], [[]]]: return []
 
 
     invert_filter = False
