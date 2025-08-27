@@ -209,7 +209,7 @@ class StandardFooter(Footer):
         max_chars = min(len(sort_disp_str)+2, w)
         self.stdscr.addstr(self.sort_info_y, w-max_chars, f"{sort_disp_str:>{max_chars-1}}", curses.color_pair(self.colours_start+20))
 
-        self.stdscr.refresh()
+        # self.stdscr.refresh()
 
 
 
