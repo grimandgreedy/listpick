@@ -1,7 +1,7 @@
 # TODO for listpick
 
 
-ASAP
+> [!IMPORTANT] ASAP
 > - [ ] Unify in-app load and command-line input file
 > - [ ] Implement default_option_selector and pass the picker options (!!!)
 > - [ ] Make sure that all class initialisation variables are returned in the get_function_variables function.
@@ -23,6 +23,11 @@ ASAP
 >   - [x] Arrow keys
 > - [x] Add new keycodes to build_help().
 > - [ ] Search count is off
+> - [x] Cell isn't highlighted properly when cell beginning is offscreen
+>   - [x] ~/items.csv
+> - [x] Selected column isn't highlighted properly when cell beginning is offscreen
+> - [x] Header rows not aligned properly sometimes...
+> - [ ] Check leftmost_char after resizing
 
 
 
@@ -381,6 +386,8 @@ ASAP
 > - [x] Highlighted cells display padded cell string when it should not be padded.
 > - [x] When there is an active search it overlaps the last row.
 >   - [x] Update footer height when there is a search query.
+> - [x] Header columns are not aligned with long header values.
+>   - [x] Done: 2025-08-27
 
 
 

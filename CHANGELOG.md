@@ -1,7 +1,13 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
-## [0.1.15.5] 2025-07-27
+## [0.1.15.7] 2025-07-28
+ - Fixed header column alignment problems which popped up with some datasets.
+
+## [0.1.15.6] 2025-07-27
+ - Fixed misaligned header with very long header values.
+
+## [0.1.15.4] 2025-07-27
  - Fixed error with filtering when there are no rows (i.e., items=[[]])
  - Fixed error with changing modes when there are no rows (i.e., items=[[]]).
 

@@ -34,7 +34,7 @@ def clip_left(text, n):
         if width + char_width > n:
             return text[i:]
         width += char_width
-    return text  # If the total width is less than n, return the full string
+    return ""
 
 def truncate_to_display_width(text: str, max_column_width: int, centre=False, unicode_char_width: bool = True) -> str:
     """ 

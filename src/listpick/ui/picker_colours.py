@@ -340,7 +340,7 @@ def get_notification_colours(pick:int=0) -> Dict[str, int]:
     else:
         colours['background'] = 237
         colours['unselected_bg'] = 237
-        colours['cursor_bg'] = 237
+        colours['cursor_bg'] = 238
         colours['selected_bg'] = 237
 
     return colours

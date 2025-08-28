@@ -866,7 +866,11 @@ class Picker:
                 number = f"{i}. " if self.number_columns else ""
                 # number = f"{intStringToExponentString(str(i))}. " if self.number_columns else ""
                 header_str += number
-                header_str += f"{self.header[i]:^{self.column_widths[i]-len(number)}}"
+                # header_str += f"{self.header[i]:^{self.column_widths[i]-len(number)}}"
+                col_str = self.header[i][:self.column_widths[i]-len(number)]
+
+
+                header_str += f"{col_str:^{self.column_widths[i]-len(number)}}"
                 header_str += self.separator
 
             header_str = header_str[self.leftmost_char:]
@@ -877,15 +881,69 @@ class Picker:
             # Highlight sort column
             try:
                 if self.selected_column != None and self.selected_column not in self.hidden_columns:
-                    if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < self.rows_w:
-                        number = f"{self.selected_column}. " if self.number_columns else ""
-                        # number = f"{intStringToExponentString(self.selected_column)}. " if self.number_columns else ""
-                        # self.startx + len(up_to_selected_col) - self.leftmost_char
-                        highlighed_col_startx = max(self.startx, self.startx + len(up_to_selected_col) - self.leftmost_char)
-                        highlighted_col_str = (number+f"{self.header[self.selected_column]:^{self.column_widths[self.selected_column]-len(number)}}") + self.separator
-                        end_of_highlighted_col_str = self.rows_w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > self.rows_w else len(highlighted_col_str)
-                        start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
-                        self.stdscr.addstr(header_ypos, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                    # start of string is on screen
+                    col_width = self.column_widths[self.selected_column]
+                    number = f"{self.selected_column}. " if self.number_columns else ""
+                    col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
+                    highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]-len(number)}}") + self.separator
+
+                    # Start of selected column is on the screen
+                    if self.leftmost_char <= len(up_to_selected_col) and self.leftmost_char+self.rows_w-self.startx > len(up_to_selected_col):
+                        x_pos = len(up_to_selected_col) - self.leftmost_char + self.startx
+                        
+                        # Whole cell of the selected column is on the screen
+                        if len(up_to_selected_col)+col_width - self.leftmost_char < self.rows_w-self.startx:
+                            disp_str = highlighted_col_str
+                            
+                        # Start of the cell is on the screen, but the end of the cell is not
+                        else:
+                            overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w - self.startx)
+                            disp_str = highlighted_col_str[:-overflow]
+
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                    # Start of the cell is to the right of the screen
+                    elif self.leftmost_char+self.rows_w <= len(up_to_selected_col):
+                        pass
+                    # The end of the cell is on the screen, the start of the cell is not
+                    elif 0 <= len(up_to_selected_col)+col_width - self.leftmost_char <= self.rows_w :
+                        x_pos = self.startx
+                        beg = self.leftmost_char - len(up_to_selected_col)
+                        disp_str = highlighted_col_str[beg:]
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                    # The middle of the cell is on the screen, the start and end of the cell are not
+                    elif self.leftmost_char <= len(up_to_selected_col) + col_width//2 <= self.leftmost_char+self.rows_w:
+                        beg = self.leftmost_char - len(up_to_selected_col)
+                        overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w)
+                        disp_str = highlighted_col_str[beg:-overflow]
+
+                        x_pos = self.startx
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                    # The cell is to the left of the screen
+                    else:
+                        pass
+
+                    # elif self.leftmost_char:
+                    #     os.system(f"notify-send 'cell is to the right of the screen'")
+
+                    #
+                    #
+                    # if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < self.rows_w:
+                    #     number = f"{self.selected_column}. " if self.number_columns else ""
+                    #     # number = f"{intStringToExponentString(self.selected_column)}. " if self.number_columns else ""
+                    #     # self.startx + len(up_to_selected_col) - self.leftmost_char
+                    #     highlighed_col_startx = max(self.startx, self.startx + len(up_to_selected_col) - self.leftmost_char)
+                    #
+                    #
+                    #     col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
+                    #     highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]}}") + self.separator
+                    #     end_of_highlighted_col_str = self.rows_w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > self.rows_w else len(highlighted_col_str)
+                    #     if (highlighed_col_startx+len(highlighted_col_str)) > self.rows_w:
+                    #         end_of_highlighted_col_str = self.rows_w-(highlighed_col_startx+len(highlighted_col_str)) 
+                    #     else:
+                    #         end_of_highlighted_col_str = len(highlighted_col_str)
+                    #
+                    #     start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
+                    #     self.stdscr.addstr(header_ypos, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str][:self.column_widths[self.selected_column]+len(self.separator)], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
             except:
                 pass
                 
@@ -898,11 +956,14 @@ class Picker:
                 else:
                     self.stdscr.addstr(y, 0, f" {self.indexed_items[idx][0]} ", curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
-        def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5):
+
+        def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5, y:int = 0):
+            
             cell_pos = sum(visible_column_widths[:col])+col*len(self.separator)-self.leftmost_char + self.startx
             # cell_width = self.column_widths[self.selected_column]
             cell_width = visible_column_widths[col] + len(self.separator)
             cell_max_width = self.rows_w-cell_pos
+
             try:
                 # Start of cell is on screen
                 if self.startx <= cell_pos <= self.rows_w:
@@ -912,17 +973,23 @@ class Picker:
                     else:
                         cell_value = self.indexed_items[row][1][col] + self.separator
                     # cell_value = cell_value[:min(cell_width, cell_max_width)-len(self.separator)]
-                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width)-len(self.separator), self.centre_in_cols, self.unicode_char_width)
-                    cell_value = cell_value + self.separator
+                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
+                    # cell_value = cell_value + self.separator
                     # cell_value = cell_value
                     cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
                     self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
                 # Part of the cell is on screen
-                elif self.startx <= cell_pos+cell_width <= self.rows_w:
+                elif self.startx <= cell_pos+cell_width and cell_pos < (self.rows_w):
                     cell_start = self.startx - cell_pos
-                    self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+colour_pair_number))
-                    cell_value = self.indexed_items[row][1][col][cell_start:visible_column_widths[col]]
+                    # self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+colour_pair_number))
+                    cell_value = self.indexed_items[row][1][col]
+                    cell_value = f"{cell_value:^{self.column_widths[col]}}"
+
+                    cell_value = cell_value[cell_start:visible_column_widths[col]][:self.rows_w-self.startx]
                     self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
+                else:
+                    pass
+                # if colour_pair_number == 5:
             except:
                 pass
 
@@ -1005,7 +1072,17 @@ class Picker:
             # row_str = truncate_to_display_width(row_str, min(w-self.startx, visible_columns_total_width))
             row_str_orig = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols, self.unicode_char_width)
             row_str_left_adj = clip_left(row_str_orig, self.leftmost_char)
-            row_str = truncate_to_display_width(row_str_left_adj, min(self.rows_w-self.startx, visible_columns_total_width), self.unicode_char_width)
+            # rowstr off screen
+            # if self.leftmost_char > len(row_str_orig):
+            #     trunc_width = 0
+            if self.leftmost_char + (self.rows_w-self.startx) <= len(row_str_orig):
+                trunc_width = self.rows_w-self.startx
+            elif self.leftmost_char <= len(row_str_orig):
+                trunc_width = len(row_str_orig) - self.leftmost_char
+            else:
+                trunc_width = 0
+
+            row_str = truncate_to_display_width(row_str_left_adj, trunc_width, self.unicode_char_width)
             # row_str = truncate_to_display_width(row_str, min(w-self.startx, visible_columns_total_width))[self.leftmost_char:]
 
             ## Display the standard row
@@ -1021,21 +1098,21 @@ class Picker:
                 # self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
                 if item[0] in self.selected_cells_by_row:
                     for j in self.selected_cells_by_row[item[0]]:
-                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25)
+                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25, y=y)
 
                 # Visually selected
                 if self.is_selecting:
                     if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25)
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25, y=y)
 
                 # Visually deslected
                 if self.is_deselecting:
                     if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26)
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26, y=y)
             # Higlight cursor row and selected rows
             elif self.highlight_full_row:
                 if self.selections[item[0]]:
@@ -1068,7 +1145,7 @@ class Picker:
             # Draw cursor
             if idx == self.cursor_pos:
                 if self.cell_cursor:
-                    highlight_cell(idx, self.selected_column, visible_column_widths)
+                    highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=5, y=y)
                 else:
                     self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             
@@ -1113,7 +1190,7 @@ class Picker:
             self.stdscr.addstr(self.term_h - 1, self.term_w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
 
         if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-            self.right_pane_previous_data = self.split_right_function(
+            self.split_right_function(
                 self.stdscr, 
                 x = self.rows_w,
                 y = self.top_space - int(bool(self.show_header and self.header)),
@@ -1422,6 +1499,7 @@ class Picker:
             "number_columns": False,
             "reset_colours": False,
             "split_right": False,
+            "cell_cursor": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1453,6 +1531,8 @@ class Picker:
 
         if not message: message = "!!"
         submenu_items = ["  "+message[i*message_width:(i+1)*message_width] for i in range(len(message)//message_width+1)]
+        for i in range(len(submenu_items)):
+            submenu_items[i] = f"{submenu_items[i]:^{message_width}}"
 
         notification_remap_keys = { 
             curses.KEY_RESIZE: curses.KEY_F5,
@@ -1478,6 +1558,7 @@ class Picker:
                 "cancel_is_back": True,
                 "reset_colours": False,
                 "split_right": False,
+                "cell_cursor": False,
 
             }
             OptionPicker = Picker(submenu_win, **notification_data)
@@ -2866,8 +2947,8 @@ class Picker:
                 self.logger.info(f"key_function scroll_right")
                 if len(self.indexed_items):
                     row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
-                    if row_width-self.leftmost_char >= self.rows_w-self.startx:
-                        self.leftmost_char = self.leftmost_char+5
+                    if row_width-self.leftmost_char >= self.rows_w-self.startx-5:
+                        self.leftmost_char += 5
 
             elif self.check_key("scroll_left", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_left")
@@ -2881,17 +2962,18 @@ class Picker:
             elif self.check_key("scroll_far_right", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_far_right")
                 longest_row_str_len = 0
-                rows = self.get_visible_rows()
-                for i in range(len(rows)):
-                    item = rows[i]
-                    row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols, self.unicode_char_width)
-                    if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                # rows = self.get_visible_rows()
+                # for i in range(len(rows)):
+                #     item = rows[i]
+                #     row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols, self.unicode_char_width)
+                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
+                longest_row_str_len = sum(self.column_widths) + (len(self.column_widths)-1)*len(self.separator)
                 # for i in range(len(self.indexed_items)):
                 #     item = self.indexed_items[i]
                 #     row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
                 #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
                 # self.notification(self.stdscr, f"{longest_row_str_len}")
-                self.leftmost_char = max(0, longest_row_str_len-self.rows_w+2+self.startx)
+                self.leftmost_char = max(0, longest_row_str_len-self.rows_w+2+self.startx+5)
                 if len(self.items):
                     self.selected_column = len(self.items[0])-1
 
@@ -2986,7 +3068,6 @@ class Picker:
 
                 self.calculate_section_sizes()
                 self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
-
                 self.draw_screen(self.indexed_items, self.highlights)
 
 
