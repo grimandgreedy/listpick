@@ -114,6 +114,7 @@ class Picker:
         cell_selections: dict[tuple[int,int], bool] = {},
         selected_cells_by_row: dict = {},
         highlight_full_row: bool =False,
+        crosshair_cursor: bool = False,
         cell_cursor: bool = True,
 
         items_per_page : int = -1,
@@ -248,6 +249,7 @@ class Picker:
         self.cell_selections = cell_selections
         self.selected_cells_by_row = selected_cells_by_row
         self.highlight_full_row = highlight_full_row
+        self.crosshair_cursor = crosshair_cursor
         self.cell_cursor = cell_cursor
 
         self.items_per_page = items_per_page
@@ -747,16 +749,26 @@ class Picker:
             return False
         return True
 
-    def splash_screen(self, message="") -> None:
+    def splash_screen(self, message=[""]) -> None:
         """ Display a splash screen with a message. Useful when loading a large data set. """
 
         self.logger.info(f"function: splash_screen({message})")
-        h, w =self.stdscr.getmaxyx()
+
         self.stdscr.bkgd(' ', curses.color_pair(2))
-        try:
-            self.stdscr.addstr(h//2, (w-len(message))//2, message, curses.color_pair(2))
-        except:
-            pass
+
+        if type(message) == type(""): message = [message]
+
+        h, w =self.stdscr.getmaxyx()
+        if len(message) > h: start_y = 0
+        else: start_y = (h-len(message))//2
+
+        for i in range(len(message)):
+            try:
+                s = message[i]
+                if len(s) > w: s = s[:w-2]
+                self.stdscr.addstr(start_y+i, (w-len(s))//2, s, curses.color_pair(2))
+            except:
+                pass
         self.stdscr.refresh()
 
     def draw_screen(self, indexed_items: list[Tuple[int, list[str]]], highlights: list[dict] = [{}], clear: bool = True) -> None:
@@ -948,27 +960,31 @@ class Picker:
                     self.stdscr.addstr(y, 0, f" {self.indexed_items[idx][0]} ", curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
 
-        def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5, y:int = 0):
+        def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5, bold: bool = False, y:int = 0):
             
             cell_pos = sum(visible_column_widths[:col])+col*len(self.separator)-self.leftmost_char + self.startx
             # cell_width = self.column_widths[self.selected_column]
             cell_width = visible_column_widths[col] + len(self.separator)
             cell_max_width = self.rows_w-cell_pos
 
+            if bold:
+                colour = curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD
+            else:
+                colour = curses.color_pair(self.colours_start+colour_pair_number)
             try:
                 # Start of cell is on screen
                 if self.startx <= cell_pos <= self.rows_w:
-                    self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], curses.color_pair(self.colours_start+colour_pair_number))
+                    self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], colour)
                     if self.centre_in_cols:
                         cell_value = f"{self.indexed_items[row][1][col]:^{cell_width-len(self.separator)}}" + self.separator
                     else:
-                        cell_value = self.indexed_items[row][1][col] + self.separator
+                        cell_value = self.indexed_items[row][1][col][:self.column_widths[col]] + self.separator
                     # cell_value = cell_value[:min(cell_width, cell_max_width)-len(self.separator)]
                     cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
                     # cell_value = cell_value + self.separator
                     # cell_value = cell_value
                     cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
-                    self.stdscr.addstr(y, cell_pos, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
+                    self.stdscr.addstr(y, cell_pos, cell_value, colour)
                 # Part of the cell is on screen
                 elif self.startx <= cell_pos+cell_width and cell_pos < (self.rows_w):
                     cell_start = self.startx - cell_pos
@@ -977,7 +993,7 @@ class Picker:
                     cell_value = f"{cell_value:^{self.column_widths[col]}}"
 
                     cell_value = cell_value[cell_start:visible_column_widths[col]][:self.rows_w-self.startx]
-                    self.stdscr.addstr(y, self.startx, cell_value, curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD)
+                    self.stdscr.addstr(y, self.startx, cell_value, colour)
                 else:
                     pass
                 # if colour_pair_number == 5:
@@ -1080,6 +1096,13 @@ class Picker:
             self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
             
 
+            ## Highlight column
+            if self.crosshair_cursor:
+                highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=27, bold=False, y=y)
+                if idx == self.cursor_pos:
+                    self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+27))
+
+
             # Draw the level 0 highlights
             if not self.highlights_hide:
                 draw_highlights(l0_highlights, idx, y, item)
@@ -1089,25 +1112,26 @@ class Picker:
                 # self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
                 if item[0] in self.selected_cells_by_row:
                     for j in self.selected_cells_by_row[item[0]]:
-                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25, y=y)
+                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25, bold=False, y=y)
 
                 # Visually selected
                 if self.is_selecting:
                     if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25, y=y)
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25, bold=False, y=y)
 
                 # Visually deslected
                 if self.is_deselecting:
                     if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26, y=y)
+                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26, bold=False,y=y)
             # Higlight cursor row and selected rows
             elif self.highlight_full_row:
                 if self.selections[item[0]]:
                     self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+25) | curses.A_BOLD)
+
                 # Visually selected
                 if self.is_selecting:
                     if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
@@ -1133,15 +1157,18 @@ class Picker:
             if not self.highlights_hide:
                 draw_highlights(l1_highlights, idx, y, item)
 
+
+
             # Draw cursor
             if idx == self.cursor_pos:
                 if self.cell_cursor:
-                    highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=5, y=y)
+                    highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=5, bold=True, y=y)
                 else:
                     self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
             
             if not self.highlights_hide:
                 draw_highlights(l2_highlights, idx, y, item)
+
 
         ## Display scrollbar
         if self.scroll_bar and len(self.indexed_items) and len(self.indexed_items) > (self.items_per_page):
@@ -1249,6 +1276,7 @@ class Picker:
                 "reset_colours": False,
                 "cell_cursor": False,
                 "split_right": False,
+                "crosshair_cursor": False,
             }
 
             OptionPicker = Picker(submenu_win, **infobox_data)
@@ -1366,6 +1394,7 @@ class Picker:
             "split_right":                      self.split_right,
             "right_panes":                      self.right_panes,
             "right_pane_index":                 self.right_pane_index,
+            "crosshair_cursor":                 self.crosshair_cursor,
 
         }
         return function_data
@@ -1496,6 +1525,7 @@ class Picker:
             "reset_colours": False,
             "split_right": False,
             "cell_cursor": False,
+            "crosshair_cursor": False,
         }
         while True:
             h, w = stdscr.getmaxyx()
@@ -1555,6 +1585,7 @@ class Picker:
                 "reset_colours": False,
                 "split_right": False,
                 "cell_cursor": False,
+                "crosshair_cursor": False,
 
             }
             OptionPicker = Picker(submenu_win, **notification_data)
@@ -2489,6 +2520,7 @@ class Picker:
                     "reset_colours": False,
                     "cell_cursor": False,
                     "split_right": False,
+                    "crosshair_cursor": False,
 
                 }
                 OptionPicker = Picker(self.stdscr, **help_data)
@@ -2601,6 +2633,7 @@ class Picker:
                     "reset_colours": False,
                     "cell_cursor": False,
                     "split_right": False,
+                    "crosshair_cursor": False,
 
                 }
                 OptionPicker = Picker(self.stdscr, **info_data)
@@ -3587,95 +3620,39 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
     if not colours: return 0
 
     try:
-        start = standard_colours_start
-        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
-        curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
-        curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
-        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
-        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
+        colour_sets = [colours, notification_colours, help_colours]
+        colour_pair_offsets = [standard_colours_start, notification_colours_start, help_colours_start]
+        for i in range(3):
+            start = colour_pair_offsets[i]
+            colours = colour_sets[i]
+            curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
+            curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
+            curses.init_pair(start+3, colours['normal_fg'], colours['background'])
+            curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
+            curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
+            curses.init_pair(start+6, colours['normal_fg'], colours['background'])
+            curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
+            curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
+            curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
+            curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
+            curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
+            curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
+            curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
+            curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
+            curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
+            curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
+            curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
+            curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
+            curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
+            curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
+            curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
+            curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
+            curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
+            curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
+            curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
+            curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
+            curses.init_pair(start+27, colours['active_column_fg'], colours['active_column_bg'])
 
-
-        # notifications 50, infobox 100, help 150
-        # Notification colours
-        colours = notification_colours
-        start = notification_colours_start
-        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
-        curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
-        curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
-        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
-        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
-
-        # Help
-        colours = help_colours
-        start = help_colours_start
-        curses.init_pair(start+1, colours['selected_fg'], colours['selected_bg'])
-        curses.init_pair(start+2, colours['unselected_fg'], colours['unselected_bg'])
-        curses.init_pair(start+3, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+4, colours['header_fg'], colours['header_bg'])
-        curses.init_pair(start+5, colours['cursor_fg'], colours['cursor_bg'])
-        curses.init_pair(start+6, colours['normal_fg'], colours['background'])
-        curses.init_pair(start+7, colours['error_fg'], colours['error_bg'])
-        curses.init_pair(start+8, colours['complete_fg'], colours['complete_bg'])
-        curses.init_pair(start+9, colours['active_fg'], colours['active_bg'])
-        curses.init_pair(start+10, colours['search_fg'], colours['search_bg'])
-        curses.init_pair(start+11, colours['waiting_fg'], colours['waiting_bg'])
-        curses.init_pair(start+12, colours['paused_fg'], colours['paused_bg'])
-        curses.init_pair(start+13, colours['active_input_fg'], colours['active_input_bg'])
-        curses.init_pair(start+14, colours['modes_selected_fg'], colours['modes_selected_bg'])
-        curses.init_pair(start+15, colours['modes_unselected_fg'], colours['modes_unselected_bg'])
-        curses.init_pair(start+16, colours['title_fg'], colours['title_bg'])
-        curses.init_pair(start+17, colours['normal_fg'], colours['title_bar'])
-        curses.init_pair(start+18, colours['normal_fg'], colours['scroll_bar_bg'])
-        curses.init_pair(start+19, colours['selected_header_column_fg'], colours['selected_header_column_bg'])
-        curses.init_pair(start+20, colours['footer_fg'], colours['footer_bg'])
-        curses.init_pair(start+21, colours['refreshing_fg'], colours['refreshing_bg'])
-        curses.init_pair(start+22, colours['40pc_fg'], colours['40pc_bg'])
-        curses.init_pair(start+23, colours['refreshing_inactive_fg'], colours['refreshing_inactive_bg'])
-        curses.init_pair(start+24, colours['footer_string_fg'], colours['footer_string_bg'])
-        curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
-        curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
     except Exception as e:
         pass
     COLOURS_SET = True
