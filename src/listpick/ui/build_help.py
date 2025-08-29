@@ -129,8 +129,10 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "notification_toggle":              "Toggle empty notification.",
         "redo":                             "Redo.",
         "undo":                             "Undo.",
-        "scroll_right":                     "Scroll right.",
-        "scroll_left":                      "Scroll left.",
+        "scroll_right":                     "Scroll right (5 chars).",
+        "scroll_left":                      "Scroll left (5 chars).",
+        "scroll_right_25":                     "Scroll right (25 chars).",
+        "scroll_left_25":                      "Scroll left (25 chars).",
         "scroll_far_right":                 "Scroll to the end of the column set.",
         "scroll_far_left":                  "Scroll to the left home.",
         "add_column_before":                "Insert column before cursor.",
@@ -146,7 +148,7 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "cycle_right_pane":                 "Cycle through right panes",
     }
     sections = {
-        "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_far_right", "scroll_far_left" ],
+        "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_right_25", "scroll_left_25", "scroll_far_right", "scroll_far_left" ],
         "Selection:": [ "toggle_select", "select_all", "select_none", "visual_selection_toggle", "visual_deselection_toggle", "enter" ],
         "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle", "toggle_right_pane", "cycle_right_pane"],
         "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,

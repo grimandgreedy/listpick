@@ -74,6 +74,8 @@ picker_keys = {
     "redo":                             [ord('.')],
     "undo":                             [26], # Ctrl+z
     "scroll_right":                     [ord('l'), curses.KEY_RIGHT],
+    "scroll_right_25":                     [keycodes.META_l],
+    "scroll_left_25":                     [keycodes.META_h],
     "scroll_left":                      [ord('h'), curses.KEY_LEFT],
     "scroll_far_right":                 [ord('L')],
     "scroll_far_left":                  [ord('H')],

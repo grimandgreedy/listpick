@@ -690,6 +690,7 @@ class Picker:
             else:
                 self.cursor_pos = 0
 
+        self.right_pane_index = max(0, min(self.right_pane_index, len(self.right_panes)-1))
         
 
 
@@ -1180,8 +1181,16 @@ class Picker:
             self.stdscr.addstr(self.term_h - 1, self.term_w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
 
         if self.split_right and len(self.right_panes):
+            # If we need to refresh the data then do so.
+            if self.right_panes[self.right_pane_index]["auto_refresh"] and ((time.time() - self.initial_split_time) > self.right_panes[self.right_pane_index]["refresh_time"]):
+                get_data = self.right_panes[self.right_pane_index]["get_data"]
+                data = self.right_panes[self.right_pane_index]["data"]
+                self.right_panes[self.right_pane_index]["data"] = get_data(data, self.get_function_data())
+                self.initial_split_time = time.time()
+
             draw_pane = self.right_panes[self.right_pane_index]["display"]
             data = self.right_panes[self.right_pane_index]["data"]
+
             draw_pane(
                 self.stdscr, 
                 x = self.rows_w,
@@ -2316,6 +2325,7 @@ class Picker:
     def cycle_right_pane(self, increment=1):
         if len(self.right_panes) > 1:
             self.right_pane_index = (self.right_pane_index+1)%len(self.right_panes)
+            self.initial_split_time = self.initial_split_time - self.right_panes[self.right_pane_index]["refresh_time"]
 
     def run(self) -> Tuple[list[int], str, dict]:
         """ Run the picker. """
@@ -2328,9 +2338,9 @@ class Picker:
 
         self.draw_screen(self.indexed_items, self.highlights)
 
-        initial_time = time.time()
-        initial_time_footer = time.time()-self.footer_timer
-        initial_split_time = time.time()-200
+        self.initial_time = time.time()
+        self.initial_time_footer = time.time()-self.footer_timer
+        self.initial_split_time = time.time()-200
 
         if self.startup_notification:
             self.notification(self.stdscr, message=self.startup_notification)
@@ -2410,14 +2420,14 @@ class Picker:
                         self.logger.debug(f"Data ready after refresh")
                         self.initialise_variables()
 
-                        initial_time = time.time()
+                        self.initial_time = time.time()
 
                         self.draw_screen(self.indexed_items, self.highlights, clear=False)
 
                         self.refreshing_data = False
                         self.data_ready = False
 
-            elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) >= self.timer):
+            elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - self.initial_time) >= self.timer):
                 self.logger.debug(f"Get new data (refresh).")
                 self.stdscr.addstr(0,self.term_w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
                 self.stdscr.refresh()
@@ -2431,30 +2441,30 @@ class Picker:
                     return [], "refresh", function_data
 
             # Refresh data synchronously
-            # if self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - initial_time) > self.timer):
+            # if self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - self.initial_time) > self.timer):
             #     self.stdscr.addstr(0,w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
             #     self.stdscr.refresh()
             #     if self.get_new_data and self.refresh_function:
             #         self.initialise_variables(get_data=True)
             #
-            #         initial_time = time.time()
+            #         self.initial_time = time.time()
             #         self.draw_screen(self.indexed_items, self.highlights, clear=False)
             #     else:
             #
             #         function_data = self.get_function_data()
             #         return [], "refresh", function_data
 
-            if self.footer_string_auto_refresh and ((time.time() - initial_time_footer) > self.footer_timer):
+            if self.footer_string_auto_refresh and ((time.time() - self.initial_time_footer) > self.footer_timer):
                 self.logger.debug(f"footer_string_auto_refresh")
                 self.footer_string = self.footer_string_refresh_function()
-                initial_time_footer = time.time()
+                self.initial_time_footer = time.time()
                 self.draw_screen(self.indexed_items, self.highlights)
 
-            if self.split_right and len(self.right_panes) and self.right_panes[self.right_pane_index]["auto_refresh"] and ((time.time() - initial_split_time) > self.right_panes[self.right_pane_index]["refresh_time"]):
+            if self.split_right and len(self.right_panes) and self.right_panes[self.right_pane_index]["auto_refresh"] and ((time.time() - self.initial_split_time) > self.right_panes[self.right_pane_index]["refresh_time"]):
                 get_data = self.right_panes[self.right_pane_index]["get_data"]
                 data = self.right_panes[self.right_pane_index]["data"]
                 self.right_panes[self.right_pane_index]["data"] = get_data(data, self.get_function_data())
-                initial_split_time = time.time()
+                self.initial_split_time = time.time()
 
             if self.check_key("help", key, self.keys_dict):
                 self.logger.info(f"key_function help")
@@ -2950,10 +2960,23 @@ class Picker:
                     row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
                     if row_width-self.leftmost_char >= self.rows_w-self.startx-5:
                         self.leftmost_char += 5
+                    self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w - self.startx) + 5)
+
+            elif self.check_key("scroll_right_25", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_right")
+                if len(self.indexed_items):
+                    row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+                    if row_width-self.leftmost_char >= self.rows_w-self.startx-25:
+                        self.leftmost_char += 25
+                    self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w - self.startx) + 5)
 
             elif self.check_key("scroll_left", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_left")
                 self.leftmost_char = max(self.leftmost_char-5, 0)
+
+            elif self.check_key("scroll_left_25", key, self.keys_dict):
+                self.logger.info(f"key_function scroll_left")
+                self.leftmost_char = max(self.leftmost_char-25, 0)
 
             elif self.check_key("scroll_far_left", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_far_left")
@@ -3848,6 +3871,8 @@ def main() -> None:
     # function_data["debug_level"] = 1
 
     function_data["split_right"] = False
+    function_data["right_pane_index"] = 3
+
     function_data["right_panes"] = [
         # Graph or random numbers generated each second
         {
@@ -3883,7 +3908,7 @@ def main() -> None:
             "get_data": data_refresh_randint_title,
             "display": right_split_display_list,
             "data": ["Files", []],
-            "refresh_time": 0.1,
+            "refresh_time": 2,
         },
         # Nopane
         {
@@ -3892,7 +3917,7 @@ def main() -> None:
             "get_data": lambda data, state: [],
             "display": lambda scr, x, y, w, h, state, row, cell, data: [],
             "data": ["Files", []],
-            "refresh_time": 0.1,
+            "refresh_time": 1,
         },
     ]
 

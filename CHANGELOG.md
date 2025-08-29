@@ -1,28 +1,33 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.15.11] 2025-08-30
+ - Added new quickscroll keys to scroll left/right by 25 chars.
 
-## [0.1.15.7] 2025-07-29
+## [0.1.15.10] 2025-08-29
+ - Ensure that pane data is retrieved immediately when cycling through panes.
+
+## [0.1.15.9] 2025-08-29
  - We can now have multiple right panes which can be cycled through by pressing ".
 
-## [0.1.15.7] 2025-07-28
+## [0.1.15.8] 2025-08-28
  - Fixed header column alignment problems which popped up with some datasets.
 
-## [0.1.15.6] 2025-07-27
+## [0.1.15.6] 2025-08-27
  - Fixed misaligned header with very long header values.
 
-## [0.1.15.4] 2025-07-27
+## [0.1.15.4] 2025-08-27
  - Fixed error with filtering when there are no rows (i.e., items=[[]])
  - Fixed error with changing modes when there are no rows (i.e., items=[[]]).
 
 Fixed errors caused by filtering when items=[[]]; this also fixed problems changing modes when items=[[]].
-## [0.1.15.3] 2025-07-27
+## [0.1.15.3] 2025-08-27
  - Added error checking when setting the cursor_pos_id in fetch_data.
 
-## [0.1.15.1] 2025-07-27
+## [0.1.15.1] 2025-08-27
  - Added key to toggle right pane.
  - Improved appearance of help screen.
 
-## [0.1.15.0] 2025-07-27
+## [0.1.15.0] 2025-08-27
  - Feature added: support for dynamic data display in a right pane.
  - Bugs fixed:
    - Fixed ipython not working when data is piped into the picker.
