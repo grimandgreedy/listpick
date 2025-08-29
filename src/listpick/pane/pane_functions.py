@@ -29,6 +29,12 @@ def right_split_file_attributes(stdscr, x, y, w, h, state, row, cell, past_data:
     for j in range(h):
         stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
 
+    # Display pane count
+    pane_count = len(state["right_panes"])
+    pane_index = state["right_pane_index"]
+    if pane_count > 1:
+        s = f" {pane_index+1}/{pane_count} "
+        stdscr.addstr(y+h-1, x+w-len(s)-1, s, curses.color_pair(state["colours_start"]+20))
 
     # Filename/cursor cell value
     stdscr.addstr(y+2, x+2, cell[:w-3])
@@ -58,12 +64,21 @@ def right_split_graph(stdscr, x, y, w, h, state, row, cell, past_data: list = []
     for j in range(h):
         stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
 
+
+    # Display pane count
+    pane_count = len(state["right_panes"])
+    pane_index = state["right_pane_index"]
+    if pane_count > 1:
+        s = f" {pane_index+1}/{pane_count} "
+        stdscr.addstr(y+h-1, x+w-len(s)-1, s, curses.color_pair(state["colours_start"]+20))
+
     try:
         import plotille as plt
     except:
         s = f"No module named 'plotille'"
         stdscr.addstr(y+2, x+2, s[:w-2])
         return None
+
 
 
     # x_vals, y_vals = list(range(100)), [x**2 for x in range(100)]
@@ -95,6 +110,14 @@ def right_split_display_list(stdscr, x, y, w, h, state, row, cell, past_data: li
     # Separator
     for j in range(h):
         stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
+
+
+    # Display pane count
+    pane_count = len(state["right_panes"])
+    pane_index = state["right_pane_index"]
+    if pane_count > 1:
+        s = f" {pane_index+1}/{pane_count} "
+        stdscr.addstr(y+h-1, x+w-len(s)-1, s, curses.color_pair(state["colours_start"]+20))
 
     if data in [[], {}, None]:
         return None

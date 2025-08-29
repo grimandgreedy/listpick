@@ -1,6 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.15.7] 2025-07-29
+ - We can now have multiple right panes which can be cycled through by pressing ".
+
 ## [0.1.15.7] 2025-07-28
  - Fixed header column alignment problems which popped up with some datasets.
 

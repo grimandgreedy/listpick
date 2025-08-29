@@ -23,6 +23,7 @@ import logging
 import tty
 import select
 
+from listpick.pane.pane_utils import get_file_attributes
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
 from listpick.utils.options_selectors import default_option_input, output_file_option_selector, default_option_selector
 from listpick.utils.table_to_list_of_lists import *
@@ -191,16 +192,8 @@ class Picker:
         sheet_states: list = [{}],
 
         split_right: bool = False,
-        split_right_proportion: float = 1/2,
-        split_right_function: Callable = lambda stdscr, x, y, w, h, state, row, cell, data, test: False,
-        split_right_auto_refresh: bool = False,
-        split_right_refresh_data: Callable = lambda old_data, arg_dict: [],
-        split_right_refresh_data_timer: float = 1.0,
-        split_right_data: list = [],
-        
-
-
-
+        right_panes: list = [],
+        right_pane_index: int = 0,
     ):
         self.stdscr = stdscr
         self.items = items
@@ -350,13 +343,8 @@ class Picker:
         self.sheets = sheets
 
         self.split_right = split_right
-        self.split_right_proportion = split_right_proportion
-        self.split_right_function = split_right_function
-        self.split_right_auto_refresh = split_right_auto_refresh
-        self.split_right_refresh_data = split_right_refresh_data
-        self.split_right_refresh_data_timer = split_right_refresh_data_timer
-        self.split_right_data = split_right_data
-
+        self.right_panes = right_panes
+        self.right_pane_index = right_pane_index
         self.initialise_picker_state(reset_colours=self.reset_colours)
 
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
@@ -426,8 +414,9 @@ class Picker:
         ## self.top_space
         h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
-        if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-            self.rows_w, self.rows_h = int(self.term_w*self.split_right_proportion), self.term_h
+        if self.split_right and len(self.right_panes):
+            proportion = self.right_panes[self.right_pane_index]["proportion"]
+            self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
         else:
             self.rows_w, self.rows_h = self.term_w, self.term_h
 
@@ -787,8 +776,9 @@ class Picker:
 
         h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
-        if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-            self.rows_w, self.rows_h = int(self.term_w*self.split_right_proportion), self.term_h
+        if self.split_right and len(self.right_panes):
+            proportion = self.right_panes[self.right_pane_index]["proportion"]
+            self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
         else:
             self.rows_w, self.rows_h = self.term_w, self.term_h
 
@@ -1189,8 +1179,10 @@ class Picker:
             self.stdscr.addstr(self.term_h - 1, self.term_w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(self.term_h - 1, self.term_w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
 
-        if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-            self.split_right_function(
+        if self.split_right and len(self.right_panes):
+            draw_pane = self.right_panes[self.right_pane_index]["display"]
+            data = self.right_panes[self.right_pane_index]["data"]
+            draw_pane(
                 self.stdscr, 
                 x = self.rows_w,
                 y = self.top_space - int(bool(self.show_header and self.header)),
@@ -1199,7 +1191,7 @@ class Picker:
                 state = self.get_function_data(),
                 row = self.indexed_items[self.cursor_pos] if self.indexed_items else [],
                 cell = self.indexed_items[self.cursor_pos][1][self.selected_column] if self.indexed_items else "",
-                data=self.split_right_data,
+                data=data,
             )
         
         self.stdscr.refresh()
@@ -1363,12 +1355,9 @@ class Picker:
             "sheet_name":                       self.sheet_name,
             "sheet_states":                     self.sheet_states,
             "split_right":                      self.split_right,
-            "split_right_proportion":           self.split_right_proportion,
-            "split_right_function":             self.split_right_function,
-            "split_right_auto_refresh":         self.split_right_auto_refresh,
-            "split_right_refresh_data_timer":   self.split_right_refresh_data_timer,
-            "split_right_refresh_data":         self.split_right_refresh_data,
-            "split_right_data":                 self.split_right_data,
+            "right_panes":                      self.right_panes,
+            "right_pane_index":                 self.right_pane_index,
+
         }
         return function_data
 
@@ -1404,8 +1393,6 @@ class Picker:
             "centre_in_cols",
             "centre_in_terminal",
             "split_right",
-            "split_right_proportion",
-            "split_right_function",
         ]
 
         for var in variables:
@@ -1698,6 +1685,9 @@ class Picker:
                     self.initialise_variables()
                 elif setting == "pane":
                     self.toggle_right_pane()
+
+                elif setting == "pane_cycle":
+                    self.cycle_right_pane()
 
                 elif setting.startswith("cwd="):
                     os.chdir(os.path.expandvars(os.path.expanduser(setting[len("cwd="):])))
@@ -2317,9 +2307,15 @@ class Picker:
             self.load_sheet(self.loaded_file, sheet_number=self.sheet_index)
 
     def toggle_right_pane(self):
-        if self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
+        if len(self.right_panes):
             self.split_right = not self.split_right
+            if self.right_panes[self.right_pane_index]["data"] in [[], None, {}]:
+                self.right_panes[self.right_pane_index]["data"] = self.right_panes[self.right_pane_index]["get_data"](self.right_panes[self.right_pane_index]["data"], self.get_function_data())
 
+
+    def cycle_right_pane(self, increment=1):
+        if len(self.right_panes) > 1:
+            self.right_pane_index = (self.right_pane_index+1)%len(self.right_panes)
 
     def run(self) -> Tuple[list[int], str, dict]:
         """ Run the picker. """
@@ -2334,7 +2330,7 @@ class Picker:
 
         initial_time = time.time()
         initial_time_footer = time.time()-self.footer_timer
-        initial_split_time = time.time()-self.split_right_refresh_data_timer
+        initial_split_time = time.time()-200
 
         if self.startup_notification:
             self.notification(self.stdscr, message=self.startup_notification)
@@ -2370,8 +2366,9 @@ class Picker:
 
         h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
-        if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-            self.rows_w, self.rows_h = int(self.term_w*self.split_right_proportion), self.term_h
+        if self.split_right and len(self.right_panes):
+            proportion = self.right_panes[self.right_pane_index]["proportion"]
+            self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
         else:
             self.rows_w, self.rows_h = self.term_w, self.term_h
         def terminal_resized(old_w, old_h) -> bool:
@@ -2395,8 +2392,10 @@ class Picker:
 
             h, w = self.stdscr.getmaxyx()
             self.term_h, self.term_w = self.stdscr.getmaxyx()
-            if self.split_right and self.split_right_function(self.stdscr, 0,0,0,0,{},[],[],"",test=True):
-                self.rows_w, self.rows_h = int(self.term_w*self.split_right_proportion), self.term_h
+
+            if self.split_right and len(self.right_panes):
+                proportion = self.right_panes[self.right_pane_index]["proportion"]
+                self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
             else:
                 self.rows_w, self.rows_h = self.term_w, self.term_h
 
@@ -2451,8 +2450,10 @@ class Picker:
                 initial_time_footer = time.time()
                 self.draw_screen(self.indexed_items, self.highlights)
 
-            if self.split_right and self.split_right_auto_refresh and ((time.time() - initial_split_time) > self.split_right_refresh_data_timer):
-                self.split_right_data = self.split_right_refresh_data(self.split_right_data, self.get_function_data())
+            if self.split_right and len(self.right_panes) and self.right_panes[self.right_pane_index]["auto_refresh"] and ((time.time() - initial_split_time) > self.right_panes[self.right_pane_index]["refresh_time"]):
+                get_data = self.right_panes[self.right_pane_index]["get_data"]
+                data = self.right_panes[self.right_pane_index]["data"]
+                self.right_panes[self.right_pane_index]["data"] = get_data(data, self.get_function_data())
                 initial_split_time = time.time()
 
             if self.check_key("help", key, self.keys_dict):
@@ -3320,6 +3321,9 @@ class Picker:
             elif self.check_key("toggle_right_pane", key, self.keys_dict):
                 self.toggle_right_pane()
 
+            elif self.check_key("cycle_right_pane", key, self.keys_dict):
+                self.cycle_right_pane()
+
             elif self.check_key("pipe_input", key, self.keys_dict):
                 self.logger.info(f"key_function pipe_input")
                 # usrtxt = "xargs -d '\n' -I{}  "
@@ -3843,20 +3847,54 @@ def main() -> None:
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
 
-
-    # function_data["split_right"] = True
-    # function_data["split_right_proportion"] = 2/3
-    # function_data["split_right_refresh_data"] = data_refresh_randint_title
-    # function_data["split_right_function"] = right_split_display_list
-    # function_data["split_right_data"] = ["Files", [str(x) for x in range(100)]]
-
-
-    # function_data["split_right_refresh_data"] = get_dl
-
-
-    # function_data["split_right_function"] = right_split_file_attributes
-    # function_data["split_right_auto_refresh"] = True
-    # function_data["split_right_function"] = right_split_graph
+    function_data["split_right"] = False
+    function_data["right_panes"] = [
+        # Graph or random numbers generated each second
+        {
+            "proportion": 2/3,
+            "auto_refresh": True,
+            "get_data": data_refresh_randint,
+            "display": right_split_graph,
+            "data": [],
+            "refresh_time": 1.0,
+        },
+        # list of numbers
+        {
+            "proportion": 2/3,
+            "auto_refresh": False,
+            "get_data": data_refresh_randint_title,
+            "display": right_split_display_list,
+            "data": ["Files", [str(x) for x in range(100)]],
+            "refresh_time": 1.0,
+        },
+        # File attribures
+        {
+            "proportion": 2/3,
+            "auto_refresh": False,
+            "get_data": lambda data, state: [],
+            "display": right_split_file_attributes,
+            "data": ["Files", [str(x) for x in range(100)]],
+            "refresh_time": 1.0,
+        },
+        # List of random numbers generated each second
+        {
+            "proportion": 1/2,
+            "auto_refresh": True,
+            "get_data": data_refresh_randint_title,
+            "display": right_split_display_list,
+            "data": ["Files", []],
+            "refresh_time": 0.1,
+        },
+        # Nopane
+        {
+            "proportion": 1/3,
+            "auto_refresh": False,
+            "get_data": lambda data, state: [],
+            "display": lambda scr, x, y, w, h, state, row, cell, data: [],
+            "data": ["Files", []],
+            "refresh_time": 0.1,
+        },
+    ]
 
     stdscr = start_curses()
     try:
