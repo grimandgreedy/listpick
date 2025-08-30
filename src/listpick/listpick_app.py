@@ -2994,6 +2994,8 @@ class Picker:
                     if row_width-self.leftmost_char >= self.rows_w-self.startx-5:
                         self.leftmost_char += 5
                     self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w - self.startx) + 5)
+                if sum(self.column_widths) + len(self.column_widths)*len(self.separator) < self.rows_w:
+                    self.leftmost_char = 0
 
             elif self.check_key("scroll_right_25", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_right")
@@ -3002,6 +3004,8 @@ class Picker:
                     if row_width-self.leftmost_char >= self.rows_w-self.startx-25:
                         self.leftmost_char += 25
                     self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w - self.startx) + 5)
+                if sum(self.column_widths) + len(self.column_widths)*len(self.separator) < self.rows_w:
+                    self.leftmost_char = 0
 
             elif self.check_key("scroll_left", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_left")
