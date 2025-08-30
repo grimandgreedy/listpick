@@ -878,7 +878,7 @@ class Picker:
 
             header_str = header_str[self.leftmost_char:]
             header_ypos = self.top_gap + bool(self.title) + bool(self.display_modes and self.modes)
-            self.stdscr.addstr(header_ypos, 0, ' '*self.rows_w, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
+            self.stdscr.addstr(header_ypos, 0, ' '*self.rows_w, curses.color_pair(self.colours_start+28) | curses.A_BOLD)
             self.stdscr.addstr(header_ypos, self.startx, header_str[:min(self.rows_w-self.startx, visible_columns_total_width+1)], curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
@@ -3656,6 +3656,7 @@ def set_colours(pick: int = 0, start: int = 0) -> Optional[int]:
             curses.init_pair(start+25, colours['selected_cell_fg'], colours['selected_cell_bg'])
             curses.init_pair(start+26, colours['deselecting_cell_fg'], colours['deselecting_cell_bg'])
             curses.init_pair(start+27, colours['active_column_fg'], colours['active_column_bg'])
+            curses.init_pair(start+28, colours['unselected_header_column_fg'], colours['unselected_header_column_bg'])
 
     except Exception as e:
         pass

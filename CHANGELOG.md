@@ -1,5 +1,8 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.15.14] 2025-08-31
+ - Added different colour for header background to the left/right of the header.
+
 ## [0.1.15.12] 2025-08-30
  - Added crosshair_cursor option which highlights the entries of the active row and column.
  - splash_screen() now works with a list of strings as a message.
