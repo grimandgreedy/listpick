@@ -890,6 +890,10 @@ class Picker:
                     col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
                     highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]-len(number)}}") + self.separator
 
+                    if len(self.column_widths) == 1:
+                        colour = curses.color_pair(self.colours_start+28) | curses.A_BOLD
+                    else:
+                        colour = curses.color_pair(self.colours_start+19) | curses.A_BOLD
                     # Start of selected column is on the screen
                     if self.leftmost_char <= len(up_to_selected_col) and self.leftmost_char+self.rows_w-self.startx > len(up_to_selected_col):
                         x_pos = len(up_to_selected_col) - self.leftmost_char + self.startx
@@ -903,7 +907,7 @@ class Picker:
                             overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w - self.startx)
                             disp_str = highlighted_col_str[:-overflow]
 
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
                     # Start of the cell is to the right of the screen
                     elif self.leftmost_char+self.rows_w <= len(up_to_selected_col):
                         pass
@@ -912,7 +916,7 @@ class Picker:
                         x_pos = self.startx
                         beg = self.leftmost_char - len(up_to_selected_col)
                         disp_str = highlighted_col_str[beg:]
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
                     # The middle of the cell is on the screen, the start and end of the cell are not
                     elif self.leftmost_char <= len(up_to_selected_col) + col_width//2 <= self.leftmost_char+self.rows_w:
                         beg = self.leftmost_char - len(up_to_selected_col)
@@ -920,7 +924,7 @@ class Picker:
                         disp_str = highlighted_col_str[beg:-overflow]
 
                         x_pos = self.startx
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, curses.color_pair(self.colours_start+19) | curses.A_BOLD)
+                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
                     # The cell is to the left of the screen
                     else:
                         pass
