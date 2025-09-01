@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger('picker_log')
 
-def default_option_input(stdscr: curses.window, refresh_screen_function=None, starting_value:str="", field_prefix:str="Opts", registers={}) -> Tuple[bool, str]:
+def default_option_input(stdscr: curses.window, refresh_screen_function=lambda : None, starting_value:str="", field_prefix:str=" Opts: ", registers={}) -> Tuple[bool, str]:
 
     logger.info("function: default_option_input (options_selectors.py)")
     # notification(stdscr, message=f"opt required for {index}")
@@ -33,6 +33,11 @@ def default_option_input(stdscr: curses.window, refresh_screen_function=None, st
         y=lambda: stdscr.getmaxyx()[0]-1,
         max_length=field_end_f,
         registers=registers,
+        refresh_screen_function=refresh_screen_function,
+        path_auto_complete=False,
+        formula_auto_complete=False,
+        function_auto_complete=False,
+        word_auto_complete=False,
     )
     if return_val: return True, usrtxt
     else: return False, starting_value
@@ -60,6 +65,7 @@ def default_option_selector(stdscr: curses.window, refresh_screen_function=None,
         y=lambda: stdscr.getmaxyx()[0]-1,
         max_length=field_end_f,
         registers=registers,
+        refresh_screen_function=refresh_screen_function,
     )
     if return_val: return True, usrtxt
     else: return False, starting_value

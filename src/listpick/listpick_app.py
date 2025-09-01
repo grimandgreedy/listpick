@@ -2864,14 +2864,16 @@ class Picker:
                         if self.option_functions[index] != None:
                             options_sufficient, usrtxt = self.option_functions[index](
                                 stdscr=self.stdscr,
-                                refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights)
+                                refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
+                                field_prefix=f" Opts ({index}): ",
                             )
                         else:
                             self.set_registers()
                             options_sufficient, usrtxt = default_option_input(
                                 self.stdscr,
                                 starting_value=self.user_opts,
-                                registers = self.registers
+                                registers = self.registers,
+                                field_prefix=f" Opts ({index}): ",
                             )
 
                 if options_sufficient:
@@ -3816,27 +3818,27 @@ def main() -> None:
     # function_data["colour_theme_number"] = 3
     function_data["highlights"]  = [
     {
-        "match": "^complete[\s]*$",
+        "match": r"^complete[\s]*$",
         "field": 1,
         "color": 8,
     },
     {
-        "match": "^error[\s]*|^removed[\s]*$",
+        "match": r"^error[\s]*|^removed[\s]*$",
         "field": 1,
         "color": 7,
     },
     {
-        "match": "^active[\s]*$",
+        "match": r"^active[\s]*$",
         "field": 1,
         "color": 9,
     },
     {
-        "match": "^waiting[\s]*$",
+        "match": r"^waiting[\s]*$",
         "field": 1,
         "color": 11,
     },
     {
-        "match": "^paused[\s]*$",
+        "match": r"^paused[\s]*$",
         "field": 1,
         "color": 12,
     },
@@ -3979,7 +3981,7 @@ def main() -> None:
     function_data["right_panes"] = [
         # Graph or random numbers generated each second
         {
-            "proportion": 2/3,
+            "proportion": 1/2,
             "auto_refresh": True,
             "get_data": data_refresh_randint,
             "display": right_split_graph,
@@ -4023,6 +4025,7 @@ def main() -> None:
             "refresh_time": 1,
         },
     ]
+    function_data["require_option"] = [True for _ in function_data["items"]]
 
     stdscr = start_curses()
     try:

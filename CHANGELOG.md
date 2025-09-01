@@ -1,7 +1,11 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.15.19] 2025-08-31
+ - Fixed screen refresh function for default options selector.
+
 ## [0.1.15.18] 2025-08-31
  - Added a new colour theme--blue background, black title/footer, white header.
+
 ## [0.1.15.14] 2025-08-31
  - Added different colour for header background to the left/right of the header.
 
