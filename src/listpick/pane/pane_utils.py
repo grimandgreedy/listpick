@@ -83,6 +83,6 @@ def get_file_attributes(filename):
         return attributes
     
     except Exception as e:
-        print(f"An error occurred: {e}")
+        # print(f"An error occurred: {e}")
         return []
 

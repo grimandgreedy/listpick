@@ -11,14 +11,13 @@ License: MIT
 import curses
 import os
 from listpick.pane.pane_utils import get_file_attributes, get_graph_string, escape_ansi
+from listpick.pane.get_data import update_file_attributes
 
-def right_split_file_attributes(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
+def right_split_file_attributes(stdscr, x, y, w, h, state, row, cell, data: list = [], test: bool = False):
     """
     Display file attributes in right pane.
     """
     if test: return True
-
-    os.chdir(os.path.expanduser("~/Downloads/new"))
 
     # Title
     title = "File attributes"
@@ -45,7 +44,48 @@ def right_split_file_attributes(stdscr, x, y, w, h, state, row, cell, past_data:
 
     return []
 
-def right_split_graph(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
+
+def right_split_file_attributes_dynamic(stdscr, x, y, w, h, state, row, cell, data: list = [], test: bool = False):
+    """
+    Display file attributes in right pane.
+    """
+    if test: return True
+
+    # Title
+    title = "File attributes"
+    if len(title) < w: title = f"{title:^{w}}"
+    stdscr.addstr(y, x,title[:w], curses.color_pair(state["colours_start"]+4) | curses.A_BOLD)
+
+    # Separator
+    for j in range(h):
+        stdscr.addstr(j+y, x, ' ', curses.color_pair(state["colours_start"]+16))
+
+    # Display pane count
+    pane_count = len(state["right_panes"])
+    pane_index = state["right_pane_index"]
+    if pane_count > 1:
+        s = f" {pane_index+1}/{pane_count} "
+        stdscr.addstr(y+h-1, x+w-len(s)-1, s, curses.color_pair(state["colours_start"]+20))
+
+    if len(state["indexed_items"]) == 0:
+        return []
+
+    # Filename/cursor cell value
+    stdscr.addstr(y+2, x+2, cell[:w-3])
+
+    # If the cursor-hovered file is different then reload the data
+    if data[1] != cell:
+        data[:] = update_file_attributes(data, state)
+
+    # attributes = get_file_attributes(cell)
+    if len(data)  == 0: return []
+    attributes = data[0]
+    for i, attr in enumerate(attributes):
+        stdscr.addstr(y+3+i, x+4, attr[:w-5])
+
+    return []
+
+def right_split_graph(stdscr, x, y, w, h, state, row, cell, data: list = [], test: bool = False):
     """
     Display a graph of the data in right pane.
 
@@ -95,7 +135,7 @@ def right_split_graph(stdscr, x, y, w, h, state, row, cell, past_data: list = []
 
 
 
-def right_split_display_list(stdscr, x, y, w, h, state, row, cell, past_data: list = [], data: list = [], test: bool = False):
+def right_split_display_list(stdscr, x, y, w, h, state, row, cell, data: list = [], test: bool = False):
     """
     data[0]:str = title
     data[1]:list[str] = list of strings to display

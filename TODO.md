@@ -388,6 +388,7 @@
 >   - [x] Update footer height when there is a search query.
 > - [x] Header columns are not aligned with long header values.
 >   - [x] Done: 2025-08-27
+> - [ ] Pressing page forward/page back in an empty picker changes the index in the footer from 0 to 1...
 
 
 

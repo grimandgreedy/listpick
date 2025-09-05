@@ -42,7 +42,7 @@ from listpick.ui.build_help import build_help_rows
 from listpick.ui.footer import StandardFooter, CompactFooter, NoFooter
 from listpick.utils.picker_log import setup_logger
 from listpick.utils.user_input import get_char, open_tty
-from listpick.pane.pane_functions import right_split_file_attributes, right_split_graph, right_split_display_list
+from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
 
 
@@ -127,17 +127,18 @@ class Picker:
         columns_sort_method: list[int] = [0],
         key_chain: str = "",
         last_key: Optional[str] = None,
+        disabled_keys: list=[],
 
         paginate: bool =False,
         cancel_is_back: bool = False,
         mode_index: int = 0,
         modes: list[dict] = [],
-        display_modes: bool =False,
-        require_option: list=[],
-        require_option_default: list=[],
+        display_modes: bool = False,
+        require_option: list[bool] = [],
+        require_option_default: bool = False,
         option_functions: list[Callable[..., Tuple[bool, str]]] = [],
         default_option_function: Callable[..., Tuple[bool, str]] = default_option_input,
-        disabled_keys: list=[],
+
 
         show_header: bool = True,
         show_row_header: bool = False,
@@ -2865,7 +2866,6 @@ class Picker:
                             options_sufficient, usrtxt = self.option_functions[index](
                                 stdscr=self.stdscr,
                                 refresh_screen_function=lambda: self.draw_screen(self.indexed_items, self.highlights),
-                                field_prefix=f" Opts ({index}): ",
                             )
                         else:
                             self.set_registers()
@@ -3976,7 +3976,7 @@ def main() -> None:
     # function_data["debug_level"] = 1
 
     function_data["split_right"] = False
-    function_data["right_pane_index"] = 3
+    function_data["right_pane_index"] = 2
 
     function_data["right_panes"] = [
         # Graph or random numbers generated each second
@@ -3997,14 +3997,23 @@ def main() -> None:
             "data": ["Files", [str(x) for x in range(100)]],
             "refresh_time": 1.0,
         },
-        # File attribures
+        # File attributes
         {
             "proportion": 2/3,
             "auto_refresh": False,
             "get_data": lambda data, state: [],
             "display": right_split_file_attributes,
-            "data": ["Files", [str(x) for x in range(100)]],
+            "data": [],
             "refresh_time": 1.0,
+        },
+        # File attributes dynamic
+        {
+            "proportion": 2/3,
+            "auto_refresh": True,
+            "get_data": update_file_attributes,
+            "display": right_split_file_attributes_dynamic,
+            "data": [],
+            "refresh_time": 2.0,
         },
         # List of random numbers generated each second
         {

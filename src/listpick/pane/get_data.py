@@ -8,6 +8,8 @@ Author: GrimAndGreedy
 License: MIT
 """
 
+from listpick.pane.pane_utils import get_file_attributes
+
 def data_refresh_randint_by_row(data, state):
     """
     Add a random number to the data if row id is the same.
@@ -93,3 +95,21 @@ def get_dl(data, state):
         data[0].append(data[0][-1]+1)
         data[1].append(dl)
     return data
+
+
+def update_file_attributes(data, state):
+    """
+    Get file attributes
+
+    data[0]: ["size: {}", filetype: {}, last modified: {}]
+    ]
+    data[1]: id
+    """
+    if state["indexed_items"]:
+        # id = state["indexed_items"][state["cursor_pos"]][1][state["id_column"]]
+        id = state["indexed_items"][state["cursor_pos"]][1][0]
+    else:
+        return [[], -1]
+    return [get_file_attributes(id), id]
+    
+
