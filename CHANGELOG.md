@@ -1,5 +1,11 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+
+## [0.1.16.0] 2025-09-05
+ - Data generation is now multithreaded.
+   - ~5x quicker when getting data for video files
+
+
 ## [0.1.15.20] 2025-08-31
  - Fixed screen refresh function for default options selector.
 

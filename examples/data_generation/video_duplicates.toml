@@ -23,7 +23,6 @@ commands = [
   """mediainfo --Inform="Video;%Width%" {}""",
   """mediainfo --Inform="Video;%Height%" {}""",
   """du -hs {} | awk '{{ print $1 }}'""",
-  """echo hi"""
 ]
 
 header = [
@@ -32,7 +31,6 @@ header = [
   "duration",
   "width",
   "height",
-  "size",
   "size",
 ]
 

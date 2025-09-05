@@ -196,6 +196,7 @@ class Picker:
         split_right: bool = False,
         right_panes: list = [],
         right_pane_index: int = 0,
+
     ):
         self.stdscr = stdscr
         self.items = items
