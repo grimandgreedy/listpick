@@ -28,6 +28,12 @@
 > - [x] Selected column isn't highlighted properly when cell beginning is offscreen
 > - [x] Header rows not aligned properly sometimes...
 > - [ ] Check leftmost_char after resizing
+> - [ ] Kill threads when we exit the picker.
+> - [ ] Data locks when data is still being generated. No modifications.
+> - [ ] (!!!) Cell cursor value with hidden columns
+>   - [ ] The selected column can be a hidden column
+>   - [ ] Hide all columns and toggle cell cursor mode. >> Hangs
+>   - [ ] Toggle last visible column in cell cursor mode. >> Hangs
 
 
 

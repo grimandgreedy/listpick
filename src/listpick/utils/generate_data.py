@@ -35,6 +35,23 @@ def generate_columns(funcs: list, files: list) -> list[list[str]]:
     return results
 
 
+def generate_columns_multithread(funcs: list, files: list) -> list[list[str]]:
+    """
+    Takes a list of functions and a list of files. 
+    Tasks are run in parallel using concurrent.futures.
+    """
+    logger.info("function: generate_columns (generate_data.py)")
+    
+    results = []
+    # Create a future object for each combination of func and file
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [[executor.submit(func, file) for func in funcs] for file in files]
+        
+        for file_futures in futures:
+            result = [future.result() for future in file_futures]
+            results.append(result)
+    return results
+
 def generate_columns_single_thread(funcs: list, files: list) -> list[list[str]]:
     """
     Takes a list of functions and a list of files. Each function is run for each file and a list of lists is returned.

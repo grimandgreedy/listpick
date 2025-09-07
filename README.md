@@ -2,7 +2,7 @@
 
 listpick is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
 
-Rows of data can be viewed, selected, generated, saved, loaded, refreshed, modified or copied to the clipboard. Easy to integrate into your project by creating a `menu = Picker(stdscr, items:list[list[str]])` and then the menu will be displayed by running `menu.run()`.
+Rows of data can be viewed, selected, generated, saved, loaded, refreshed, modified or copied to the clipboard. Easy to integrate into your project by creating a `menu = Picker(stdscr: curses.window, items: list[list[str]])` and then the menu will be displayed by running `menu.run()`.
 
 It works great as the backend for a TUI application and can also be used as a standalone data viewer.
 
@@ -10,13 +10,13 @@ It works great as the backend for a TUI application and can also be used as a st
 
 # Quickstart
 
-Install listpick
+Install listpick:
 
 ```
 python -m pip installl "listpick[full]"
 ```
 
-Create a picker object to display rows:
+Create a Picker:
 
 ```
 from listpick.listpick_app import Picker, start_curses, close_curses
@@ -36,7 +36,7 @@ x.run()
 close_curses(stdscr)
 
 ```
-Use the listpick binary to generate and display rows based on a list of commands:
+Or use the listpick binary to generate and display rows based on a list of commands:
 
 ```
 wget https://raw.githubusercontent.com/grimandgreedy/listpick/refs/heads/master/examples/data_generation/list_files.toml

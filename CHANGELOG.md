@@ -1,10 +1,20 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
-## [0.1.16.0] 2025-09-05
- - Data generation is now multithreaded.
-   - ~5x quicker when getting data for video files
-
+## [0.1.16.0] 2025-09-07
+ - Massive improvements to Picker data generation.
+   - Data generation is now multithreaded.
+     - ~5x quicker when getting information on video files
+   - Data generation is now done **asynchronously**.
+     - generate_picker_data sets the header and items of the Picker with only the Files column filled. The rest of the cells have "..." as a placeholder. Multiple threads are created and they generate data for each of the cells.
+     - The Picker can receive user interaction while the data loads.
+   - Implemented a task priority queue which the threads utilise to determine their next task.
+     - Cells that are in view are prioritised in the queue and are generated first.
+   - Created generate_picker_data_from_file() function and separated the generation-specific code into the original generate_picker_data() function.
+     - This allows one to utilise the new generation capabilities by simply passing a list of functions and filenames to the generate_picker_data() function--no toml file necessary.
+       - This has been implemented in lpfman to display file attributes.
+ - Bug fixes:
+    - Static footer string was not displayed in some cases.
 
 ## [0.1.15.20] 2025-08-31
  - Fixed screen refresh function for default options selector.
