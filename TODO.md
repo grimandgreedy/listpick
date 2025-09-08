@@ -34,6 +34,12 @@
 >   - [ ] The selected column can be a hidden column
 >   - [ ] Hide all columns and toggle cell cursor mode. >> Hangs
 >   - [ ] Toggle last visible column in cell cursor mode. >> Hangs
+> - [ ] Data generation
+>   - [ ] Changing directories in lpfman before all cells have loaded throws errors as threads try to operate on files that aren't in the new directory
+>     - [ ] Need to terminate threads when Picker.run() exits.
+>   - [ ] Keep track of running threads and tasks to do.
+>   - [ ] Go to a loading directory > filter > move down the entries. We are brought back to the top. 
+>     - [ ] Probably due to calling Picker.initialise_variables() when we get new data.
 
 
 

@@ -1,7 +1,16 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
-## [0.1.16.0] 2025-09-07
+## [0.1.16.4] 2025-09-09
+ - Commands passed to generate_picker_data can now use multiple {} and each will be replaced by the filename
+   - E.g., `[[ -f {} ]] && du -h {}`
+ - Improved the handling of filenames when opening files and generating column-data for files.
+ - Hide header in notifications.
+
+## [0.1.16.2] 2025-09-07
+ - Fixed some f-strings with nested quotes.
+
+## [0.1.16.1] 2025-09-07
  - Massive improvements to Picker data generation.
    - Data generation is now multithreaded.
      - ~5x quicker when getting information on video files
@@ -15,6 +24,9 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
        - This has been implemented in lpfman to display file attributes.
  - Bug fixes:
     - Static footer string was not displayed in some cases.
+
+## [0.1.16.1] 2025-09-05
+ - Data generation is now multithreaded.
 
 ## [0.1.15.20] 2025-08-31
  - Fixed screen refresh function for default options selector.

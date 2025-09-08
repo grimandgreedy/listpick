@@ -14,6 +14,7 @@ import tempfile
 import os
 from typing import Tuple, Dict
 import logging
+import shlex
 
 logger = logging.getLogger('picker_log')
 
@@ -290,9 +291,7 @@ def openFiles(files: list[str]) -> str:
                 apps[app] = [t]
 
         return apps
-    for i in range(len(files)):
-        if ' ' in files[i] and files[i][0] not in ["'", '"']:
-            files[i] = repr(files[i])
+    files = [shlex.quote(file) for file in files]
 
     types = get_mime_types(files)
     apps = get_applications(types.keys())

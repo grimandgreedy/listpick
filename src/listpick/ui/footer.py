@@ -160,7 +160,7 @@ class StandardFooter(Footer):
         if state["footer_string"]:
             footer_string_width = min(w-1, len(state["footer_string"])+2)
 
-            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f"{state['footer_string'][:footer_string_width]}"
             disp_string = f" {disp_string:>{footer_string_width-2}} "
             self.stdscr.addstr(self.footer_string_y, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(self.footer_string_y, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
@@ -259,7 +259,7 @@ class CompactFooter(Footer):
         if state["footer_string"]:
             footer_string_width = min(w-1, len(state["footer_string"])+2)
 
-            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f"{state['footer_string'][:footer_string_width]}"
             disp_string = f" {disp_string:>{footer_string_width-2}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))
@@ -318,7 +318,7 @@ class NoFooter(Footer):
 
         if state["footer_string"]:
             footer_string_width = min(w-1, len(state["footer_string"])+2)
-            disp_string = f"{state["footer_string"][:footer_string_width]}"
+            disp_string = f"{state['footer_string'][:footer_string_width]}"
             disp_string = f" {disp_string:>{footer_string_width-2}} "
             self.stdscr.addstr(h - 1, w-footer_string_width-1, " "*footer_string_width, curses.color_pair(self.colours_start+24))
             self.stdscr.addstr(h - 1, w-footer_string_width-1, f"{disp_string}", curses.color_pair(self.colours_start+24))

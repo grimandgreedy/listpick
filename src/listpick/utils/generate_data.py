@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger('picker_log')
 import concurrent.futures
+import re
 
 def generate_columns(funcs: list, files: list) -> list[list[str]]:
     """
@@ -79,7 +80,7 @@ def command_to_func(command: str) -> Callable:
     """
     logger.info("function: command_to_func (generate_data.py)")
     
-    func = lambda arg: subprocess.run(command.format(repr(arg)), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8")
+    func = lambda arg: subprocess.run(replace_braces(command, repr(arg)), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout.decode("utf-8").strip()
     return func
 
 def load_environment(envs:dict):
@@ -90,6 +91,12 @@ def load_environment(envs:dict):
 
     if "cwd" in envs:
         os.chdir(os.path.expandvars(os.path.expanduser(envs["cwd"])))
+
+def replace_braces(text, s):
+    text = re.sub(r'\{\{(.*?)\}\}', r'@@\1@@', text)
+    text = re.sub(r'\{\}', s, text)
+    text = re.sub(r'@@(.*?)@@', r'{{\1}}', text)
+    return text
 
 
 def read_toml(file_path) -> Tuple[dict, list, list]:

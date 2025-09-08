@@ -1616,6 +1616,7 @@ class Picker:
                 "split_right": False,
                 "cell_cursor": False,
                 "crosshair_cursor": False,
+                "show_header": False,
 
             }
             OptionPicker = Picker(submenu_win, **notification_data)
