@@ -41,9 +41,9 @@ def get_graph_string(x_vals, y_vals, width=50, height=20, title=None, x_label=No
         fig.ylabel = y_label
     
     # Generate the ASCII art of the graph
-    ascii_art = str(fig.show())
+    graph_str = str(fig.show())
     
-    return ascii_art
+    return graph_str
 
 
 def get_file_attributes(filename):

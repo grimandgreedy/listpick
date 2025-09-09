@@ -191,6 +191,7 @@ def generate_picker_data(
 
     num_workers = os.cpu_count()
     if num_workers in [None, -1]: num_workers = 4
+    if num_workers == None or num_workers < 1: num_workers = 1
     completed_cells = set()
 
     for _ in range(num_workers):
