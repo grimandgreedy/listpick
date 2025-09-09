@@ -20,8 +20,6 @@ import json
 import threading
 import string
 import logging
-import tty
-import select
 
 from listpick.pane.pane_utils import get_file_attributes
 from listpick.ui.picker_colours import get_colours, get_help_colours, get_notification_colours, get_theme_count, get_fallback_colours
@@ -36,7 +34,6 @@ from listpick.utils.paste_operations import *
 from listpick.utils.searching import search
 from listpick.ui.help_screen import help_lines
 from listpick.ui.keys import picker_keys, notification_keys, options_keys, help_keys
-# from listpick.utils.generate_data import generate_picker_data
 from listpick.utils.generate_data_multithreaded import generate_picker_data_from_file
 from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
@@ -428,7 +425,6 @@ class Picker:
         self.bottom_space = self.footer.height if self.show_footer else 0
 
         ## self.top_space
-        h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
@@ -759,13 +755,13 @@ class Picker:
 
         """
         self.logger.debug("function: test_screen_size()")
-        h, w = self.stdscr.getmaxyx()
+        self.term_h, self.term_w = self.stdscr.getmaxyx()
         ## Terminal too small to display Picker
-        if h<3 or w<len("Terminal"): return False
-        if (self.show_footer or self.footer_string) and (h<12 or w<35) or (h<12 and w<10):
-            self.stdscr.addstr(h//2-1, (w-len("Terminal"))//2, "Terminal")
-            self.stdscr.addstr(h//2, (w-len("Too"))//2, "Too")
-            self.stdscr.addstr(h//2+1, (w-len("Small"))//2, "Small")
+        if self.term_h<3 or self.term_w<len("Terminal"): return False
+        if (self.show_footer or self.footer_string) and (self.term_h<12 or self.term_w<35) or (self.term_h<12 and self.term_w<10):
+            self.stdscr.addstr(self.term_h//2-1, (self.term_w-len("Terminal"))//2, "Terminal")
+            self.stdscr.addstr(self.term_h//2, (self.term_w-len("Too"))//2, "Too")
+            self.stdscr.addstr(self.term_h//2+1, (self.term_w-len("Small"))//2, "Small")
             return False
         return True
 
@@ -778,15 +774,15 @@ class Picker:
 
         if type(message) == type(""): message = [message]
 
-        h, w =self.stdscr.getmaxyx()
-        if len(message) > h: start_y = 0
-        else: start_y = (h-len(message))//2
+        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        if len(message) > self.term_h: start_y = 0
+        else: start_y = (self.term_h-len(message))//2
 
         for i in range(len(message)):
             try:
                 s = message[i]
-                if len(s) > w: s = s[:w-2]
-                self.stdscr.addstr(start_y+i, (w-len(s))//2, s, curses.color_pair(2))
+                if len(s) > self.term_w: s = s[:self.term_w-2]
+                self.stdscr.addstr(start_y+i, (self.term_w-len(s))//2, s, curses.color_pair(2))
             except:
                 pass
         self.stdscr.refresh()
@@ -807,7 +803,6 @@ class Picker:
         if clear:
             self.stdscr.erase()
 
-        h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
@@ -1226,7 +1221,6 @@ class Picker:
         ## Display footer
         if self.show_footer:
             # self.footer = NoFooter(self.stdscr, self.colours_start, self.get_function_data)
-            h, w = self.stdscr.getmaxyx()
             try:
                 self.footer.draw(self.term_h, self.term_w)
             except:
@@ -1272,8 +1266,10 @@ class Picker:
         """ Display non-interactive infobox window. """
 
         self.logger.info(f"function: infobox()")
-        h, w = stdscr.getmaxyx()
-        notification_width, notification_height = w//2, 3*h//5
+        self.term_h, self.term_w = self.stdscr.getmaxyx()
+
+
+        notification_width, notification_height = self.term_w//2, 3*self.term_h//5
         message_width = notification_width-5
 
         if not message: message = "!!"
@@ -1289,9 +1285,9 @@ class Picker:
         if len(submenu_items) > notification_height - 2:
             submenu_items = submenu_items[:notification_height-3] + [f"{'....':^{notification_width}}"]
         while True:
-            h, w = stdscr.getmaxyx()
+            self.term_h, self.term_w = self.stdscr.getmaxyx()
 
-            submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+            submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+4))
             infobox_data = {
                 "items": submenu_items,
                 "colours": notification_colours,
@@ -1558,13 +1554,13 @@ class Picker:
             "crosshair_cursor": False,
         }
         while True:
-            h, w = stdscr.getmaxyx()
+            self.term_h, self.term_w = self.stdscr.getmaxyx()
 
             choose_opts_widths = get_column_widths(options, unicode_char_width=self.unicode_char_width)
-            window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, w)
-            window_height = min(h//2, max(6, len(options)+3))
+            window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, self.term_w)
+            window_height = min(self.term_h//2, max(6, len(options)+3))
 
-            submenu_win = curses.newwin(window_height, window_width, (h-window_height)//2, (w-window_width)//2)
+            submenu_win = curses.newwin(window_height, window_width, (self.term_h-window_height)//2, (self.term_w-window_width)//2)
             submenu_win.keypad(True)
             OptionPicker = Picker(submenu_win, **option_picker_data)
             s, o, f = OptionPicker.run()
@@ -1595,9 +1591,9 @@ class Picker:
             27: ord('q')
         }
         while True:
-            h, w = stdscr.getmaxyx()
+            self.term_h, self.term_w = self.stdscr.getmaxyx()
 
-            submenu_win = curses.newwin(notification_height, notification_width, 3, w - (notification_width+4))
+            submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+4))
             notification_data = {
                 "items": submenu_items,
                 "title": title,
@@ -2438,13 +2434,13 @@ class Picker:
         # Open tty to accept input
         tty_fd = open_tty()
 
-        h, w = self.stdscr.getmaxyx()
         self.term_h, self.term_w = self.stdscr.getmaxyx()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
             self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
         else:
             self.rows_w, self.rows_h = self.term_w, self.term_h
+
         def terminal_resized(old_w, old_h) -> bool:
             w, h = os.get_terminal_size()
             if old_h != h or old_w != w: return True
@@ -2479,7 +2475,6 @@ class Picker:
             if self.term_resize_event: 
                 key = curses.KEY_RESIZE
 
-            h, w = self.stdscr.getmaxyx()
             self.term_h, self.term_w = self.stdscr.getmaxyx()
 
             if self.split_right and len(self.right_panes):
@@ -2786,6 +2781,7 @@ class Picker:
 
             elif self.check_key("redo", key, self.keys_dict):
                 self.redo()
+
             # elif self.check_key("move_column_left", key, self.keys_dict):
             #     tmp1 = self.column_indices[self.selected_column]
             #     tmp2 = self.column_indices[(self.selected_column-1)%len(self.column_indices)]
@@ -3175,6 +3171,8 @@ class Picker:
 
                 self.calculate_section_sizes()
                 self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
+                self.stdscr.clear()
+                self.stdscr.refresh()
                 self.draw_screen()
 
 
