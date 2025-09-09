@@ -44,6 +44,12 @@ from listpick.pane.pane_functions import right_split_file_attributes, right_spli
 from listpick.pane.get_data import *
 
 
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.style import Style
+
+
 try:
     from tmp.data_stuff import test_items, test_highlights, test_header
 except:
@@ -411,6 +417,14 @@ class Picker:
             config = toml.load(f)
             return config
 
+    def update_term_size(self):
+        self.term_h, self.term_w = self.stdscr.getmaxyx()
+
+    def get_term_size(self):
+        return self.stdscr.getmaxyx()
+        w, h = os.get_terminal_size()
+        return h, w
+
     def calculate_section_sizes(self):
         """
         Calculte the following for the Picker:
@@ -425,7 +439,7 @@ class Picker:
         self.bottom_space = self.footer.height if self.show_footer else 0
 
         ## self.top_space
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
             self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
@@ -755,7 +769,7 @@ class Picker:
 
         """
         self.logger.debug("function: test_screen_size()")
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
         ## Terminal too small to display Picker
         if self.term_h<3 or self.term_w<len("Terminal"): return False
         if (self.show_footer or self.footer_string) and (self.term_h<12 or self.term_w<35) or (self.term_h<12 and self.term_w<10):
@@ -774,7 +788,7 @@ class Picker:
 
         if type(message) == type(""): message = [message]
 
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
         if len(message) > self.term_h: start_y = 0
         else: start_y = (self.term_h-len(message))//2
 
@@ -803,7 +817,7 @@ class Picker:
         if clear:
             self.stdscr.erase()
 
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
             self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
@@ -841,7 +855,7 @@ class Picker:
 
         # Determine the number of items_per_page, top_size and bottom_size
         # self.calculate_section_sizes()
-        
+
         # top_space = self.top_gap
 
         ## Display title (if applicable)
@@ -913,11 +927,11 @@ class Picker:
                     # Start of selected column is on the screen
                     if self.leftmost_char <= len(up_to_selected_col) and self.leftmost_char+self.rows_w-self.startx > len(up_to_selected_col):
                         x_pos = len(up_to_selected_col) - self.leftmost_char + self.startx
-                        
+
                         # Whole cell of the selected column is on the screen
                         if len(up_to_selected_col)+col_width - self.leftmost_char < self.rows_w-self.startx:
                             disp_str = highlighted_col_str
-                            
+
                         # Start of the cell is on the screen, but the end of the cell is not
                         else:
                             overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w - self.startx)
@@ -969,7 +983,7 @@ class Picker:
                     #     self.stdscr.addstr(header_ypos, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str][:self.column_widths[self.selected_column]+len(self.separator)], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
             except:
                 pass
-                
+
         # Display row header 
         if self.show_row_header:
             for idx in range(start_index, end_index):
@@ -981,7 +995,7 @@ class Picker:
 
 
         def highlight_cell(row: int, col:int, visible_column_widths, colour_pair_number: int = 5, bold: bool = False, y:int = 0):
-            
+
             cell_pos = sum(visible_column_widths[:col])+col*len(self.separator)-self.leftmost_char + self.startx
             # cell_width = self.column_widths[self.selected_column]
             cell_width = visible_column_widths[col] + len(self.separator)
@@ -1114,7 +1128,7 @@ class Picker:
 
             ## Display the standard row
             self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+2))
-            
+
 
             ## Highlight column
             if self.crosshair_cursor:
@@ -1185,7 +1199,7 @@ class Picker:
                     highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=5, bold=True, y=y)
                 else:
                     self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
-            
+
             if not self.highlights_hide:
                 draw_highlights(l2_highlights, idx, y, item)
 
@@ -1253,7 +1267,7 @@ class Picker:
                 cell = self.indexed_items[self.cursor_pos][1][self.selected_column] if self.indexed_items else "",
                 data=data,
             )
-        
+
         self.stdscr.refresh()
         ## Display infobox
         if self.display_infobox:
@@ -1266,7 +1280,7 @@ class Picker:
         """ Display non-interactive infobox window. """
 
         self.logger.info(f"function: infobox()")
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
 
 
         notification_width, notification_height = self.term_w//2, 3*self.term_h//5
@@ -1285,8 +1299,8 @@ class Picker:
         if len(submenu_items) > notification_height - 2:
             submenu_items = submenu_items[:notification_height-3] + [f"{'....':^{notification_width}}"]
         while True:
-            self.term_h, self.term_w = self.stdscr.getmaxyx()
 
+            self.update_term_size()
             submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+4))
             infobox_data = {
                 "items": submenu_items,
@@ -1554,7 +1568,7 @@ class Picker:
             "crosshair_cursor": False,
         }
         while True:
-            self.term_h, self.term_w = self.stdscr.getmaxyx()
+            self.update_term_size()
 
             choose_opts_widths = get_column_widths(options, unicode_char_width=self.unicode_char_width)
             window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, self.term_w)
@@ -1591,7 +1605,7 @@ class Picker:
             27: ord('q')
         }
         while True:
-            self.term_h, self.term_w = self.stdscr.getmaxyx()
+            self.update_term_size()
 
             submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+4))
             notification_data = {
@@ -2434,7 +2448,7 @@ class Picker:
         # Open tty to accept input
         tty_fd = open_tty()
 
-        self.term_h, self.term_w = self.stdscr.getmaxyx()
+        self.update_term_size()
         if self.split_right and len(self.right_panes):
             proportion = self.right_panes[self.right_pane_index]["proportion"]
             self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
@@ -2475,7 +2489,7 @@ class Picker:
             if self.term_resize_event: 
                 key = curses.KEY_RESIZE
 
-            self.term_h, self.term_w = self.stdscr.getmaxyx()
+            self.update_term_size()
 
             if self.split_right and len(self.right_panes):
                 proportion = self.right_panes[self.right_pane_index]["proportion"]
@@ -2713,16 +2727,16 @@ class Picker:
             elif self.check_key("settings_input", key, self.keys_dict):
                 self.logger.info(f"Settings input")
                 usrtxt = f"{self.user_settings.strip()} " if self.user_settings else ""
-                field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.get_term_size()[1]-38
+                else: field_end_f = lambda: self.get_term_size()[1]-3
                 self.set_registers()
                 usrtxt, return_val = input_field(
                     self.stdscr,
                     usrtxt=usrtxt,
                     field_prefix=" Settings: ",
                     x=lambda:2,
-                    y=lambda: self.stdscr.getmaxyx()[0]-1,
+                    y=lambda: self.get_term_size()[0]-1,
                     max_length=field_end_f,
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(),
@@ -3180,9 +3194,9 @@ class Picker:
                 self.logger.info(f"key_function filter_input")
                 self.draw_screen()
                 usrtxt = f"{self.filter_query} " if self.filter_query else ""
-                field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.get_term_size()[1]-38
+                else: field_end_f = lambda: self.get_term_size()[1]-3
                 self.set_registers()
                 words = self.get_word_list()
                 usrtxt, return_val = input_field(
@@ -3190,7 +3204,7 @@ class Picker:
                     usrtxt=usrtxt,
                     field_prefix=" Filter: ",
                     x=lambda:2,
-                    y=lambda: self.stdscr.getmaxyx()[0]-2,
+                    y=lambda: self.get_term_size()[0]-2,
                     # max_length=field_end,
                     max_length=field_end_f,
                     registers=self.registers,
@@ -3225,9 +3239,9 @@ class Picker:
                 self.logger.info(f"key_function search_input")
                 self.draw_screen()
                 usrtxt = f"{self.search_query} " if self.search_query else ""
-                field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer and self.footer.height >= 3: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                if self.show_footer and self.footer.height >= 3: field_end_f = lambda: self.get_term_size()[1]-38
+                else: field_end_f = lambda: self.get_term_size()[1]-3
                 self.set_registers()
                 words = self.get_word_list()
                 usrtxt, return_val = input_field(
@@ -3235,7 +3249,7 @@ class Picker:
                     usrtxt=usrtxt,
                     field_prefix=" Search: ",
                     x=lambda:2,
-                    y=lambda: self.stdscr.getmaxyx()[0]-3,
+                    y=lambda: self.get_term_size()[0]-3,
                     max_length=field_end_f,
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(),
@@ -3336,9 +3350,9 @@ class Picker:
             elif self.check_key("opts_input", key, self.keys_dict):
                 self.logger.info(f"key_function opts_input")
                 usrtxt = f"{self.user_opts} " if self.user_opts else ""
-                field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer and self.footer.height >= 1: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                if self.show_footer and self.footer.height >= 1: field_end_f = lambda: self.get_term_size()[1]-38
+                else: field_end_f = lambda: self.get_term_size()[1]-3
                 self.set_registers()
                 words = self.get_word_list()
                 usrtxt, return_val = input_field(
@@ -3346,7 +3360,7 @@ class Picker:
                     usrtxt=usrtxt,
                     field_prefix=" Opts: ",
                     x=lambda:2,
-                    y=lambda: self.stdscr.getmaxyx()[0]-1,
+                    y=lambda: self.get_term_size()[0]-1,
                     max_length=field_end_f,
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(),
@@ -3431,9 +3445,9 @@ class Picker:
                 self.logger.info(f"key_function pipe_input")
                 # usrtxt = "xargs -d '\n' -I{}  "
                 usrtxt = "xargs "
-                field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.get_term_size()[1]-38
+                else: field_end_f = lambda: self.get_term_size()[1]-3
                 self.set_registers()
                 
                 # Get list of available shell commands
@@ -3449,7 +3463,7 @@ class Picker:
                     usrtxt=usrtxt,
                     field_prefix=" Command: ",
                     x=lambda:2,
-                    y=lambda: self.stdscr.getmaxyx()[0]-2,
+                    y=lambda: self.get_term_size()[0]-2,
                     literal=True,
                     max_length=field_end_f,
                     registers=self.registers,
@@ -3543,9 +3557,9 @@ class Picker:
                 if len(self.indexed_items) > 0 and self.selected_column >=0 and self.editable_columns[self.selected_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.selected_column]
                     usrtxt = f"{current_val}"
-                    field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                    else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                    field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.get_term_size()[1]-38
+                    else: field_end_f = lambda: self.get_term_size()[1]-3
                     self.set_registers()
                     words = self.get_word_list()
                     usrtxt, return_val = input_field(
@@ -3553,7 +3567,7 @@ class Picker:
                         usrtxt=usrtxt,
                         field_prefix=" Edit value: ",
                         x=lambda:2,
-                        y=lambda: self.stdscr.getmaxyx()[0]-2,
+                        y=lambda: self.get_term_size()[0]-2,
                         max_length=field_end_f,
                         registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(),
@@ -3575,9 +3589,9 @@ class Picker:
                 if len(self.indexed_items) > 0 and self.selected_column >=0 and self.editable_columns[self.selected_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.selected_column]
                     usrtxt = f"{current_val}"
-                    field_end_f = lambda: self.stdscr.getmaxyx()[1]-38 if self.show_footer else lambda: self.stdscr.getmaxyx()[1]-3
-                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.stdscr.getmaxyx()[1]-38
-                    else: field_end_f = lambda: self.stdscr.getmaxyx()[1]-3
+                    field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
+                    if self.show_footer and self.footer.height >= 2: field_end_f = lambda: self.get_term_size()[1]-38
+                    else: field_end_f = lambda: self.get_term_size()[1]-3
                     self.set_registers()
                     words = self.get_word_list()
                     usrtxt, return_val = input_field(
@@ -3585,7 +3599,7 @@ class Picker:
                         usrtxt=usrtxt,
                         field_prefix=" Edit value: ",
                         x=lambda:2,
-                        y=lambda: self.stdscr.getmaxyx()[0]-2,
+                        y=lambda: self.get_term_size()[0]-2,
                         max_length=field_end_f,
                         registers=self.registers,
                         refresh_screen_function=lambda: self.draw_screen(),
