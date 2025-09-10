@@ -39,21 +39,9 @@ from listpick.utils.dump import dump_state, load_state, dump_data
 from listpick.ui.build_help import build_help_rows
 from listpick.ui.footer import StandardFooter, CompactFooter, NoFooter
 from listpick.utils.picker_log import setup_logger
-from listpick.utils.user_input import get_char, open_tty
+from listpick.utils.user_input import get_char, open_tty, restore_terminal_settings
 from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
-
-
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.style import Style
-
-
-try:
-    from tmp.data_stuff import test_items, test_highlights, test_header
-except:
-    test_items, test_highlights, test_header = [], [], []
 
 COLOURS_SET = False
 help_colours, notification_colours = {}, {}
@@ -2446,7 +2434,7 @@ class Picker:
             return [], "", function_data
 
         # Open tty to accept input
-        tty_fd = open_tty()
+        tty_fd, self.saved_terminal_state = open_tty()
 
         self.update_term_size()
         if self.split_right and len(self.right_panes):
@@ -2702,6 +2690,7 @@ class Picker:
                 self.stdscr.clear()
                 if len(self.loaded_files) <= 1:
                     function_data = self.get_function_data()
+                    restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return [], "", function_data
                 else:
                     del self.loaded_files[self.loaded_file_index]
@@ -2722,6 +2711,7 @@ class Picker:
 
             elif self.check_key("full_exit", key, self.keys_dict):
                 close_curses(self.stdscr)
+                restore_terminal_settings(tty_fd, self.saved_terminal_state)
                 exit()
 
             elif self.check_key("settings_input", key, self.keys_dict):
@@ -2904,6 +2894,7 @@ class Picker:
                 if self.is_selecting or self.is_deselecting: self.handle_visual_selection()
                 if len(self.items) == 0:
                     function_data = self.get_function_data()
+                    restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return [], "", function_data
                 selected_indices = get_selected_indices(self.selections)
                 if not selected_indices and len(self.indexed_items):
@@ -2932,6 +2923,7 @@ class Picker:
                     self.stdscr.clear()
                     self.stdscr.refresh()
                     function_data = self.get_function_data()
+                    restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return selected_indices, usrtxt, function_data
             elif self.check_key("page_down", key, self.keys_dict):  # Next page
                 self.cursor_pos = min(len(self.indexed_items) - 1, self.cursor_pos+self.items_per_page)
@@ -3857,14 +3849,6 @@ def unrestrict_curses(stdscr: curses.window) -> None:
 def main() -> None:
     """ Main function when listpick is executed. Deals with command line arguments and starts a Picker. """
     args, function_data = parse_arguments()
-
-    try:
-        if function_data["items"] == []:
-            function_data["items"] = test_items
-            function_data["highlights"] = test_highlights
-            function_data["header"] = test_header
-    except:
-        pass
         
     # function_data["colour_theme_number"] = 3
     function_data["highlights"]  = [

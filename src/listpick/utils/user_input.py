@@ -1,11 +1,17 @@
 from listpick.utils import keycodes
 import os, tty, select, curses
+import termios
 
 def open_tty():
     """ Return a file descriptor for the tty that we are opening"""
     tty_fd = os.open('/dev/tty', os.O_RDONLY)
+    old_terminal_settings = termios.tcgetattr(tty_fd)
     tty.setraw(tty_fd)
-    return tty_fd
+    return tty_fd, old_terminal_settings
+
+def restore_terminal_settings(tty_fd, old_settings):
+    """ Restore the terminal to its previous state """
+    termios.tcsetattr(tty_fd, termios.TCSADRAIN, old_settings)
 
 def get_char(tty_fd, timeout: float = 0.2, secondary: bool = False) -> int:
     """ Get character from a tty_fd with a timeout. """
