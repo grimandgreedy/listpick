@@ -1,7 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.16.4-6] 2025-09-09
 - Ensured that the previous terminal settings are restored after exiting the picker.
+- Fixed bug which caused crash when opening the input field.
 
 ## [0.1.16.4] 2025-09-09
  - Commands passed to generate_picker_data can now use multiple {} and each will be replaced by the filename

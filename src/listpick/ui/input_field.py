@@ -16,27 +16,9 @@ from datetime import datetime
 import logging
 
 logger = logging.getLogger('picker_log')
-import select
-import tty
 from listpick.utils.user_input import get_char, open_tty
 from listpick.utils import keycodes
 
-# def open_tty():
-#     """ Return a file descriptor for the tty that we are opening"""
-#     tty_fd = os.open('/dev/tty', os.O_RDONLY)
-#     tty.setraw(tty_fd)
-#     return tty_fd
-#
-# def get_char(tty_fd, timeout: float = 0.2) -> int:
-#     """ Get character from a tty_fd with a timeout. """
-#     rlist, _, _ = select.select([tty_fd], [], [], timeout)
-#     if rlist:
-#         # key = ord(tty_fd.read(1))
-#         key = ord(os.read(tty_fd, 1))
-#     else:
-#         key = -1
-#     return key
-    
 def input_field(
     stdscr: curses.window,
     usrtxt:str="",
@@ -126,7 +108,7 @@ def input_field(
     offscreen_x, offscreen_y = False, False
     orig_x, orig_y = x, y
 
-    tty_fd = open_tty()
+    tty_fd, saved_terminal_state = open_tty()
 
     # Input field loop
     while True:

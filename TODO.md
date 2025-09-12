@@ -40,6 +40,7 @@
 >   - [ ] Keep track of running threads and tasks to do.
 >   - [ ] Go to a loading directory > filter > move down the entries. We are brought back to the top. 
 >     - [ ] Probably due to calling Picker.initialise_variables() when we get new data.
+> - [ ] Allow multiple files to be added with different generation functions.
 
 
 
