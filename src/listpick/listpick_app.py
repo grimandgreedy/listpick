@@ -56,7 +56,7 @@ class Picker:
         stdscr: curses.window, 
         items: list[list[str]] = [],
         cursor_pos: int = 0,
-        colours: dict = get_colours(0),
+        colours: dict = {},
         colour_theme_number: int = 3,
         max_selected: int = -1,
         top_gap: int =0,
@@ -195,7 +195,7 @@ class Picker:
         self.stdscr = stdscr
         self.items = items
         self.cursor_pos = cursor_pos
-        self.colours = colours
+        self.colours = get_colours(colour_theme_number)
         self.colour_theme_number = colour_theme_number
         self.max_selected = max_selected
         self.top_gap = top_gap
@@ -352,6 +352,7 @@ class Picker:
         # Note: We have to set the footer after initialising the picker state so that the footer can use the get_function_data method
         self.footer_options = [StandardFooter(self.stdscr, colours_start, self.get_function_data), CompactFooter(self.stdscr, colours_start, self.get_function_data), NoFooter(self.stdscr, colours_start, self.get_function_data)]
         self.footer = self.footer_options[self.footer_style]
+        self.footer.adjust_sizes(self.term_h, self.term_w)
 
 
 
@@ -385,6 +386,7 @@ class Picker:
                 global COLOURS_SET 
                 COLOURS_SET = False
                 self.colours_end = set_colours(pick=config["general"]["colour_theme_number"], start=1)
+                self.colours = get_colours(config["general"]["colour_theme_number"])
 
         self.logger.info(f"function: set_config()")
         if "general" in config:
@@ -502,11 +504,14 @@ class Picker:
                 self.notification_colours_start = 0
                 self.help_colours_start = 0
 
+        self.colours = get_colours(self.colour_theme_number)
+
 
         debug_levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
         dbglvl =  debug_levels[self.debug_level]
         self.logger = setup_logger(name="picker_log", log_file="picker.log", log_enabled=self.debug, level =dbglvl)
         self.logger.info(f"Initialiasing Picker.")
+        self.update_term_size()
         # self.notification(self.stdscr, message=repr(self.logger))
 
 
@@ -1808,6 +1813,7 @@ class Picker:
                         set_colours(self.colour_theme_number)
                         self.draw_screen()
                         self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
+                    self.colours = get_colours(self.colour_theme_number)
 
                 else:
                     self.user_settings = ""
@@ -2394,6 +2400,9 @@ class Picker:
         self.logger.info(f"function: run()")
 
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
+            self.footer_string = " "
+            self.footer.adjust_sizes(self.term_h, self.term_w)
+            self.draw_screen()
             self.footer_string = self.footer_string_refresh_function()
 
         self.initialise_variables(get_data=self.get_data_startup)
