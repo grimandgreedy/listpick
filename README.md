@@ -1,4 +1,4 @@
-# listpick
+qq# listpick
 
 listpick is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
 
@@ -59,7 +59,21 @@ The application allows you to:
 ## Examples
 
 
-### Identify video duplicates (./examples/data_generation//video_duplicates.toml):
+
+### Aria2TUI
+
+[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
+
+<div align="center"> <img src="assets/aria2tui_graph_screenshot.png" alt="Aria2TUI" width="70%"> </div>
+
+### lpfman
+[lpfman](https://github.com/grimandgreedy/lpfman) is a terminal file manager with extensive column support.
+
+<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_image_preview.png?raw=true" alt="lpfman" width="70%"> </div>
+
+
+### Data generation from toml file
+
 ```python 
 listpick -g ./examples/data_generation/video_duplicates.toml
 ```
@@ -71,19 +85,6 @@ listpick -g ./examples/data_generation/video_duplicates.toml
   - We get the SHA1 hash to identify identical files; we also get the size, duration, resolution, and bitrate so that we can identify a video duplicate that may have the same duration but a lower resolution.
 
 <div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="70%"> </div>
-
-
-### Aria2TUI
-
-[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
-
-<div align="center"> <img src="assets/aria2tui_screenshot.png" alt="Aria2TUI" width="70%"> </div>
-
-### lpfman
-[lpfman](https://github.com/grimandgreedy/lpfman) is a basic file manager created for the purposes of illustrating how easy TUI apps can be developed with the use of listpick. In 20 minutes and <100 lines of code we made a very basic file manager.
-
-<div align="center"> <img src="assets/lpfman.png" alt="lpfman" width="70%"> </div>
-
 
 
 ## Description
