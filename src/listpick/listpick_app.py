@@ -1585,7 +1585,7 @@ class Picker:
 
         self.logger.info(f"function: notification()")
         """ Notification box. """
-        notification_width, notification_height = 50, 7
+        notification_width, notification_height = min(self.term_w-4, 50), 7
         message_width = notification_width-5
 
         if not message: message = "!!"
@@ -1600,7 +1600,7 @@ class Picker:
         while True:
             self.update_term_size()
 
-            submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+4))
+            submenu_win = curses.newwin(notification_height, notification_width, 3, self.term_w - (notification_width+2))
             notification_data = {
                 "items": submenu_items,
                 "title": title,

@@ -68,7 +68,7 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
 
     ## Key descriptions
     help_descriptions = {
-        "refresh":                          "Refresh the screen.",
+        "refresh":                          "Refresh data.",
         "help":                             "Open help.",
         "exit":                             "Exit picker instance.",
         "full_exit":                        "Immediate exit to terminal.",
@@ -119,7 +119,7 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "col_hide":                         "Hide column.",
         "edit":                             "Edit cell.",
         "edit_picker":                      "Edit cell from options dialogue.",
-        "edit_ipython":                     "Edit current data with ipython.",
+        "edit_ipython":                     "Drop to ipython shell with environment as `self`",
         "copy":                             "Copy selections.",
         "paste":                            "Paste into picker.",
         "save":                             "Save selections.",
@@ -153,9 +153,9 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle", "toggle_right_pane", "cycle_right_pane"],
         "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
         "Data manipulation:": [ "delete", "delete_column", "edit", "edit_picker", "edit_ipython", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
-        "Filter and sort:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
+        "Filter and search:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
         "Settings:": [ "settings_input", "settings_options" ],
-        "Cancel:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
+        "Options and modes:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
         "Save, load, copy and paste:": [ "save", "load", "open", "copy", "paste" ],
         "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right" ],
     }

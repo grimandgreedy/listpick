@@ -104,8 +104,8 @@ help_keys = {
     "page_down":                        [curses.KEY_NPAGE, 6],
     "cursor_bottom":                    [ord('G'), curses.KEY_END],
     "cursor_top":                       [ord('g'), curses.KEY_HOME],
-    "five_up":                          [ord('K')],
-    "five_down":                        [ord('J')],
+    "five_up":                          [ord('K'), keycodes.META_k],
+    "five_down":                        [ord('J'), keycodes.META_j],
     "redraw_screen":                    [12], # Ctrl+l
     "cycle_sort_method":                [ord('s')],
     "cycle_sort_method_reverse":        [ord('S')],
