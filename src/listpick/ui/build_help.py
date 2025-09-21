@@ -145,12 +145,14 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         "sheet_next":                       "Go to the next sheet.",
         "sheet_prev":                       "Go to the previous sheet.",
         "toggle_right_pane":                "Toggle the right pane",
-        "cycle_right_pane":                 "Cycle through right panes",
+        "cycle_right_pane":                 "Cycle through right pane views",
+        "toggle_left_pane":                "Toggle the left pane",
+        "cycle_left_pane":                 "Cycle through left pane views",
     }
     sections = {
         "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_right_25", "scroll_left_25", "scroll_far_right", "scroll_far_left" ],
         "Selection:": [ "toggle_select", "select_all", "select_none", "visual_selection_toggle", "visual_deselection_toggle", "enter" ],
-        "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle", "toggle_right_pane", "cycle_right_pane"],
+        "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle", "toggle_right_pane", "cycle_right_pane", "toggle_left_pane", "cycle_left_pane"],
         "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
         "Data manipulation:": [ "delete", "delete_column", "edit", "edit_picker", "edit_ipython", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
         "Filter and search:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,

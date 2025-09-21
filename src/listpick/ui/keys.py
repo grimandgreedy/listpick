@@ -51,7 +51,7 @@ picker_keys = {
     "continue_search_forward":          [ord('n')],
     "continue_search_backward":         [ord('N')],
     "cancel":                           [27], # Escape key
-    "opts_input":                       [ord(':')],
+    "opts_input":                       [ord('e')],
     "opts_select":                      [ord('o')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
@@ -90,6 +90,8 @@ picker_keys = {
     # "sheet_prev":                           [],
     "toggle_right_pane":                             [ord("'")], 
     "cycle_right_pane":                             [ord('"')], 
+    "toggle_left_pane":                             [ord(";")], 
+    "cycle_left_pane":                             [ord(':')], 
 }
 
 

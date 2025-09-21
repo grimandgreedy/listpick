@@ -41,6 +41,17 @@
 >   - [ ] Go to a loading directory > filter > move down the entries. We are brought back to the top. 
 >     - [ ] Probably due to calling Picker.initialise_variables() when we get new data.
 > - [ ] Allow multiple files to be added with different generation functions.
+> - [ ] Use os.get_terminal_size rather than curses getmaxyx
+>   - [ ] We have to get the size of a subwindow in a picker... this subwindow needs to call curses.window.getmaxyx...
+>     - [ ] notification, 
+> - [ ] Fix pane width adjustment in calculate_section_sizes when the panes are bigger than the screen.
+> - [ ] Add different pane width options:
+>   - [x] proportion
+>   - [ ] fixed size
+>   - [ ] function
+> - [ ] Add alternating header colours so they can be more easily distinguished
+> - [ ] Add new opts key
+> - [ ] Add option to display empty rows with separator value (e.g., show empty cells with |)
 
 
 

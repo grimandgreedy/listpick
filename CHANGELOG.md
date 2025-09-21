@@ -1,5 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.16.9] 2025-09-22
+- Feature added: support for displaying a left pane.
+- Adjust leftmost_char when we resize the terminal.
+- Added option to settings to allow one to precisely set the leftmost_char from the settings--lmc=83
 
 ## [0.1.16.4-6] 2025-09-09
 - Ensured that the previous terminal settings are restored after exiting the picker.
