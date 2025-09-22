@@ -2509,23 +2509,27 @@ class Picker:
             self.split_right = not self.split_right
             if self.right_panes[self.right_pane_index]["data"] in [[], None, {}]:
                 self.right_panes[self.right_pane_index]["data"] = self.right_panes[self.right_pane_index]["get_data"](self.right_panes[self.right_pane_index]["data"], self.get_function_data())
+        self.ensure_no_overscroll()
 
     def toggle_left_pane(self):
         if len(self.left_panes):
             self.split_left = not self.split_left
             if self.left_panes[self.left_pane_index]["data"] in [[], None, {}]:
                 self.left_panes[self.left_pane_index]["data"] = self.left_panes[self.left_pane_index]["get_data"](self.left_panes[self.left_pane_index]["data"], self.get_function_data())
+        self.ensure_no_overscroll()
 
 
     def cycle_right_pane(self, increment=1):
         if len(self.right_panes) > 1:
             self.right_pane_index = (self.right_pane_index+1)%len(self.right_panes)
             self.initial_right_split_time -= self.right_panes[self.right_pane_index]["refresh_time"]
+        self.ensure_no_overscroll()
 
     def cycle_left_pane(self, increment=1):
         if len(self.left_panes) > 1:
             self.left_pane_index = (self.left_pane_index+1)%len(self.left_panes)
             self.initial_left_split_time -= self.left_panes[self.left_pane_index]["refresh_time"]
+        self.ensure_no_overscroll()
 
     def ensure_no_overscroll(self):
         """ 
@@ -2535,6 +2539,7 @@ class Picker:
           - Terminal resize event
           - Scrolling down - i.e., rows with potentially different widths come into view
         """
+        self.calculate_section_sizes()
         self.get_visible_rows()
         self.column_widths = get_column_widths(
             self.visible_rows,

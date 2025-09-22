@@ -1,5 +1,11 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.16.10] 2025-09-23
+ - Created separate header_separator with "   |" as the default which shows borders between the column-headers.
+ - Created ensure_no_overscroll() method to ensure we do not scroll past the data-set when we move the cursor down, select different columns, resize the terminal, etc.
+  - Mostly needed for consistency as each of these actions had effectively implemented their own version.
+
+
 ## [0.1.16.9] 2025-09-22
 - Feature added: support for displaying a left pane.
 - Adjust leftmost_char when we resize the terminal.
