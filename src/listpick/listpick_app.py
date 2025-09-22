@@ -96,6 +96,7 @@ class Picker:
         options_list: list[str] = [],
         user_settings : str = "",
         separator : str = "    ",
+        header_separator : str = "   │",
         search_query : str = "",
         search_count : int = 0,
         search_index : int = 0,
@@ -243,6 +244,7 @@ class Picker:
         self.options_list = options_list
         self.user_settings = user_settings
         self.separator = separator
+        self.header_separator = header_separator
         self.search_query = search_query
         self.search_count = search_count
         self.search_index = search_index
@@ -946,7 +948,7 @@ class Picker:
 
 
                 header_str += f"{col_str:^{self.column_widths[i]-len(number)}}"
-                header_str += self.separator
+                header_str += self.header_separator
                 header_str_w = min(self.rows_w-self.left_gutter_width, visible_columns_total_width+1, self.term_w-self.startx)
 
             header_str = header_str[self.leftmost_char:]
@@ -2067,6 +2069,7 @@ class Picker:
             if self.indexed_items[new_pos][0] in self.unselectable_indices: new_pos+=1
             else: break
         self.cursor_pos = new_pos
+        self.ensure_no_overscroll()
         return True
 
     def cursor_up(self, count=1) -> bool:
@@ -2080,6 +2083,7 @@ class Picker:
             elif new_pos in self.unselectable_indices: new_pos -= 1
             else: break
         self.cursor_pos = new_pos
+        self.ensure_no_overscroll()
         return True
 
     def remapped_key(self, key: int, val: int, key_remappings: dict) -> bool:
@@ -2522,6 +2526,31 @@ class Picker:
         if len(self.left_panes) > 1:
             self.left_pane_index = (self.left_pane_index+1)%len(self.left_panes)
             self.initial_left_split_time -= self.left_panes[self.left_pane_index]["refresh_time"]
+
+    def ensure_no_overscroll(self):
+        """ 
+        Ensure that we haven't scrolled past the last column.
+
+        This check should be performed after:
+          - Terminal resize event
+          - Scrolling down - i.e., rows with potentially different widths come into view
+        """
+        self.get_visible_rows()
+        self.column_widths = get_column_widths(
+            self.visible_rows,
+            header=self.header,
+            max_column_width=self.max_column_width,
+            number_columns=self.number_columns,
+            max_total_width=self.rows_w,
+            unicode_char_width=self.unicode_char_width
+        )
+
+        row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+        if row_width - self.leftmost_char < self.rows_w:
+            if row_width <= self.rows_w - self.left_gutter_width:
+                self.leftmost_char = 0
+            else:
+                self.leftmost_char = row_width - (self.rows_w - self.left_gutter_width) + 5
 
     def run(self) -> Tuple[list[int], str, dict]:
         """ Run the picker. """
@@ -2991,6 +3020,7 @@ class Picker:
                             self.selected_cells_by_row[row] = [col]
 
                 self.cursor_down()
+                self.ensure_no_overscroll()
             elif self.check_key("select_all", key, self.keys_dict):  # Select all (m or ctrl-a)
                 self.select_all()
 
@@ -3005,6 +3035,7 @@ class Picker:
                 if new_pos < len(self.indexed_items):
                     self.cursor_pos = new_pos
 
+                self.ensure_no_overscroll()
                 self.draw_screen()
 
             elif self.check_key("cursor_bottom", key, self.keys_dict):
@@ -3014,6 +3045,7 @@ class Picker:
                     else: break
                 if new_pos < len(self.items) and new_pos >= 0:
                     self.cursor_pos = new_pos
+                self.ensure_no_overscroll()
                 self.draw_screen()
                 # current_row = items_per_page - 1
                 # if current_page + 1 == (len(self.indexed_items) + items_per_page - 1) // items_per_page:
@@ -3138,6 +3170,7 @@ class Picker:
                     self.leftmost_char = end_of_cell - display_width
 
                 self.leftmost_char = max(0, min(column_set_width - display_width + 5, self.leftmost_char))
+                self.ensure_no_overscroll()
 
             elif self.check_key("col_select_prev", key, self.keys_dict):
                 if len(self.items) > 0 and len(self.items[0]) > 0:
@@ -3166,6 +3199,7 @@ class Picker:
                     self.leftmost_char = start_of_cell
 
                 self.leftmost_char = max(0, min(column_set_width - display_width + 5, self.leftmost_char))
+                self.ensure_no_overscroll()
 
             elif self.check_key("scroll_right", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_right")
@@ -3317,14 +3351,8 @@ class Picker:
             elif key == curses.KEY_RESIZE:  # Terminal resize signal
 
                 self.calculate_section_sizes()
-                self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
+                self.ensure_no_overscroll()
 
-                row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
-                if row_width - self.leftmost_char < self.rows_w:
-                    if row_width <= self.rows_w - self.left_gutter_width:
-                        self.leftmost_char = 0
-                    else:
-                        self.leftmost_char = row_width - (self.rows_w - self.left_gutter_width) + 5
                 self.stdscr.clear()
                 self.stdscr.refresh()
                 self.draw_screen()
