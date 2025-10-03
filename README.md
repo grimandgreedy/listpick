@@ -61,12 +61,12 @@ The application allows you to:
 
 ### Command-line tool
 
-listpick is useful as a command-line tool for navigating tabulated data.
+listpick is useful as a command-line tool for tabulating command outputs:
 ```bash
 df -h | listpick --stdin
 ```
 
-<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="70%"> </div>
+<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="85%"> </div>
 
 ### Aria2TUI
 
@@ -100,7 +100,7 @@ listpick -g ./examples/data_generation/video_duplicates.toml
 ### Key Features:
 1. **File Input Support:**
 ```python 
-listpick -i ~/dn.pkl -t pkl
+listpick -i ~/items.csv
 ```
    - Text files (TSV, CSV)
    - JSON

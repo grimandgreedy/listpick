@@ -4211,7 +4211,7 @@ def main() -> None:
     # function_data["debug"] = True
     # function_data["debug_level"] = 1
 
-    function_data["cell_cursor"] = False
+    # function_data["cell_cursor"] = False
 
     function_data["split_right"] = False
     function_data["split_left"] = False
