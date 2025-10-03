@@ -51,7 +51,7 @@ picker_keys = {
     "continue_search_forward":          [ord('n')],
     "continue_search_backward":         [ord('N')],
     "cancel":                           [27], # Escape key
-    "opts_input":                       [ord('e')],
+    "opts_input":                       [keycodes.META_o],
     "opts_select":                      [ord('o')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key

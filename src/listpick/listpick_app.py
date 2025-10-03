@@ -20,7 +20,7 @@ import json
 import threading
 import string
 import logging
-from copy import copy
+import copy
 
 from listpick.pane.pane_utils import get_file_attributes
 from listpick.pane.left_pane_functions import *
@@ -378,6 +378,11 @@ class Picker:
         self.getting_data.set()
 
     def __sizeof__(self):
+        """
+        Return the approximate memory footprint of the Picker instance.
+
+        This includes the size of the instance itself and the sizes of its attributes.
+        """
 
         size = super().__sizeof__()
         
@@ -388,7 +393,19 @@ class Picker:
         return size
     
     def set_config(self, path: str ="~/.config/listpick/config.toml") -> bool:
-        """ Set config from toml file. """
+        """ Set config from toml file.
+
+        This method reads a configuration file in TOML format, applies settings 
+        to the Picker, and returns a boolean indicating success or failure.
+
+        Args:
+            path (str): The path to the configuration file.
+
+        Returns:
+            bool: True if the configuration was successfully set; False otherwise.
+        """
+        self.logger.info(f"function: set_config()")
+
         path = os.path.expanduser(os.path.expandvars(path))
         if not os.path.exists(path):
             return False
@@ -397,7 +414,9 @@ class Picker:
         except Exception as e:
             self.logger.error(f"get_config({path}) load error. {e}")
             return False
+        
 
+        # Change the global theme if colour_theme_number is in the loaded config
         if "general" in config:
             if "colour_theme_number" in config["general"] and config["general"]["colour_theme_number"] != self.colour_theme_number:
                 global COLOURS_SET 
@@ -405,7 +424,7 @@ class Picker:
                 self.colours_end = set_colours(pick=config["general"]["colour_theme_number"], start=1)
                 self.colours = get_colours(config["general"]["colour_theme_number"])
 
-        self.logger.info(f"function: set_config()")
+        # load the rest of the config options
         if "general" in config:
             for key, val in config["general"].items():
                 self.logger.info(f"set_config: key={key}, val={val}.")
@@ -417,30 +436,58 @@ class Picker:
         return True
 
     def get_config(self, path: str ="~/.config/listpick/config.toml") -> dict:
-        """ Get config from file. """
+        """ 
+        Retrieve configuration settings from a specified TOML file.
+
+        Args:
+            path (str): The file path of the configuration file. Default is 
+            ~/.config/listpick/config.toml.
+
+        Returns:
+            dict: A dictionary containing the configuration settings loaded
+            from the TOML file. In case of an error, an empty dictionary is returned.
+        """
+
         self.logger.info(f"function: get_config()")
         import toml
         with open(os.path.expanduser(path), "r") as f:
             config = toml.load(f)
             return config
 
-    def update_term_size(self):
+    def update_term_size(self) -> None:
+        """
+        Update self.term_h, self.term_w the function provided to the Picker.
+
+        Returns:
+            None
+        """
         self.term_h, self.term_w = self.screen_size_function(self.stdscr)
         # self.term_h, self.term_w = self.stdscr.getmaxyx()
         # self.term_w, self.term_h = os.get_terminal_size()
 
 
-    def get_term_size(self):
-        return self.stdscr.getmaxyx()
-        w, h = os.get_terminal_size()
-        return h, w
+    def get_term_size(self) -> Tuple[int, int]:
+        """
+        Get the current terminal size using the function provided to the Picker.
 
-    def calculate_section_sizes(self):
+        Returns:
+            Tuple[int, int]: A tuple containing the (height, width) of the terminal.
+        """
+        return self.screen_size_function(self.stdscr)
+        # return self.stdscr.getmaxyx()
+        # w, h = os.get_terminal_size()
+        # return h, w
+
+    def calculate_section_sizes(self) -> None:
         """
         Calculte the following for the Picker:
         self.items_per_page: the number of entry rows displayed
         self.bottom_space: the size of the footer + the bottom buffer space
         self.top_space: the size of the space at the top of the picker: title + modes + header + top_gap
+        Calculate and update the sizes of various sections of the Picker.
+
+        Returns:
+            None
         """
 
         self.logger.debug(f"function: calculate_section_sizes()")
@@ -512,16 +559,27 @@ class Picker:
 
 
     def get_visible_rows(self) -> list[list[str]]:
+        """
+        Calculate and return the currently visible rows based on the cursor position and pagination settings.
 
+        This method determines which rows from the indexed items are visible on the screen,
+        accounting for pagination and scrolling. It sets the starting and ending indices
+        based on the current cursor position and the number of items per page.
+
+        Returns:
+            list[list[str]]: The currently visible rows as a list of lists, where each inner
+            list represents a row of data. If there are no indexed items, it returns the
+            items array.
+        """
         self.logger.debug(f"function: get_visible_rows()")
         ## Scroll with column select
         if self.paginate:
-            start_index = (self.cursor_pos//self.items_per_page) * self.items_per_page
+            start_index = (self.cursor_pos // self.items_per_page) * self.items_per_page
             end_index = min(start_index + self.items_per_page, len(self.indexed_items))
         ## Scroll
         else:
-            scrolloff = self.items_per_page//2
-            start_index = max(0, min(self.cursor_pos - (self.items_per_page-scrolloff), len(self.indexed_items)-self.items_per_page))
+            scrolloff = self.items_per_page // 2
+            start_index = max(0, min(self.cursor_pos - (self.items_per_page - scrolloff), len(self.indexed_items) - self.items_per_page))
             end_index = min(start_index + self.items_per_page, len(self.indexed_items))
         if len(self.indexed_items) == 0: start_index, end_index = 0, 0
 
@@ -534,13 +592,15 @@ class Picker:
     def initialise_picker_state(self, reset_colours=False) -> None:
         """ Initialise state variables for the picker. These are: debugging and colours. """
 
+        # Define global curses colours
         if curses.has_colors() and self.colours != None:
-            # raise Exception("Terminal does not support color")
             curses.start_color()
+
             if reset_colours:
                 global COLOURS_SET
                 COLOURS_SET = False
                 self.colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
+
             if curses.COLORS >= 255 and curses.COLOR_PAIRS >= 150:
                 self.colours_start = self.colours_start
                 self.notification_colours_start = self.colours_start+50
@@ -557,57 +617,32 @@ class Picker:
         self.colours = get_colours(self.colour_theme_number)
 
 
+        # Start logger
         debug_levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
         dbglvl =  debug_levels[self.debug_level]
         self.logger = setup_logger(name="picker_log", log_file="picker.log", log_enabled=self.debug, level =dbglvl)
         self.logger.info(f"Initialiasing Picker.")
+
         self.update_term_size()
-        # self.notification(self.stdscr, message=repr(self.logger))
 
-
-        #                     1              2             3                4              5
-        # logger = logging.getLogger(__file__)
-        # if self.debug_level == 0:
-        #     logger = logging.getLogger()
-        #     logger.disabled = True
-        # else:
-        #
-        #     file_handler = logging.FileHandler(f"{self.title}.log", mode='w')
-        #     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%m-%d-%Y %H:%M:%S')
-        #     file_handler.setFormatter(formatter)
-        #     logger.addHandler(file_handler)
-        #     logger.setLevel(debug_levels[self.debug_level-1])
-
-            # logging.basicConfig(
-            #     level=debug_levels[self.debug_level-1],
-            #     format='%(asctime)s - %(levelname)s - %(message)s',
-            #     datefmt='%m-%d-%Y %H:%M:%S',
-            #     filename=f"{self.title}.log",
-            #     filemode="w",
-            # )
-        #
-        # self.logger.info(f"Starging log. Log level {logger.getEffectiveLevel()}")
-        # self.logger.info(f"Starging log. Log level {repr(debug_levels)}, {self.debug_level}, {debug_levels[self.debug_level-1]}")
-        # self.notification(self.stdscr, f"Starging log. Log level {repr(debug_levels)}, {self.debug_level}, {debug_levels[self.debug_level-1]}")
-        # self.notification(self.stdscr, f"{__file__}")
-
-        ## Logging level plan
-        # DEBUG: loop functions, draw screen, etc.
-        # INFO: main functions 
-        # WARNING: any try-except fails 
-
-        # No set_escdelay function on windows.
+        # The curses implementation for some systems (e.g., windows) does not allow set_escdelay
         try:
             curses.set_escdelay(25)
         except:
             logging.warning("Error trying to set curses.set_escdelay")
 
-        # self.stdscr.clear()
-        # self.stdscr.refresh()
-        # self.draw_screen()
-
     def initialise_variables(self, get_data: bool = False) -> None:
-        """ Initialise the variables that keep track of the data. """
+        """
+        This method sets up the internal state of the Picker by initialising various attributes,
+        getting new data (if get_data is True), and ensuring that the lists used for tracking 
+        selections, options, and items are correctly of the correct type, size, and shape. If 
+        filter or sort queries are set then they are applied (or re-applied as the case may be).
+        The cursor_pos and selections are retained by tracking the id of the rows (where the id 
+        is row[self.id_column]). 
+
+        Parameters:
+        - get_data (bool): If True, pulls data synchronously and updates tracking variables.
+        """
 
         self.logger.info(f"function: initialise_variables()")
 
@@ -615,6 +650,7 @@ class Picker:
 
         ## Get data synchronously
         if get_data and self.refresh_function != None:
+            # Track cursor_pos and selections by ther id (row[self.id_column][col])
             if self.track_entries_upon_refresh and len(self.items) > 0:
                 tracking = True
                 selected_indices = get_selected_indices(self.selections)
@@ -622,34 +658,35 @@ class Picker:
                 self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
                 self.ids_tuples = [(i, item[self.id_column]) for i, item in enumerate(self.items) if i in selected_indices]
         
-                if len(self.indexed_items) > 0 and len(self.indexed_items) >= self.cursor_pos and len(self.indexed_items[0][1]) >= self.id_column:
+                if len(self.indexed_items) > 0 and self.cursor_pos < len(self.indexed_items) and len(self.indexed_items[0][1]) >= self.id_column:
                     self.cursor_pos_id = self.indexed_items[self.cursor_pos][1][self.id_column]
                     self.cursor_pos_prev = self.cursor_pos
-        
 
-
+            # Set the state of the threading event
+            # Though we are getting data synchronously, we ensure the correct state for self.getting_data 
             self.getting_data.clear()
             self.refresh_function(self.items, self.header, self.visible_rows_indices, self.getting_data)
 
-        self.items = pad_lists_to_same_length(self.items)
                     
+        # Ensure that an emtpy items object has the form [[]]
         if self.items == []: self.items = [[]]
-        ## Ensure that items is a List[List[Str]] object
+
+        # Ensure that items is a List[List[Str]] object
         if len(self.items) > 0 and not isinstance(self.items[0], list):
             self.items = [[item] for item in self.items]
         # self.items = [[str(cell) for cell in row] for row in self.items]
 
+        # Ensure that the each of the rows of the items are of the same length
+        self.items = pad_lists_to_same_length(self.items)
 
         # Ensure that header is of the same length as the rows
         if self.header and len(self.items) > 0 and len(self.header) != len(self.items[0]):
             self.header = [str(self.header[i]) if i < len(self.header) else "" for i in range(len(self.items[0]))]
 
-        # Constants
-        # DEFAULT_ITEMS_PER_PAGE = os.get_terminal_size().lines - top_gap*2-2-int(bool(header))
-
         self.calculate_section_sizes()
 
-        # Initial states
+
+        # Ensure that the selection-tracking variables are the correct shape
         if len(self.selections) != len(self.items):
             self.selections = {i : False if i not in self.selections else bool(self.selections[i]) for i in range(len(self.items))}
 
@@ -660,31 +697,34 @@ class Picker:
             self.cell_selections = {}
             self.selected_cells_by_row = {}
 
+        def extend_list_to_length(lst, length, default_value):
+            """Extend a list to the target length using a default value."""
+            if len(lst) < length:
+                lst.extend([copy.deepcopy(default_value) for _ in range(length - len(lst))])
         
 
-        if len(self.require_option) < len(self.items):
-            self.require_option += [self.require_option_default for i in range(len(self.items)-len(self.require_option))]
-        if len(self.option_functions) < len(self.items):
-            self.option_functions += [self.default_option_function for i in range(len(self.items)-len(self.option_functions))]
-        if len(self.items)>0 and len(self.columns_sort_method) < len(self.items[0]):
-            self.columns_sort_method = self.columns_sort_method + [0 for i in range(len(self.items[0])-len(self.columns_sort_method))]
-        if len(self.items)>0 and len(self.sort_reverse) < len(self.items[0]):
-            self.sort_reverse = self.sort_reverse + [False for i in range(len(self.items[0])-len(self.sort_reverse))]
-        if len(self.items)>0 and len(self.editable_columns) < len(self.items[0]):
-            self.editable_columns = self.editable_columns + [self.editable_by_default for i in range(len(self.items[0])-len(self.editable_columns))]
-        if len(self.items)>0 and len(self.column_indices) < len(self.items[0]):
+        row_count = len(self.items)
+        col_count = len(self.items[0]) if row_count else 0
+
+        # Ensure that the length of the option lists are of the correct length.
+        if row_count > 0:
+            extend_list_to_length(self.require_option, length=row_count, default_value=self.require_option_default)
+            extend_list_to_length(self.option_functions, length=row_count, default_value=self.default_option_function)
+            extend_list_to_length(self.columns_sort_method, length=col_count, default_value=0)
+            extend_list_to_length(self.sort_reverse, length=col_count, default_value=False)
+            extend_list_to_length(self.editable_columns, length=col_count, default_value=self.editable_by_default)
+
+        if row_count > 0 and len(self.column_indices) < len(self.items[0]):
             self.column_indices = self.column_indices + [i for i in range(len(self.column_indices), len(self.items[0]))]
 
 
         
-        # items2 = [[row[self.column_indices[i]] for i in range(len(row))] for row in self.items]
-        # self.indexed_items = list(enumerate(items2))
+        # Create an indexed list of the items which will track the visible rows
         if self.items == [[]]: self.indexed_items = []
         else: self.indexed_items = list(enumerate(self.items))
 
-        # If a filter is passed then refilter
+        # Apply the filter query
         if self.filter_query:
-            # prev_index = self.indexed_items[cursor_pos][0] if len(self.indexed_items)>0 else 0
             # prev_index = self.indexed_items[cursor_pos][0] if len(self.indexed_items)>0 else 0
             self.indexed_items = filter_items(self.items, self.indexed_items, self.filter_query)
             if self.cursor_pos in [x[0] for x in self.indexed_items]: self.cursor_pos = [x[0] for x in self.indexed_items].index(self.cursor_pos)
@@ -700,22 +740,30 @@ class Picker:
             )
             if return_val:
                 self.cursor_pos, self.search_index, self.search_count, self.highlights = tmp_cursor, tmp_index, tmp_count, tmp_highlights
-        # If a sort is passed
+
+        # Apply the current sort method
         if len(self.indexed_items) > 0:
             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
 
 
-        # Adjust variables to ensure correctness if errors
-        ## Move to a selectable row (if applicable)
+        # If we have more unselectable indices than rows, clear the unselectable_indices
         if len(self.items) <= len(self.unselectable_indices): self.unselectable_indices = []
-        new_pos = (self.cursor_pos)%len(self.items)
-        while new_pos in self.unselectable_indices and new_pos != self.cursor_pos:
-            new_pos = (new_pos + 1) % len(self.items)
 
-        assert new_pos < len(self.items)
-        self.cursor_pos = new_pos
+        # Move cursur to a selectable row if we are currently on an unselectable row)
+        if self.cursor_pos * len(self.items) in self.unselectable_indices:
+            original_pos = new_pos = (self.cursor_pos)%len(self.items)
+            while new_pos in self.unselectable_indices:
+                new_pos = (new_pos + 1) % len(self.items)
 
-        # Sheets and files
+                # Break if we loop back to the original position
+                if new_pos == original_pos:
+                    break
+
+            self.cursor_pos = max(0, min(new_pos, len(self.items)-1))
+
+        # Initialise sheets
+        extend_list_to_length(self.sheet_states, length=len(self.sheets), default_value={})
+
         if len(self.sheet_states) < len(self.sheets):
             self.sheet_states += [{} for _ in range(len(self.sheets) - len(self.sheet_states))]
         if len(self.sheets):
@@ -723,15 +771,16 @@ class Picker:
                 self.sheet_index = 0
             self.sheet_name = self.sheets[self.sheet_index]
 
-        if len(self.loaded_file_states) < len(self.loaded_files):
-            self.loaded_file_states += [{} for _ in range(len(self.loaded_files) - len(self.loaded_file_states))]
+        # Initialise files
+        extend_list_to_length(self.loaded_file_states, length=len(self.loaded_files), default_value={})
         if len(self.loaded_files):
             if self.loaded_file_index >= len(self.loaded_files):
                 self.loaded_file_index = 0
             self.loaded_file = self.loaded_files[self.loaded_file_index]
 
-        # if tracking and len(self.items) > 1:
-        # Ensure that selected indices are tracked upon data refresh
+
+        # Ensure that the correct cursor_pos and selected indices are reselected
+        #   if  we have fetched new data.
         if self.track_entries_upon_refresh and (self.data_ready or tracking) and len(self.items) > 1:
             selected_indices = []
             all_ids = [item[self.id_column] for item in self.items]
@@ -754,6 +803,8 @@ class Picker:
 
 
 
+            # Ensure cursor_pos is set to a valid index
+            # If we have fetched new data then we attempt to set cursor_pos to the row with the same id as prev
             if len(self.indexed_items):
                 if self.pin_cursor:
                     self.cursor_pos = min(self.cursor_pos_prev, len(self.indexed_items)-1)
@@ -765,7 +816,12 @@ class Picker:
             else:
                 self.cursor_pos = 0
 
-        self.right_pane_index = max(0, min(self.right_pane_index, len(self.right_panes)-1))
+
+        # Ensure that the pane indices are within the range of the available panes.
+        if len(self.left_panes): self.left_pane_index %= len(self.left_panes)
+        else: self.left_pane_index = 0
+        if len(self.right_panes): self.right_pane_index %= len(self.right_panes)
+        else: self.right_pane_index = 0
         
 
 
@@ -862,14 +918,11 @@ class Picker:
             self.stdscr.erase()
 
         self.update_term_size()
-        # if self.split_right and len(self.right_panes):
-        #     proportion = self.right_panes[self.right_pane_index]["proportion"]
-        #     self.rows_w, self.rows_h = int(self.term_w*proportion), self.term_h
-        # else:
-        #     self.rows_w, self.rows_h = self.term_w, self.term_h
+
+        # Determine footer size
+        self.footer.adjust_sizes(self.term_h,self.term_w)
 
         # The height of the footer may need to be adjusted if the file changes.
-        self.footer.adjust_sizes(self.term_h,self.term_w)
         self.calculate_section_sizes()
 
         # Test if the terminal is of a sufficient size to display the picker
@@ -887,28 +940,18 @@ class Picker:
             end_index = min(start_index + self.items_per_page, len(self.indexed_items))
         if len(self.indexed_items) == 0: start_index, end_index = 0, 0
 
-        # self.column_widths = get_column_widths(self.items, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=w)
-        # Determine widths based only on the currently indexed rows
-        # rows = [v[1] for v in self.indexed_items] if len(self.indexed_items) else self.items
-        # Determine widths based only on the currently displayed indexed rows
-        # rows = [v[1] for v in self.indexed_items[start_index:end_index]] if len(self.indexed_items) else self.items
         self.get_visible_rows()
         self.column_widths = get_column_widths(self.visible_rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
         visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
         visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
 
-        # Determine the number of items_per_page, top_size and bottom_size
-        # self.calculate_section_sizes()
 
-        # top_space = self.top_gap
-
-        ## Display title (if applicable)
+        ## Display title
         if self.title:
             padded_title = f" {self.title.strip()} "
             self.stdscr.addstr(self.top_gap, 0, f"{' ':^{self.term_w}}", curses.color_pair(self.colours_start+16))
             title_x = (self.term_w-wcswidth(padded_title))//2
             self.stdscr.addstr(self.top_gap, title_x, padded_title, curses.color_pair(self.colours_start+16) | curses.A_BOLD)
-            # top_space += 1
 
         ## Display modes
         if self.display_modes and self.modes not in [[{}], []]:
@@ -930,7 +973,6 @@ class Picker:
                 else:
                     self.stdscr.addstr(self.top_gap+1, xmode, mode_str, curses.color_pair(self.colours_start+15) | curses.A_UNDERLINE)
                 xmode += split_space+mode_widths[i]
-            # top_space += 1
 
         ## Display header
         if self.header and self.show_header:
@@ -954,87 +996,66 @@ class Picker:
             header_str = header_str[self.leftmost_char:]
             header_str = header_str[:header_str_w]
             header_ypos = self.top_gap + bool(self.title) + bool(self.display_modes and self.modes)
+
+            # Ensure that the full header width is filled--important if the header rows do not fill the terminal width
             self.stdscr.addstr(header_ypos, self.rows_box_x_i, ' '*self.rows_w, curses.color_pair(self.colours_start+28) | curses.A_BOLD)
+
+            # Draw header string
             self.stdscr.addstr(header_ypos, self.startx, header_str, curses.color_pair(self.colours_start+4) | curses.A_BOLD)
 
             # Highlight sort column
-            try:
-                if self.selected_column != None and self.selected_column not in self.hidden_columns:
-                    # start of string is on screen
-                    col_width = self.column_widths[self.selected_column]
-                    number = f"{self.selected_column}. " if self.number_columns else ""
-                    col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
-                    highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]-len(number)}}") + self.separator
+            if self.selected_column != None and self.selected_column not in self.hidden_columns:
+                # start of string is on screen
+                col_width = self.column_widths[self.selected_column]
+                number = f"{self.selected_column}. " if self.number_columns else ""
+                col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
+                highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]-len(number)}}") + self.separator
 
-                    if len(self.column_widths) == 1:
-                        colour = curses.color_pair(self.colours_start+28) | curses.A_BOLD
+                if len(self.column_widths) == 1:
+                    colour = curses.color_pair(self.colours_start+28) | curses.A_BOLD
+                else:
+                    colour = curses.color_pair(self.colours_start+19) | curses.A_BOLD
+                # Start of selected column is on the screen
+                if self.leftmost_char <= len(up_to_selected_col) and self.leftmost_char+self.rows_w-self.left_gutter_width > len(up_to_selected_col):
+                    x_pos = len(up_to_selected_col) - self.leftmost_char + self.startx
+
+                    # Whole cell of the selected column is on the screen
+                    if len(up_to_selected_col)+col_width - self.leftmost_char < self.rows_w-self.left_gutter_width:
+                        disp_str = highlighted_col_str
+
+                    # Start of the cell is on the screen, but the end of the cell is not
                     else:
-                        colour = curses.color_pair(self.colours_start+19) | curses.A_BOLD
-                    # Start of selected column is on the screen
-                    if self.leftmost_char <= len(up_to_selected_col) and self.leftmost_char+self.rows_w-self.left_gutter_width > len(up_to_selected_col):
-                        x_pos = len(up_to_selected_col) - self.leftmost_char + self.startx
+                        overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w - self.left_gutter_width)
+                        disp_str = highlighted_col_str[:-overflow]
+                    disp_str_w = min(len(disp_str), self.term_w-x_pos)
+                    disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
 
-                        # Whole cell of the selected column is on the screen
-                        if len(up_to_selected_col)+col_width - self.leftmost_char < self.rows_w-self.left_gutter_width:
-                            disp_str = highlighted_col_str
+                    self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
+                # Start of the cell is to the right of the screen
+                elif self.leftmost_char+self.rows_w <= len(up_to_selected_col):
+                    pass
+                # The end of the cell is on the screen, the start of the cell is not
+                elif 0 <= len(up_to_selected_col)+col_width - self.leftmost_char <= self.rows_w :
+                    x_pos = self.startx
+                    beg = self.leftmost_char - len(up_to_selected_col)
+                    disp_str = highlighted_col_str[beg:]
+                    disp_str_w = min(len(disp_str), self.term_w-x_pos)
+                    disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
+                    self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
+                # The middle of the cell is on the screen, the start and end of the cell are not
+                elif self.leftmost_char <= len(up_to_selected_col) + col_width//2 <= self.leftmost_char+self.rows_w:
+                    beg = self.leftmost_char - len(up_to_selected_col)
+                    overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w)
+                    x_pos = self.startx
+                    disp_str = highlighted_col_str[beg:-overflow]
+                    disp_str_w = min(len(disp_str), self.term_w-x_pos)
+                    disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
 
-                        # Start of the cell is on the screen, but the end of the cell is not
-                        else:
-                            overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w - self.left_gutter_width)
-                            disp_str = highlighted_col_str[:-overflow]
-                        disp_str_w = min(len(disp_str), self.term_w-x_pos)
-                        disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
+                    self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
 
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
-                    # Start of the cell is to the right of the screen
-                    elif self.leftmost_char+self.rows_w <= len(up_to_selected_col):
-                        pass
-                    # The end of the cell is on the screen, the start of the cell is not
-                    elif 0 <= len(up_to_selected_col)+col_width - self.leftmost_char <= self.rows_w :
-                        x_pos = self.startx
-                        beg = self.leftmost_char - len(up_to_selected_col)
-                        disp_str = highlighted_col_str[beg:]
-                        disp_str_w = min(len(disp_str), self.term_w-x_pos)
-                        disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
-                    # The middle of the cell is on the screen, the start and end of the cell are not
-                    elif self.leftmost_char <= len(up_to_selected_col) + col_width//2 <= self.leftmost_char+self.rows_w:
-                        beg = self.leftmost_char - len(up_to_selected_col)
-                        overflow = (len(up_to_selected_col)+len(highlighted_col_str)) - (self.leftmost_char+self.rows_w)
-                        x_pos = self.startx
-                        disp_str = highlighted_col_str[beg:-overflow]
-                        disp_str_w = min(len(disp_str), self.term_w-x_pos)
-                        disp_str = truncate_to_display_width(disp_str, disp_str_w, self.centre_in_cols, self.unicode_char_width)
-
-                        self.stdscr.addstr(header_ypos, x_pos , disp_str, colour)
-                    # The cell is to the left of the screen
-                    else:
-                        pass
-
-                    # elif self.leftmost_char:
-                    #     os.system(f"notify-send 'cell is to the right of the screen'")
-
-                    #
-                    #
-                    # if len(self.header) > 1 and (len(up_to_selected_col)-self.leftmost_char) < self.rows_w:
-                    #     number = f"{self.selected_column}. " if self.number_columns else ""
-                    #     # number = f"{intStringToExponentString(self.selected_column)}. " if self.number_columns else ""
-                    #     # self.startx + len(up_to_selected_col) - self.leftmost_char
-                    #     highlighed_col_startx = max(self.startx, self.startx + len(up_to_selected_col) - self.leftmost_char)
-                    #
-                    #
-                    #     col_str = self.header[self.selected_column][:self.column_widths[self.selected_column]-len(number)]
-                    #     highlighted_col_str = (number+f"{col_str:^{self.column_widths[self.selected_column]}}") + self.separator
-                    #     end_of_highlighted_col_str = self.rows_w-(highlighed_col_startx+len(highlighted_col_str)) if (highlighed_col_startx+len(highlighted_col_str)) > self.rows_w else len(highlighted_col_str)
-                    #     if (highlighed_col_startx+len(highlighted_col_str)) > self.rows_w:
-                    #         end_of_highlighted_col_str = self.rows_w-(highlighed_col_startx+len(highlighted_col_str)) 
-                    #     else:
-                    #         end_of_highlighted_col_str = len(highlighted_col_str)
-                    #
-                    #     start_of_highlighted_col_str = max(self.leftmost_char - len(up_to_selected_col), 0)
-                    #     self.stdscr.addstr(header_ypos, highlighed_col_startx , highlighted_col_str[start_of_highlighted_col_str:end_of_highlighted_col_str][:self.column_widths[self.selected_column]+len(self.separator)], curses.color_pair(self.colours_start+19) | curses.A_BOLD)
-            except:
-                pass
+                # The cell is to the left of the focused part of the screen
+                else:
+                    pass
 
         # Display row header 
         if self.show_row_header:
@@ -1058,41 +1079,34 @@ class Picker:
                 colour = curses.color_pair(self.colours_start+colour_pair_number) | curses.A_BOLD
             else:
                 colour = curses.color_pair(self.colours_start+colour_pair_number)
-            try:
-                # Start of cell is on screen
-                if self.startx <= cell_pos <= self.rows_w+self.startx:
-                    s = "max" if cell_max_width <= cell_width else "norm"
-                    self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], colour)
-                    if self.centre_in_cols:
-                        cell_value = f"{self.indexed_items[row][1][col]:^{cell_width-len(self.separator)}}" + self.separator
-                    else:
-                        cell_value = self.indexed_items[row][1][col][:self.column_widths[col]] + self.separator
-                    # cell_value = cell_value[:min(cell_width, cell_max_width)-len(self.separator)]
-                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
-                    # cell_value = cell_value + self.separator
-                    # cell_value = cell_value
-                    cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
-                    if wcswidth(cell_value) + cell_pos > self.term_w:
-                        cell_value = truncate_to_display_width(cell_value, self.term_w-cell_pos-10, self.centre_in_cols, self.unicode_char_width)
-
-                    self.stdscr.addstr(y, cell_pos, cell_value, colour)
-                # Part of the cell is on screen
-                elif self.startx <= cell_pos+cell_width and cell_pos <= (self.rows_w):
-                    s = "max" if cell_max_width <= cell_width else "norm"
-                    cell_start = self.startx - cell_pos
-                    # self.stdscr.addstr(y, self.startx, ' '*(cell_width-cell_start), curses.color_pair(self.colours_start+colour_pair_number))
-                    cell_value = self.indexed_items[row][1][col]
-                    cell_value = f"{cell_value:^{self.column_widths[col]}}"
-
-                    cell_value = cell_value[cell_start:visible_column_widths[col]][:self.rows_w-self.left_gutter_width]
-                    cell_value = truncate_to_display_width(cell_value, min(wcswidth(cell_value), cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
-                    cell_value += self.separator
-                    cell_value = truncate_to_display_width(cell_value, min(wcswidth(cell_value), cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
-                    self.stdscr.addstr(y, self.startx, cell_value, colour)
+            # Start of cell is on screen
+            if self.startx <= cell_pos <= self.rows_w+self.startx:
+                s = "max" if cell_max_width <= cell_width else "norm"
+                self.stdscr.addstr(y, cell_pos, (' '*cell_width)[:cell_max_width], colour)
+                if self.centre_in_cols:
+                    cell_value = f"{self.indexed_items[row][1][col]:^{cell_width-len(self.separator)}}" + self.separator
                 else:
-                    pass
-                # if colour_pair_number == 5:
-            except:
+                    cell_value = self.indexed_items[row][1][col][:self.column_widths[col]] + self.separator
+                cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
+                cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
+                if wcswidth(cell_value) + cell_pos > self.term_w:
+                    cell_value = truncate_to_display_width(cell_value, self.term_w-cell_pos-10, self.centre_in_cols, self.unicode_char_width)
+
+                self.stdscr.addstr(y, cell_pos, cell_value, colour)
+
+            # Part of the cell is on screen
+            elif self.startx <= cell_pos+cell_width and cell_pos <= (self.rows_w):
+                s = "max" if cell_max_width <= cell_width else "norm"
+                cell_start = self.startx - cell_pos
+                cell_value = self.indexed_items[row][1][col]
+                cell_value = f"{cell_value:^{self.column_widths[col]}}"
+
+                cell_value = cell_value[cell_start:visible_column_widths[col]][:self.rows_w-self.left_gutter_width]
+                cell_value = truncate_to_display_width(cell_value, min(wcswidth(cell_value), cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
+                cell_value += self.separator
+                cell_value = truncate_to_display_width(cell_value, min(wcswidth(cell_value), cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
+                self.stdscr.addstr(y, self.startx, cell_value, colour)
+            else:
                 pass
 
 

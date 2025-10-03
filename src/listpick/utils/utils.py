@@ -15,6 +15,7 @@ import os
 from typing import Tuple, Dict
 import logging
 import shlex
+from collections import defaultdict
 
 logger = logging.getLogger('picker_log')
 
@@ -205,17 +206,11 @@ def get_selected_cells(cell_selections: Dict[Tuple[int, int], bool]) -> list[Tup
 def get_selected_cells_by_row(cell_selections: dict[tuple[int, int], bool]) -> dict[int, list[int]]:
     """ {0: [1,2], 9: [1] }"""
     
-    d = {}
-    try:
-        for tup in cell_selections.keys():
-            if cell_selections[tup]:
-                if tup[0] in d:
-                    d[tup[0]].append(tup[1])
-                else:
-                    d[tup[0]] = [tup[1]]
-    except:
-        pass
-    return d
+    d = defaultdict(list)
+    for (row, col), selected in cell_selections.items():
+        if selected:
+            d[row].append(col)
+    return dict(d)
 
 def get_selected_values(items: list[list[str]], selections: dict[int, bool]) -> list[list[str]]:
     """ Return a list of rows based on wich are True in the selections dictionary. """

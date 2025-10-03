@@ -1,5 +1,12 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.16.11] 2025-10-03
+ - Added some missing docstrings for helper functions.
+ - Refactored cell selection and list-padding logic.
+ - Removed broad try/except blocks in display code, relying on stricter checks.
+ - Adjusted Picker keyboard mapping for `opts_input` to use `META_o`.
+ - Simplified get_selected_cells_by_row using `collections.defaultdict`.
+
 ## [0.1.16.10] 2025-09-23
  - Created separate header_separator with "   |" as the default which shows borders between the column-headers.
  - Created ensure_no_overscroll() method to ensure we do not scroll past the data-set when we move the cursor down, select different columns, resize the terminal, etc.

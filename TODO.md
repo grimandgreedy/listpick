@@ -333,6 +333,8 @@
 > - [x] Handle files with multiple sheets.
 >  - [ ] Add support in the alternate footers
 > - [x] Support opening multiple files from the command line.
+> - [ ] In initialise_variables(), make cursor- and selection-tracking optional
+> - [ ] Add temporary notifications
 
 > [!Bug] Bugs
 > - [ ] fix resizing when input field active
