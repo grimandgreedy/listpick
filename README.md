@@ -77,7 +77,7 @@ df -h | listpick --stdin
 ### lpfman
 [lpfman](https://github.com/grimandgreedy/lpfman) is a terminal file manager with extensive column support.
 
-<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_image_preview.png?raw=true" alt="lpfman" width="70%"> </div>
+<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_02.png?raw=true" alt="lpfman" width="85%"> </div>
 
 
 ### Data generation from toml file
@@ -171,19 +171,6 @@ listpick -g ./examples/data_generation/video_duplicates.toml
    - Useful for:
        - Opening files with a specific application `xargs -d \n -I{} mpv {}` will open the files in mpv
        - Dumping data. `xargs -d \n -I{} echo {} > ~/stuff.txt`
-
-## Overview
-
-The application allows you to:
-- Select multiple items from different file types and input streams
-- Navigate between selected items with arrow keys
-- Delete individual items
-- Highlight specific items for quick selection
-- Perform complex filtering operations
-- Sort data based on specified columns
-- Persistent save/load of selections
-- Copy/paste selections to clipboard
-
 
 ## Support and Feedback
 
