@@ -66,18 +66,18 @@ listpick is useful as a command-line tool for tabulating command outputs:
 df -h | listpick --stdin
 ```
 
-<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="85%"> </div>
+<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="95%"> </div>
 
 ### Aria2TUI
 
 [Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
 
-<div align="center"> <img src="assets/aria2tui_graph_screenshot.png" alt="Aria2TUI" width="70%"> </div>
+<div align="center"> <img src="assets/aria2tui_graph_screenshot.png" alt="Aria2TUI" width="95%"> </div>
 
 ### lpfman
 [lpfman](https://github.com/grimandgreedy/lpfman) is a terminal file manager with extensive column support.
 
-<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_02.png?raw=true" alt="lpfman" width="85%"> </div>
+<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_02.png?raw=true" alt="lpfman" width="95%"> </div>
 
 
 ### Data generation from toml file
@@ -92,7 +92,7 @@ listpick -g ./examples/data_generation/video_duplicates.toml
 
   - We get the SHA1 hash to identify identical files; we also get the size, duration, resolution, and bitrate so that we can identify a video duplicate that may have the same duration but a lower resolution.
 
-<div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="70%"> </div>
+<div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="95%"> </div>
 
 
 ## Description
