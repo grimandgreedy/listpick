@@ -1,4 +1,4 @@
-qq# listpick
+# listpick
 
 listpick is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
 
@@ -59,6 +59,14 @@ The application allows you to:
 ## Examples
 
 
+### Command-line tool
+
+listpick is useful as a command-line tool for navigating tabulated data.
+```bash
+df -h | listpick --stdin
+```
+
+<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="70%"> </div>
 
 ### Aria2TUI
 
