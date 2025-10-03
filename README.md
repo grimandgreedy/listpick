@@ -1,10 +1,6 @@
 # listpick
 
-listpick is a TUI tool which displays a tabulated list of rows and allows the user to operate upon these rows--select, copy, pipe. A very simple concept but also, I hope, a powerful tool that will make it easier for people to develop TUI apps.
-
-Rows of data can be viewed, selected, generated, saved, loaded, refreshed, modified or copied to the clipboard. Easy to integrate into your project by creating a `menu = Picker(stdscr: curses.window, items: list[list[str]])` and then the menu will be displayed by running `menu.run()`.
-
-It works great as the backend for a TUI application and can also be used as a standalone data viewer.
+listpick is a powerful TUI data tool for viewing, editing and operating upon tabulated data; can be used to build TUI applications, generate data columns, or function as a command-line utility.
 
 **NOTE**: listpick is still in development.
 
@@ -29,18 +25,13 @@ x = Picker(
         ["row zero column zero", "row zero column one"],
         ["row one column zero", "row one column one"]
     ],
-    header=["H0", "H1"]
+    header=["H0", "H1"],
+    cell_cursor=True,
 )
 x.run()
 
 close_curses(stdscr)
 
-```
-Or use the listpick binary to generate and display rows based on a list of commands:
-
-```
-wget https://raw.githubusercontent.com/grimandgreedy/listpick/refs/heads/master/examples/data_generation/list_files.toml
-listpick -g list_files.py
 ```
 
 ## Overview
@@ -59,31 +50,33 @@ The application allows you to:
 ## Examples
 
 
-### Command-line tool
+### listpick as a command-line tool
 
-listpick is useful as a command-line tool for tabulating command outputs:
+listpick can be used as a command-line tool for tabulating command outputs:
 ```bash
 df -h | listpick --stdin
 ```
 
-<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="95%"> </div>
+<div align="center"> <img src="assets/listpick_df_example.png" alt="lpfman" width="90%"> </div>
 
-### Aria2TUI
+### Applications
 
-[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI) is implemented using listpick. This is a good example of how listpick can be used for menus, data viewing, and active data retrieval.
+#### Aria2TUI
 
-<div align="center"> <img src="assets/aria2tui_graph_screenshot.png" alt="Aria2TUI" width="95%"> </div>
+[Aria2TUI](https://github.com/grimandgreedy/Aria2TUI): TUI client for the aria2c download utility.
 
-### lpfman
-[lpfman](https://github.com/grimandgreedy/lpfman) is a terminal file manager with extensive column support.
+<div align="center"> <img src="assets/aria2tui_graph_screenshot.png" alt="Aria2TUI" width="90%"> </div>
 
-<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_02.png?raw=true" alt="lpfman" width="95%"> </div>
+#### lpfman
+[lpfman](https://github.com/grimandgreedy/lpfman): Terminal file manager with extensive column support.
+
+<div align="center"> <img src="https://github.com/grimandgreedy/lpfman/blob/master/assets/lpfman_02.png?raw=true" alt="lpfman" width="90%"> </div>
 
 
 ### Data generation from toml file
 
 ```python 
-listpick -g ./examples/data_generation/video_duplicates.toml
+listpick -g ./listpick/examples/data_generation/video_duplicates.toml
 ```
   - From the list of commands in the toml file we generate the properties we will use to identify the duplicates. 
 
@@ -92,7 +85,7 @@ listpick -g ./examples/data_generation/video_duplicates.toml
 
   - We get the SHA1 hash to identify identical files; we also get the size, duration, resolution, and bitrate so that we can identify a video duplicate that may have the same duration but a lower resolution.
 
-<div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="95%"> </div>
+<div align="center"> <img src="assets/file_compare.png" alt="Video Compare" width="90%"> </div>
 
 
 ## Description
