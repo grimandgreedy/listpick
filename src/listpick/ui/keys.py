@@ -249,11 +249,14 @@ edit_menu_keys = {
     "col_select_prev":                             [ord('<'), ord('h')], 
     "col_hide":                         [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')],
     "edit":                             [ord('e')],
-    "edit_picker":                      [ord('E')],
+    "edit_nvim":                        [ord('E')],
     "edit_ipython":                     [5], # Ctrl+e
     "copy":                             [ord('y')],
     "save":                             [19, ord('D')],  # Ctrl+s
     "load":                             [ord('L'), 15], # Ctrl+o
     "open":                             [ord('O')], 
     "toggle_footer":                    [ord('_')], 
+    "visual_selection_toggle":          [ord('v')],
+    "visual_deselection_toggle":        [ord('V')],
+    "toggle_select":                    [ord(' ')],
 }

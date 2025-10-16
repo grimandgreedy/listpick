@@ -1,14 +1,17 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.16.13] 2025-10-15
+ - Updated edit_menu_keys.
+
 ## [0.1.16.12] 2025-10-14
  - Feature added: Edit selected cells in nvim (key 'E')--only works for cells in editable columns.
+ - Feature added: toggle visible columns menu (accessible from settings (~)).
  - Fixed bugs and improved experience in Picker with hidden columns:
    - Fixed rare row alignment problems with hidden columns
    - Fixed certain problems with displaying highlights when columns are hidden
    - Fixed row widths readjusting twice (but visually noticable) when columns are hidden
    - Ensured that when moving to next/prev column we only move skip over hidden columns
- - Added column toggle menu.
  - Added alternate_selection_char which allows, e.g., ☒, to indicate the selection status rather than a coloured character.
  - The picker state is now passed to the data generation function which allows a stop event to be created, and triggered to tell the worker thread to stop sending jobs to the other threads.
  - We now track threads and jobs that are created when generating cell values:
