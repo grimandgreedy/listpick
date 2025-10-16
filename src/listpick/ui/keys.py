@@ -62,7 +62,8 @@ picker_keys = {
     "col_select_prev":                             [ord('<')], 
     "col_hide":                         [ord('!'), ord('@'), ord('#'), ord('$'), ord('%'), ord('^'), ord('&'), ord('*'), ord('('), ord(')')],
     "edit":                             [ord('e')],
-    "edit_picker":                      [ord('E')],
+    # "edit_picker":                      [ord('E')],
+    "edit_nvim":                        [ord('E')],
     "edit_ipython":                     [5], # Ctrl+e
     "copy":                             [ord('y')],
     "paste":                             [ord('p')],

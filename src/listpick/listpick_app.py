@@ -18,9 +18,13 @@ from wcwidth import wcswidth
 from typing import Callable, Optional, Tuple, Dict
 import json
 import threading
+import multiprocessing
 import string
 import logging
 import copy
+import tempfile
+import queue
+from listpick.utils.generate_data_utils import ProcessSafePriorityQueue
 
 from listpick.pane.pane_utils import get_file_attributes
 from listpick.pane.left_pane_functions import *
@@ -70,9 +74,9 @@ class Picker:
         auto_refresh: bool =False,
         timer: float = 5,
 
-        get_new_data: bool =False,                          # Whether we can get new data
-        refresh_function: Optional[Callable] = lambda items, header, visible_rows_indices, getting_data: None,  # The function with which we get new data
-        get_data_startup: bool =False,                      # Whether we should get data at statrup
+        get_new_data: bool =False,
+        refresh_function: Optional[Callable] = lambda items, header, visible_rows_indices, getting_data: None,
+        get_data_startup: bool =False,
         track_entries_upon_refresh: bool = True,
         pin_cursor: bool = False,
         id_column: int = 0,
@@ -95,8 +99,12 @@ class Picker:
         user_opts : str = "",
         options_list: list[str] = [],
         user_settings : str = "",
+
         separator : str = "    ",
         header_separator : str = "   │",
+        header_separator_before_selected_column : str = "   ▐",
+
+        
         search_query : str = "",
         search_count : int = 0,
         search_index : int = 0,
@@ -111,6 +119,10 @@ class Picker:
         highlight_full_row: bool =False,
         crosshair_cursor: bool = False,
         cell_cursor: bool = True,
+        selected_char: str = "",
+        unselected_char: str = "",
+        selecting_char: str = "",
+        deselecting_char: str = "",
 
         items_per_page : int = -1,
         sort_method : int = 0,
@@ -197,6 +209,8 @@ class Picker:
         left_pane_index: int = 0,
 
         screen_size_function = lambda stdscr: os.get_terminal_size()[::-1],
+        generate_data_for_hidden_columns: bool = False,
+
 
         # getting_data: threading.Event = threading.Event(),
 
@@ -245,6 +259,7 @@ class Picker:
         self.user_settings = user_settings
         self.separator = separator
         self.header_separator = header_separator
+        self.header_separator_before_selected_column = header_separator_before_selected_column
         self.search_query = search_query
         self.search_count = search_count
         self.search_index = search_index
@@ -259,6 +274,10 @@ class Picker:
         self.highlight_full_row = highlight_full_row
         self.crosshair_cursor = crosshair_cursor
         self.cell_cursor = cell_cursor
+        self.selected_char = selected_char
+        self.unselected_char = unselected_char
+        self.selecting_char = selecting_char
+        self.deselecting_char = deselecting_char
 
         self.items_per_page = items_per_page
         self.sort_method = sort_method
@@ -361,7 +380,17 @@ class Picker:
 
         self.visible_rows_indices = []
 
+        self.generate_data_for_hidden_columns = generate_data_for_hidden_columns
+        self.thread_stop_event = threading.Event()
+        self.data_generation_queue = queue.PriorityQueue()
+        self.threads = []
 
+
+        self.process_manager = multiprocessing.Manager()
+        # self.data_generation_queue = ProcessSafePriorityQueue
+        self.processes = []
+        self.items_sync_loop_event = threading.Event() 
+        self.items_sync_thread = None
 
 
         self.initialise_picker_state(reset_colours=self.reset_colours)
@@ -541,8 +570,8 @@ class Picker:
             self.top_space += ((self.term_h-(self.top_space+self.bottom_space))-len(self.indexed_items))//2
 
         # self.column_widths
-        visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
-        visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
+        self.visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
+        visible_columns_total_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
 
         # self.startx
         self.startx = 1 if self.highlight_full_row else 2
@@ -649,7 +678,7 @@ class Picker:
         tracking = False
 
         ## Get data synchronously
-        if get_data and self.refresh_function != None:
+        if get_data:
             # Track cursor_pos and selections by ther id (row[self.id_column][col])
             if self.track_entries_upon_refresh and len(self.items) > 0:
                 tracking = True
@@ -665,7 +694,13 @@ class Picker:
             # Set the state of the threading event
             # Though we are getting data synchronously, we ensure the correct state for self.getting_data 
             self.getting_data.clear()
-            self.refresh_function(self.items, self.header, self.visible_rows_indices, self.getting_data)
+            self.refresh_function(
+                self.items,
+                self.header,
+                self.visible_rows_indices,
+                self.getting_data,
+                self.get_function_data(),
+            )
 
                     
         # Ensure that an emtpy items object has the form [[]]
@@ -942,8 +977,8 @@ class Picker:
 
         self.get_visible_rows()
         self.column_widths = get_column_widths(self.visible_rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
-        visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
-        visible_columns_total_width = sum(visible_column_widths) + len(self.separator)*(len(visible_column_widths)-1)
+        self.visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
+        visible_columns_total_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
 
 
         ## Display title
@@ -990,7 +1025,10 @@ class Picker:
 
 
                 header_str += f"{col_str:^{self.column_widths[i]-len(number)}}"
-                header_str += self.header_separator
+                if i == self.selected_column-1:
+                    header_str += self.header_separator_before_selected_column
+                else:
+                    header_str += self.header_separator
                 header_str_w = min(self.rows_w-self.left_gutter_width, visible_columns_total_width+1, self.term_w-self.startx)
 
             header_str = header_str[self.leftmost_char:]
@@ -1150,10 +1188,11 @@ class Picker:
                         match = re.search(highlight["match"], truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], centre=False, unicode_char_width=self.unicode_char_width), re.IGNORECASE)
                         if not match: continue
                         field_start = sum([width for i, width in enumerate(self.column_widths[:highlight["field"]]) if i not in self.hidden_columns]) + sum([1 for i in range(highlight["field"]) if i not in self.hidden_columns])*wcswidth(self.separator)
+                        width = min(self.column_widths[highlight["field"]]-(field_start-self.leftmost_char), self.rows_w-self.left_gutter_width)
 
                         ## We want to search the non-centred values but highlight the centred values.
                         if self.centre_in_cols:
-                            tmp = truncate_to_display_width(item[1][highlight["field"]], self.column_widths[highlight["field"]], self.centre_in_cols, self.unicode_char_width)
+                            tmp = truncate_to_display_width(item[1][highlight["field"]], width, self.centre_in_cols, self.unicode_char_width)
                             field_start += (len(tmp) - len(tmp.lstrip()))
 
                         highlight_start = field_start + match.start()
@@ -1164,7 +1203,7 @@ class Picker:
                         continue
                     highlight_start -= self.leftmost_char
                     highlight_end -= self.leftmost_char
-                    self.stdscr.addstr(y, max(self.startx, self.startx+highlight_start), row_str[max(highlight_start,0):min(self.rows_w-self.startx, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
+                    self.stdscr.addstr(y, max(self.startx, self.startx+highlight_start), row_str[max(highlight_start,0):min(self.rows_w-self.left_gutter_width, highlight_end)], curses.color_pair(self.colours_start+highlight["color"]) | curses.A_BOLD)
                 except:
                     pass
 
@@ -1180,7 +1219,7 @@ class Picker:
         l0_highlights, l1_highlights, l2_highlights = sort_highlights(self.highlights)
 
 
-        row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+        row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
         for idx in range(start_index, end_index):
             item = self.indexed_items[idx]
             y = idx - start_index + self.top_space
@@ -1200,7 +1239,7 @@ class Picker:
             #     trunc_width = 0
 
 
-            trunc_width = min(self.rows_w-self.left_gutter_width, row_width, self.term_w - self.startx)
+            trunc_width = max(0, min(self.rows_w-self.left_gutter_width, row_width, self.term_w - self.startx))
 
             row_str = truncate_to_display_width(row_str_left_adj, trunc_width, self.unicode_char_width)
             # row_str = truncate_to_display_width(row_str, min(w-self.startx, visible_columns_total_width))[self.leftmost_char:]
@@ -1211,7 +1250,7 @@ class Picker:
 
             ## Highlight column
             if self.crosshair_cursor:
-                highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=27, bold=False, y=y)
+                highlight_cell(idx, self.selected_column, self.visible_column_widths, colour_pair_number=27, bold=False, y=y)
                 if idx == self.cursor_pos:
                     self.stdscr.addstr(y, self.startx, row_str[:min(self.rows_w-self.startx, visible_columns_total_width)], curses.color_pair(self.colours_start+27))
 
@@ -1225,21 +1264,21 @@ class Picker:
                 # self.selected_cells_by_row = get_selected_cells_by_row(self.cell_selections)
                 if item[0] in self.selected_cells_by_row:
                     for j in self.selected_cells_by_row[item[0]]:
-                        highlight_cell(idx, j, visible_column_widths, colour_pair_number=25, bold=False, y=y)
+                        highlight_cell(idx, j, self.visible_column_widths, colour_pair_number=25, bold=False, y=y)
 
                 # Visually selected
                 if self.is_selecting:
                     if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=25, bold=False, y=y)
+                            highlight_cell(idx, col, self.visible_column_widths, colour_pair_number=25, bold=False, y=y)
 
                 # Visually deslected
                 if self.is_deselecting:
                     if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
                         x_interval = range(min(self.start_selection_col, self.selected_column), max(self.start_selection_col, self.selected_column)+1)
                         for col in x_interval:
-                            highlight_cell(idx, col, visible_column_widths, colour_pair_number=26, bold=False,y=y)
+                            highlight_cell(idx, col, self.visible_column_widths, colour_pair_number=26, bold=False,y=y)
             # Higlight cursor row and selected rows
             elif self.highlight_full_row:
                 if self.selections[item[0]]:
@@ -1256,16 +1295,30 @@ class Picker:
 
             # Highlight the cursor row and the first char of the selected rows.
             else:
-                if self.selections[item[0]]:
-                    self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
-                # Visually selected
-                if self.is_selecting:
-                    if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                if self.selected_char:
+                    if self.selections[item[0]]:
+                        self.stdscr.addstr(y, max(self.startx-2,0), self.selected_char, curses.color_pair(self.colours_start+2))
+                    else:
+                        self.stdscr.addstr(y, max(self.startx-2,0), self.unselected_char, curses.color_pair(self.colours_start+2))
+                    # Visually selected
+                    if self.is_selecting:
+                        if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                            self.stdscr.addstr(y, max(self.startx-2,0), self.selecting_char, curses.color_pair(self.colours_start+2))
+                    # Visually deslected
+                    if self.is_deselecting:
+                        if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
+                            self.stdscr.addstr(y, max(self.startx-2,0), self.deselecting_char, curses.color_pair(self.colours_start+2))
+                else:
+                    if self.selections[item[0]]:
                         self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
-                # Visually deslected
-                if self.is_deselecting:
-                    if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
-                        self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
+                    # Visually selected
+                    if self.is_selecting:
+                        if self.start_selection <= idx <= self.cursor_pos or self.start_selection >= idx >= self.cursor_pos:
+                            self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+1))
+                    # Visually deslected
+                    if self.is_deselecting:
+                        if self.start_selection >= idx >= self.cursor_pos or self.start_selection <= idx <= self.cursor_pos:
+                            self.stdscr.addstr(y, max(self.startx-2,0), ' ', curses.color_pair(self.colours_start+10))
 
             if not self.highlights_hide:
                 draw_highlights(l1_highlights, idx, y, item)
@@ -1275,7 +1328,7 @@ class Picker:
             # Draw cursor
             if idx == self.cursor_pos:
                 if self.cell_cursor:
-                    highlight_cell(idx, self.selected_column, visible_column_widths, colour_pair_number=5, bold=True, y=y)
+                    highlight_cell(idx, self.selected_column, self.visible_column_widths, colour_pair_number=5, bold=True, y=y)
                 else:
                     self.stdscr.addstr(y, self.startx, row_str[:self.rows_w-self.left_gutter_width], curses.color_pair(self.colours_start+5) | curses.A_BOLD)
 
@@ -1380,6 +1433,21 @@ class Picker:
             # self.stdscr.timeout(2000)  # timeout is set to 50 in order to get the infobox to be displayed so here we reset it to 2000
 
 
+    def refresh_and_draw_screen(self):
+        """
+        Clears and refreshes the screen, restricts and unrestricts curses, 
+            ensures correct terminal settings, and then draws the screen.
+        """
+
+        self.logger.info(f"key_function redraw_screen")
+        self.stdscr.clear()
+        self.stdscr.refresh()
+        restrict_curses(self.stdscr)
+        unrestrict_curses(self.stdscr)
+        self.stdscr.clear()
+        self.stdscr.refresh()
+
+        self.draw_screen()
 
     def infobox(self, stdscr: curses.window, message: str ="", title: str ="Infobox",  colours_end: int = 0, duration: int = 4) -> curses.window:
         """ Display non-interactive infobox window. """
@@ -1435,116 +1503,126 @@ class Picker:
         self.logger.debug(f"function: get_function_data()")
         """ Returns a dict of the main variables needed to restore the state of list_pikcer. """
         function_data = {
-            "selections":                       self.selections,
-            "cell_selections":                  self.cell_selections,
-            "selected_cells_by_row":            self.selected_cells_by_row,
-            "items_per_page":                   self.items_per_page,
-            "current_row":                      self.current_row,
-            "current_page":                     self.current_page,
-            "cursor_pos":                       self.cursor_pos,
-            "colours":                          self.colours,
-            "colour_theme_number":              self.colour_theme_number,
-            "selected_column":                  self.selected_column,
-            "sort_column":                      self.sort_column,
-            "sort_method":                      self.sort_method,
-            "sort_reverse":                     self.sort_reverse,
-            "SORT_METHODS":                     self.SORT_METHODS,
-            "hidden_columns":                   self.hidden_columns,
-            "is_selecting":                     self.is_selecting,
-            "is_deselecting":                   self.is_deselecting,
-            "user_opts":                        self.user_opts,
-            "options_list":                     self.options_list,
-            "user_settings":                    self.user_settings,
-            "separator":                        self.separator,
-            "search_query":                     self.search_query,
-            "search_count":                     self.search_count,
-            "search_index":                     self.search_index,
-            "filter_query":                     self.filter_query,
-            "indexed_items":                    self.indexed_items,
-            "start_selection":                  self.start_selection,
-            "start_selection_col":              self.start_selection_col,
-            "end_selection":                    self.end_selection,
-            "highlights":                       self.highlights,
-            "max_column_width":                 self.max_column_width,
-            "column_indices":                   self.column_indices,
-            "mode_index":                       self.mode_index,
-            "modes":                            self.modes,
-            "title":                            self.title,
-            "display_modes":                    self.display_modes,
-            "require_option":                   self.require_option,
-            "require_option_default":           self.require_option_default,
-            "option_functions":                 self.option_functions,
-            "top_gap":                          self.top_gap,
-            "number_columns":                   self.number_columns,
-            "items":                            self.items,
-            "indexed_items":                    self.indexed_items,
-            "header":                           self.header,
-            "scroll_bar":                       self.scroll_bar,
-            "columns_sort_method":              self.columns_sort_method,
-            "disabled_keys":                    self.disabled_keys,
-            "show_footer":                      self.show_footer,
-            "footer_string":                    self.footer_string,
-            "footer_string_auto_refresh":       self.footer_string_auto_refresh,
-            "footer_string_refresh_function":   self.footer_string_refresh_function,
-            "footer_timer":                     self.footer_timer,
-            "footer_style":                     self.footer_style,
-            "colours_start":                    self.colours_start,
-            "colours_end":                      self.colours_end,
-            "display_only":                     self.display_only,
-            "infobox_items":                    self.infobox_items,
-            "display_infobox":                  self.display_infobox,
-            "infobox_title":                    self.infobox_title,
-            "key_remappings":                   self.key_remappings,
-            "auto_refresh":                     self.auto_refresh,
-            "get_new_data":                     self.get_new_data,
-            "refresh_function":                 self.refresh_function,
-            "timer":                            self.timer,
-            "get_data_startup":                 self.get_data_startup,
-            "get_footer_string_startup":        self.get_footer_string_startup,
-            "editable_columns":                 self.editable_columns,
-            "last_key":                         self.last_key,
-            "centre_in_terminal":               self.centre_in_terminal,
-            "centre_in_terminal_vertical":      self.centre_in_terminal_vertical,
-            "centre_in_cols":                   self.centre_in_cols,
-            "highlight_full_row":               self.highlight_full_row,
-            "cell_cursor":                      self.cell_cursor,
-            "column_widths":                    self.column_widths,
-            "track_entries_upon_refresh":       self.track_entries_upon_refresh,
-            "pin_cursor":                       self.pin_cursor,
-            "id_column":                        self.id_column,
-            "startup_notification":             self.startup_notification,
-            "keys_dict":                        self.keys_dict,
-            "cancel_is_back":                   self.cancel_is_back,
-            "paginate":                         self.paginate,
-            "leftmost_char":                    self.leftmost_char,
-            "history_filter_and_search" :       self.history_filter_and_search,
-            "history_pipes" :                   self.history_pipes,
-            "history_opts" :                    self.history_opts,
-            "history_edits" :                   self.history_edits,
-            "history_settings":                 self.history_settings,
-            "show_header":                      self.show_header,
-            "show_row_header":                  self.show_row_header,
-            "debug":                            self.debug,
-            "debug_level":                      self.debug_level,
-            "reset_colours":                    self.reset_colours,
-            "unicode_char_width":               self.unicode_char_width,
-            "command_stack":                    self.command_stack,
-            "loaded_file":                      self.loaded_file,
-            "loaded_files":                     self.loaded_files,
-            "loaded_file_index":                self.loaded_file_index,
-            "loaded_file_states":               self.loaded_file_states,
-            "sheet_index":                      self.sheet_index,
-            "sheets":                           self.sheets,
-            "sheet_name":                       self.sheet_name,
-            "sheet_states":                     self.sheet_states,
-            "split_right":                      self.split_right,
-            "right_panes":                      self.right_panes,
-            "right_pane_index":                 self.right_pane_index,
-            "split_left":                       self.split_left,
-            "left_panes":                       self.left_panes,
-            "left_pane_index":                  self.left_pane_index,
-            "crosshair_cursor":                 self.crosshair_cursor,
-
+            "self":                                     self,
+            "selections":                               self.selections,
+            "cell_selections":                          self.cell_selections,
+            "selected_cells_by_row":                    self.selected_cells_by_row,
+            "items_per_page":                           self.items_per_page,
+            "current_row":                              self.current_row,
+            "current_page":                             self.current_page,
+            "cursor_pos":                               self.cursor_pos,
+            "colours":                                  self.colours,
+            "colour_theme_number":                      self.colour_theme_number,
+            "selected_column":                          self.selected_column,
+            "sort_column":                              self.sort_column,
+            "sort_method":                              self.sort_method,
+            "sort_reverse":                             self.sort_reverse,
+            "SORT_METHODS":                             self.SORT_METHODS,
+            "hidden_columns":                           self.hidden_columns,
+            "is_selecting":                             self.is_selecting,
+            "is_deselecting":                           self.is_deselecting,
+            "user_opts":                                self.user_opts,
+            "options_list":                             self.options_list,
+            "user_settings":                            self.user_settings,
+            "separator":                                self.separator,
+            "header_separator":                         self.header_separator,
+            "header_separator_before_selected_column":  self.header_separator_before_selected_column,
+            "search_query":                             self.search_query,
+            "search_count":                             self.search_count,
+            "search_index":                             self.search_index,
+            "filter_query":                             self.filter_query,
+            "indexed_items":                            self.indexed_items,
+            "start_selection":                          self.start_selection,
+            "start_selection_col":                      self.start_selection_col,
+            "end_selection":                            self.end_selection,
+            "highlights":                               self.highlights,
+            "max_column_width":                         self.max_column_width,
+            "column_indices":                           self.column_indices,
+            "mode_index":                               self.mode_index,
+            "modes":                                    self.modes,
+            "title":                                    self.title,
+            "display_modes":                            self.display_modes,
+            "require_option":                           self.require_option,
+            "require_option_default":                   self.require_option_default,
+            "option_functions":                         self.option_functions,
+            "top_gap":                                  self.top_gap,
+            "number_columns":                           self.number_columns,
+            "items":                                    self.items,
+            "indexed_items":                            self.indexed_items,
+            "header":                                   self.header,
+            "scroll_bar":                               self.scroll_bar,
+            "columns_sort_method":                      self.columns_sort_method,
+            "disabled_keys":                            self.disabled_keys,
+            "show_footer":                              self.show_footer,
+            "footer_string":                            self.footer_string,
+            "footer_string_auto_refresh":               self.footer_string_auto_refresh,
+            "footer_string_refresh_function":           self.footer_string_refresh_function,
+            "footer_timer":                             self.footer_timer,
+            "footer_style":                             self.footer_style,
+            "colours_start":                            self.colours_start,
+            "colours_end":                              self.colours_end,
+            "display_only":                             self.display_only,
+            "infobox_items":                            self.infobox_items,
+            "display_infobox":                          self.display_infobox,
+            "infobox_title":                            self.infobox_title,
+            "key_remappings":                           self.key_remappings,
+            "auto_refresh":                             self.auto_refresh,
+            "get_new_data":                             self.get_new_data,
+            "refresh_function":                         self.refresh_function,
+            "timer":                                    self.timer,
+            "get_data_startup":                         self.get_data_startup,
+            "get_footer_string_startup":                self.get_footer_string_startup,
+            "editable_columns":                         self.editable_columns,
+            "last_key":                                 self.last_key,
+            "centre_in_terminal":                       self.centre_in_terminal,
+            "centre_in_terminal_vertical":              self.centre_in_terminal_vertical,
+            "centre_in_cols":                           self.centre_in_cols,
+            "highlight_full_row":                       self.highlight_full_row,
+            "cell_cursor":                              self.cell_cursor,
+            "column_widths":                            self.column_widths,
+            "track_entries_upon_refresh":               self.track_entries_upon_refresh,
+            "pin_cursor":                               self.pin_cursor,
+            "id_column":                                self.id_column,
+            "startup_notification":                     self.startup_notification,
+            "keys_dict":                                self.keys_dict,
+            "cancel_is_back":                           self.cancel_is_back,
+            "paginate":                                 self.paginate,
+            "leftmost_char":                            self.leftmost_char,
+            "history_filter_and_search" :               self.history_filter_and_search,
+            "history_pipes" :                           self.history_pipes,
+            "history_opts" :                            self.history_opts,
+            "history_edits" :                           self.history_edits,
+            "history_settings":                         self.history_settings,
+            "show_header":                              self.show_header,
+            "show_row_header":                          self.show_row_header,
+            "debug":                                    self.debug,
+            "debug_level":                              self.debug_level,
+            "reset_colours":                            self.reset_colours,
+            "unicode_char_width":                       self.unicode_char_width,
+            "command_stack":                            self.command_stack,
+            "loaded_file":                              self.loaded_file,
+            "loaded_files":                             self.loaded_files,
+            "loaded_file_index":                        self.loaded_file_index,
+            "loaded_file_states":                       self.loaded_file_states,
+            "sheet_index":                              self.sheet_index,
+            "sheets":                                   self.sheets,
+            "sheet_name":                               self.sheet_name,
+            "sheet_states":                             self.sheet_states,
+            "split_right":                              self.split_right,
+            "right_panes":                              self.right_panes,
+            "right_pane_index":                         self.right_pane_index,
+            "split_left":                               self.split_left,
+            "left_panes":                               self.left_panes,
+            "left_pane_index":                          self.left_pane_index,
+            "crosshair_cursor":                         self.crosshair_cursor,
+            "generate_data_for_hidden_columns":         self.generate_data_for_hidden_columns,
+            "thread_stop_event":                        self.thread_stop_event,
+            "data_generation_queue":                    self.data_generation_queue,
+            "process_manager":                          self.process_manager,
+            "threads":                                  self.threads,
+            "processes":                                self.processes,
+            "items_sync_loop_event":                    self.items_sync_loop_event,
+            "items_sync_thread":                        self.items_sync_thread,
         }
         return function_data
 
@@ -1597,15 +1675,6 @@ class Picker:
         self.initialise_picker_state(reset_colours=reset_colours)
 
         self.initialise_variables()
-        # if "colour_theme_number" in function_data:
-        #     global COLOURS_SET
-        #     COLOURS_SET = False
-        #     colours_end = set_colours(pick=self.colour_theme_number, start=self.colours_start)
-                
-        # if "items" in function_data: self.items = function_data["items"]
-        # if "header" in function_data: self.header = function_data["header"]
-        # self.indexed_items = function_data["indexed_items"] if "indexed_items" in function_data else []
-
 
 
     def delete_entries(self) -> None:
@@ -1679,6 +1748,7 @@ class Picker:
             "split_left": False,
             "cell_cursor": False,
             "crosshair_cursor": False,
+            "header_separator": " │",
         }
         while True:
             self.update_term_size()
@@ -1701,6 +1771,102 @@ class Picker:
             return {}, "", f
             
 
+    def select_columns(
+            self,
+            stdscr: curses.window,
+            # options: list[list[str]] =[],
+            # title: str = "Choose option",
+            # x:int=0,
+            # y:int=0,
+            # literal:bool=False,
+            # colours_start:int=0,
+            # header: list[str] = [],
+            # require_option:list = [],
+            # option_functions: list = [],
+    ) -> Tuple[dict, str, dict]:
+        """
+        Display input field at x,y
+
+        ---Arguments
+            stdscr: curses screen
+            usrtxt (str): text to be edited by the user
+            title (str): The text to be displayed at the start of the text option picker
+            x (int): prompt begins at (x,y) in the screen given
+            y (int): prompt begins at (x,y) in the screen given
+            colours_start (bool): start index of curses init_pair.
+
+        ---Returns
+            usrtxt, return_code
+            usrtxt: the text inputted by the user
+            return_code: 
+                            0: user hit escape
+                            1: user hit return
+        """
+        self.logger.info(f"function: select_columns()")
+
+        cursor = 0
+
+        if self.header:
+            columns = [s for i, s in enumerate(self.header)]
+        else:
+            columns = [f"" for i in range(len(self.column_widths))]
+        
+        ## Column info variable
+        columns_set = [[f"{i}", columns[i]] for i in range(len(self.column_widths))]
+        header = ["#", "Column Name"]
+
+        selected = [False if i in self.hidden_columns else True for i in range(len(self.column_widths))]
+        selected = {i: False if i in self.hidden_columns else True for i in range(len(self.column_widths))}
+
+        option_picker_data = {
+            "items": columns_set,
+            "colours": notification_colours,
+            "colours_start": self.notification_colours_start,
+            "title":"Select Columns",
+            "header": header,
+            "hidden_columns":[],
+            # "require_option":require_option,
+            # "keys_dict": options_keys,
+            "selections": selected,
+            "show_footer": False,
+            "cancel_is_back": True,
+            "number_columns": False,
+            "reset_colours": False,
+            "split_right": False,
+            "split_left": False,
+            "cell_cursor": False,
+            "crosshair_cursor": False,
+            "separator": "  ",
+            "header_separator": " │",
+            "header_separator_before_selected_column": " ▐",
+            "selected_char": "☒",
+            "unselected_char": "☐",
+            "selecting_char": "☒",
+            "deselecting_char": "☐",
+        }
+        while True:
+            self.update_term_size()
+
+            choose_opts_widths = get_column_widths(columns_set, unicode_char_width=self.unicode_char_width)
+            window_width = min(max(sum(choose_opts_widths) + 6, 50) + 6, self.term_w)
+            window_height = min(self.term_h//2, max(6, len(columns_set)+3))
+
+            submenu_win = curses.newwin(window_height, window_width, (self.term_h-window_height)//2, (self.term_w-window_width)//2)
+            submenu_win.keypad(True)
+            option_picker_data["screen_size_function"] = lambda stdscr: (window_height, window_width)
+            OptionPicker = Picker(submenu_win, **option_picker_data)
+            s, o, f = OptionPicker.run()
+
+            if o == "refresh": 
+                self.draw_screen()
+                continue
+            if s:
+                selected_columns = s
+                self.hidden_columns = [i for i in range(len(self.column_widths)) if i not in selected_columns]
+
+                # return {x: options[x] for x in s}, o, f
+                break
+            return {}, "", f
 
     def notification(self, stdscr: curses.window, message: str="", title:str="Notification", colours_end: int=0, duration:int=4) -> None:
 
@@ -1743,7 +1909,6 @@ class Picker:
                 "crosshair_cursor": False,
                 "show_header": False,
                 "screen_size_function": lambda stdscr: (notification_height, notification_width),
-
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
@@ -1947,6 +2112,9 @@ class Picker:
                         self.draw_screen()
                         self.notification(self.stdscr, message=f"Theme {self.colour_theme_number} applied.")
                     self.colours = get_colours(self.colour_theme_number)
+                elif setting == "colsel":
+                    self.draw_screen()
+                    self.select_columns(self.stdscr)
 
                 else:
                     self.user_settings = ""
@@ -2312,7 +2480,13 @@ class Picker:
         self.logger.info(f"function: fetch_data()")
         tmp_items, tmp_header = [], []
         self.getting_data.clear()
-        self.refresh_function(tmp_items, tmp_header, self.visible_rows_indices, self.getting_data)
+        self.refresh_function(
+            tmp_items, 
+            tmp_header, 
+            self.visible_rows_indices, 
+            self.getting_data,
+            self.get_function_data(),
+        )
         if self.track_entries_upon_refresh:
             selected_indices = get_selected_indices(self.selections)
             self.ids = [item[self.id_column] for i, item in enumerate(self.items) if i in selected_indices]
@@ -2410,10 +2584,6 @@ class Picker:
             row_len = 1
             if self.header: row_len = len(self.header)
             elif len(self.items): row_len  = len(self.items[0])
-            # if len(self.indexed_items) == 0:
-            #     insert_at_pos = 0
-            # else:
-            #     insert_at_pos = self.indexed_items[self.cursor_pos][0]
             self.items = self.items[:pos] + [["" for x in range(row_len)]] + self.items[pos:]
             if pos <= self.cursor_pos:
                 self.cursor_pos += 1
@@ -2563,17 +2733,44 @@ class Picker:
             max_total_width=self.rows_w,
             unicode_char_width=self.unicode_char_width
         )
+        self.calculate_section_sizes()
 
-        row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+        row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
         if row_width - self.leftmost_char < self.rows_w:
             if row_width <= self.rows_w - self.left_gutter_width:
                 self.leftmost_char = 0
             else:
                 self.leftmost_char = row_width - (self.rows_w - self.left_gutter_width) + 5
 
+    def cleanup_processes(self):
+        self.thread_stop_event.set()
+        self.data_generation_queue.clear()
+        # with self.data_generation_queue.mutex:
+        #     self.data_generation_queue.queue.clear()
+        function_data = self.get_function_data()
+        for proc in self.processes:
+            if proc.is_alive():
+                proc.terminate()
+                proc.join(timeout=0.01)
+        self.processes = []
+        self.items_sync_loop_event.set()
+        if self.items_sync_thread != None:
+            self.items_sync_thread.join(timeout=1)
+
+    def cleanup_threads(self):
+        self.thread_stop_event.set()
+        with self.data_generation_queue.mutex:
+            self.data_generation_queue.queue.clear()
+        function_data = self.get_function_data()
+        for t in self.threads:
+            if t.is_alive():
+                t.join(timeout=0.01)
+
     def run(self) -> Tuple[list[int], str, dict]:
         """ Run the picker. """
         self.logger.info(f"function: run()")
+
+        self.thread_stop_event.clear()
 
         if self.get_footer_string_startup and self.footer_string_refresh_function != None:
             self.footer_string = " "
@@ -2679,9 +2876,12 @@ class Picker:
 
             elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - self.initial_time) >= self.timer):
                 self.logger.debug(f"Get new data (refresh).")
-                self.stdscr.addstr(0,self.term_w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
+                try:
+                    self.stdscr.addstr(0,self.term_w-3,"  ", curses.color_pair(self.colours_start+21) | curses.A_BOLD)
+                except:
+                    pass
                 self.stdscr.refresh()
-                if self.get_new_data and self.refresh_function:
+                if self.get_new_data:
                     self.refreshing_data = True
 
                     t = threading.Thread(target=self.fetch_data)
@@ -2824,6 +3024,14 @@ class Picker:
                 data["option_functions"] = f"[...] length = {len(data['option_functions'])}"
                 data["loaded_file_states"] = f"[...] length = {len(data['loaded_file_states'])}"
                 data["sheet_states"] = f"[...] length = {len(data['sheet_states'])}"
+                data["highlights"] = f"[...] length = {len(data['highlights'])}"
+                data["colours"] = f"[...] length = {len(data['colours'])}"
+                data["keys_dict"] = f"[...] length = {len(data['keys_dict'])}"
+                data["history_filter_and_search"] = f"[...] length = {len(data['history_filter_and_search'])}"
+                data["history_opts"] = f"[...] length = {len(data['history_opts'])}"
+                data["history_edits"] = f"[...] length = {len(data['history_edits'])}"
+                data["history_pipes"] = f"[...] length = {len(data['history_pipes'])}"
+                data["history_settings"] = f"[...] length = {len(data['history_settings'])}"
                 info_items += [
                     ["",""],
                     ["  get_function_data()", "-*"*30],
@@ -2869,6 +3077,7 @@ class Picker:
             elif self.check_key("exit", key, self.keys_dict):
                 self.stdscr.clear()
                 if len(self.loaded_files) <= 1:
+                    self.cleanup_threads()
                     function_data = self.get_function_data()
                     restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return [], "", function_data
@@ -2890,6 +3099,7 @@ class Picker:
                     self.draw_screen()
 
             elif self.check_key("full_exit", key, self.keys_dict):
+                self.cleanup_threads()
                 close_curses(self.stdscr)
                 restore_terminal_settings(tty_fd, self.saved_terminal_state)
                 exit()
@@ -2931,11 +3141,12 @@ class Picker:
                 options = []
                 if len(self.items) > 0:
                     options += [["cv", "Centre rows vertically"]]
-                    options += [["pc", "Pin cursor to row number when data refreshes"]]
+                    options += [["pc", "Pin cursor to row index during data refresh."]]
                     options += [["ct", "Centre column-set in terminal"]]
                     options += [["cc", "Centre values in cells"]]
                     options += [["!r", "Toggle auto-refresh"]]
                     options += [["th", "Cycle between themes. (accepts th#)"]]
+                    options += [["colsel", "Toggle columns."]]
                     options += [["nohl", "Toggle highlights"]]
                     options += [["footer", "Toggle footer"]]
                     options += [["header", "Toggle header"]]
@@ -3066,16 +3277,13 @@ class Picker:
                     self.cursor_pos = new_pos
                 self.ensure_no_overscroll()
                 self.draw_screen()
-                # current_row = items_per_page - 1
-                # if current_page + 1 == (len(self.indexed_items) + items_per_page - 1) // items_per_page:
-                #
-                #     current_row = (len(self.indexed_items) +items_per_page - 1) % items_per_page
-                # self.draw_screen()
+
             elif self.check_key("enter", key, self.keys_dict):
                 self.logger.info(f"key_function enter")
                 # Print the selected indices if any, otherwise print the current index
                 if self.is_selecting or self.is_deselecting: self.handle_visual_selection()
                 if len(self.items) == 0:
+                    self.cleanup_threads()
                     function_data = self.get_function_data()
                     restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return [], "", function_data
@@ -3102,6 +3310,7 @@ class Picker:
                             )
 
                 if options_sufficient:
+                    self.cleanup_threads()
                     self.user_opts = usrtxt
                     self.stdscr.clear()
                     self.stdscr.refresh()
@@ -3115,15 +3324,7 @@ class Picker:
                 self.cursor_pos = max(0, self.cursor_pos-self.items_per_page)
 
             elif self.check_key("redraw_screen", key, self.keys_dict):
-                self.logger.info(f"key_function redraw_screen")
-                self.stdscr.clear()
-                self.stdscr.refresh()
-                restrict_curses(self.stdscr)
-                unrestrict_curses(self.stdscr)
-                self.stdscr.clear()
-                self.stdscr.refresh()
-
-                self.draw_screen()
+                self.refresh_and_draw_screen()
 
             elif self.check_key("cycle_sort_method", key, self.keys_dict):
                 if self.sort_column == self.selected_column:
@@ -3164,22 +3365,28 @@ class Picker:
                         sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
                         self.cursor_pos = [row[0] for row in self.indexed_items].index(current_index)
             elif self.check_key("col_select_next", key, self.keys_dict):
-                if len(self.items) > 0 and len(self.items[0]) > 0:
-                    col_index = (self.selected_column +1) % (len(self.items[0]))
-                    self.selected_column = col_index
-                # Flash when we loop back to the first column
-                # if self.selected_column == 0:
-                #     curses.flash()
                 self.logger.info(f"key_function col_select_next {self.selected_column}")
+                if len(self.hidden_columns) != len(self.column_widths):
+                    if len(self.items) > 0 and len(self.items[0]) > 0:
+                        while True:
+                            self.hidden_columns
+                            col_index = (self.selected_column +1) % (len(self.items[0]))
+                            self.selected_column = col_index
+                            if self.selected_column not in self.hidden_columns:
+                                break
+
+                    # Flash when we loop back to the first column
+                    # if self.selected_column == 0:
+                    #     curses.flash()
 
 
                 ## Scroll with column select
                 self.get_visible_rows()
                 self.column_widths = get_column_widths(self.visible_rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
-                visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
-                column_set_width = sum(visible_column_widths)+len(self.separator)*len(visible_column_widths)
-                start_of_cell = sum(visible_column_widths[:self.selected_column])+len(self.separator)*self.selected_column
-                end_of_cell = sum(visible_column_widths[:self.selected_column+1])+len(self.separator)*(self.selected_column+1)
+                self.visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
+                column_set_width = sum(self.visible_column_widths)+len(self.separator)*len(self.visible_column_widths)
+                start_of_cell = sum(self.visible_column_widths[:self.selected_column])+len(self.separator)*self.selected_column
+                end_of_cell = sum(self.visible_column_widths[:self.selected_column+1])+len(self.separator)*(self.selected_column+1)
                 display_width = self.rows_w-self.left_gutter_width
                 # If the full column is within the current display then don't do anything
                 if start_of_cell >= self.leftmost_char and end_of_cell <= self.leftmost_char + display_width:
@@ -3192,11 +3399,17 @@ class Picker:
                 self.ensure_no_overscroll()
 
             elif self.check_key("col_select_prev", key, self.keys_dict):
-                if len(self.items) > 0 and len(self.items[0]) > 0:
-                    col_index = (self.selected_column -1) % (len(self.items[0]))
-                    self.selected_column = col_index
-
                 self.logger.info(f"key_function col_select_prev {self.selected_column}")
+
+                if len(self.hidden_columns) != len(self.column_widths):
+                    if len(self.items) > 0 and len(self.items[0]) > 0:
+                        while True:
+                            self.hidden_columns
+                            col_index = (self.selected_column -1) % (len(self.items[0]))
+                            self.selected_column = col_index
+                            if self.selected_column not in self.hidden_columns:
+                                break
+
                 # Flash when we loop back to the last column
                 # if self.selected_column == len(self.column_widths)-1:
                 #     curses.flash()
@@ -3204,10 +3417,10 @@ class Picker:
                 ## Scroll with column select
                 self.get_visible_rows()
                 self.column_widths = get_column_widths(self.visible_rows, header=self.header, max_column_width=self.max_column_width, number_columns=self.number_columns, max_total_width=self.rows_w, unicode_char_width=self.unicode_char_width)
-                visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
-                column_set_width = sum(visible_column_widths)+len(self.separator)*len(visible_column_widths)
-                start_of_cell = sum(visible_column_widths[:self.selected_column])+len(self.separator)*self.selected_column
-                end_of_cell = sum(visible_column_widths[:self.selected_column+1])+len(self.separator)*(self.selected_column+1)
+                self.visible_column_widths = [c for i,c in enumerate(self.column_widths) if i not in self.hidden_columns]
+                column_set_width = sum(self.visible_column_widths)+len(self.separator)*len(self.visible_column_widths)
+                start_of_cell = sum(self.visible_column_widths[:self.selected_column])+len(self.separator)*self.selected_column
+                end_of_cell = sum(self.visible_column_widths[:self.selected_column+1])+len(self.separator)*(self.selected_column+1)
                 display_width = self.rows_w-self.left_gutter_width
 
                 # If the entire column is within the current display then don't do anything
@@ -3223,21 +3436,21 @@ class Picker:
             elif self.check_key("scroll_right", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_right")
                 if len(self.indexed_items):
-                    row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+                    row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
                     if row_width-self.leftmost_char >= self.rows_w-5:
                         self.leftmost_char += 5
                     self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w) + self.left_gutter_width+5)
-                if sum(self.column_widths) + len(self.column_widths)*len(self.separator) < self.rows_w:
+                if sum(self.visible_column_widths) + len(self.visible_column_widths)*len(self.separator) < self.rows_w:
                     self.leftmost_char = 0
 
             elif self.check_key("scroll_right_25", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_right")
                 if len(self.indexed_items):
-                    row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+                    row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
                     if row_width-self.leftmost_char+5 >= self.rows_w-25:
                         self.leftmost_char += 25
                     self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w) + self.left_gutter_width+5)
-                if sum(self.column_widths) + len(self.column_widths)*len(self.separator) < self.rows_w:
+                if sum(self.visible_column_widths) + len(self.visible_column_widths)*len(self.separator) < self.rows_w:
                     self.leftmost_char = 0
 
             elif self.check_key("scroll_left", key, self.keys_dict):
@@ -3256,24 +3469,13 @@ class Picker:
             elif self.check_key("scroll_far_right", key, self.keys_dict):
                 self.logger.info(f"key_function scroll_far_right")
                 longest_row_str_len = 0
-                # rows = self.get_visible_rows()
-                # for i in range(len(rows)):
-                #     item = rows[i]
-                #     row_str = format_row(item, self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols, self.unicode_char_width)
-                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
-                longest_row_str_len = sum(self.column_widths) + (len(self.column_widths)-1)*len(self.separator)
-                # for i in range(len(self.indexed_items)):
-                #     item = self.indexed_items[i]
-                #     row_str = format_row(item[1], self.hidden_columns, self.column_widths, self.separator, self.centre_in_cols)
-                #     if len(row_str) > longest_row_str_len: longest_row_str_len=len(row_str)
-                # self.notification(self.stdscr, f"{longest_row_str_len}")
+                longest_row_str_len = sum(self.visible_column_widths) + (len(self.visible_column_widths)-1)*len(self.separator)
                 if len(self.indexed_items):
-                    row_width = sum(self.column_widths) + len(self.separator)*(len(self.column_widths)-1)
+                    row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
                     self.leftmost_char = row_width - (self.rows_w) + self.left_gutter_width+5
                 self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w) + self.left_gutter_width+5)
 
-                longest_row_str_len = sum(self.column_widths) + (len(self.column_widths)-1)*len(self.separator)
-                # self.leftmost_char = max(0, longest_row_str_len-self.rows_w+2+5)
+                longest_row_str_len = sum(self.visible_column_widths) + (len(self.visible_column_widths)-1)*len(self.separator)
 
 
 
@@ -3335,16 +3537,6 @@ class Picker:
                     self.selected_column = min(self.selected_column, row_len-2)
                 self.initialise_variables()
 
-
-
-
-            # elif self.check_key("increase_lines_per_page", key, self.keys_dict):
-            #     self.items_per_page += 1
-            #     self.draw_screen()
-            # elif self.check_key("decrease_lines_per_page", key, self.keys_dict):
-            #     if self.items_per_page > 1:
-            #         self.items_per_page -= 1
-            #     self.draw_screen()
             elif self.check_key("decrease_column_width", key, self.keys_dict):
                 self.logger.info(f"key_function decrease_column_width")
                 if self.max_column_width > 10:
@@ -3526,12 +3718,6 @@ class Picker:
                     function_data = self.get_function_data()
                     return [], "escape", function_data
 
-
-                # else:
-                #     self.search_query = ""
-                #     self.mode_index = 0
-                #     self.highlights = [highlight for highlight in self.highlights if "type" not in highlight or highlight["type"] != "search" ]
-                #     continue
                 self.draw_screen()
 
             elif self.check_key("opts_input", key, self.keys_dict):
@@ -3747,7 +3933,7 @@ class Picker:
 
             elif self.check_key("edit", key, self.keys_dict):
                 self.logger.info(f"key_function edit")
-                if len(self.indexed_items) > 0 and self.selected_column >=0 and self.editable_columns[self.selected_column]:
+                if len(self.indexed_items) > 0 and self.editable_columns[self.selected_column]:
                     current_val = self.indexed_items[self.cursor_pos][1][self.selected_column]
                     usrtxt = f"{current_val}"
                     field_end_f = lambda: self.get_term_size()[1]-38 if self.show_footer else lambda: self.get_term_size()[1]-3
@@ -3776,6 +3962,47 @@ class Picker:
                             usrtxt = str(eval(usrtxt[3:]))
                         self.indexed_items[self.cursor_pos][1][self.selected_column] = usrtxt
                         self.history_edits.append(usrtxt)
+            elif self.check_key("edit_nvim", key, self.keys_dict):
+
+                def edit_strings_in_nvim(strings: list[str]) -> list[str]:
+                    """
+                    Opens a list of strings in nvim for editing and returns the modified strings.
+
+                    Args:
+                        strings (list[str]): The list of strings to edit.
+
+                    Returns:
+                        list[str]: The updated list of strings after editing in nvim.
+                    """
+
+                    # Open the strings in a tmpfile for editing
+                    with tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp:
+                        tmp.write("\n".join(strings))
+                        tmp.flush()
+                        tmp_name = tmp.name
+
+                    subprocess.run(["nvim", tmp_name])
+
+                    # Read the modified strings into a list and return them.
+                    with open(tmp_name, "r") as tmp:
+                        edited_content = tmp.read().splitlines()
+
+                    return edited_content
+
+                if len(self.indexed_items) > 0 and self.editable_columns[self.selected_column]:
+
+                    selected_cells = [self.items[index][self.selected_column] for index, selected in self.selections.items() if selected ]
+                    selected_cells_indices = [(index, self.selected_column) for index, selected in self.selections.items() if selected ]
+
+                    edited_cells = edit_strings_in_nvim(selected_cells)
+                    count = 0
+                    if len(edited_cells) == len(selected_cells_indices):
+                        for i, j in selected_cells_indices:
+                            self.items[i][j] = edited_cells[count]
+                            count += 1
+
+                    self.refresh_and_draw_screen()
+
 
             elif self.check_key("edit_picker", key, self.keys_dict):
                 self.logger.info(f"key_function edit_picker")
@@ -3807,7 +4034,7 @@ class Picker:
                         self.indexed_items[self.cursor_pos][1][self.selected_column] = usrtxt
                         self.history_edits.append(usrtxt)
             elif self.check_key("edit_ipython", key, self.keys_dict):
-                self.logger.info(f"key_function edit_picker")
+                self.logger.info(f"key_function edit_ipython")
                 import IPython, termios
                 self.stdscr.clear()
                 restrict_curses(self.stdscr)
@@ -3951,7 +4178,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     #     input_arg = args.filename
 
     elif args.generate:
-        function_data["refresh_function"] = lambda items, header, visible_rows_indices, getting_data: generate_picker_data_from_file(args.generate, items, header, visible_rows_indices, getting_data)
+        function_data["refresh_function"] = lambda items, header, visible_rows_indices, getting_data, state: generate_picker_data_from_file(args.generate, items, header, visible_rows_indices, getting_data, state)
         function_data["get_data_startup"] = True
         function_data["get_new_data"] = True
         return args, function_data

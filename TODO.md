@@ -52,6 +52,8 @@
 > - [ ] Add alternating header colours so they can be more easily distinguished
 > - [ ] Add new opts key
 > - [ ] Add option to display empty rows with separator value (e.g., show empty cells with |)
+> - [ ] Horizontal scrollbar
+> - [ ] Show tasks screen for active jobs, opening application, etc.
 
 
 

@@ -37,39 +37,57 @@ def generate_columns_worker(
     getting_data: threading.Event,
     task_queue: PriorityQueue,
     completed_cells: set,
+    state: dict,
 ) -> None:
     """ Get a task from the priorty queue and fill the data for that cell."""
-    while task_queue.qsize() > 0:
+    while task_queue.qsize() > 0 and not state["thread_stop_event"].is_set():
         _, (i, j) = task_queue.get()
 
         if (i, j) in completed_cells:
             task_queue.task_done()
             continue
             
+        if state["thread_stop_event"].is_set():
+            with task_queue.mutex:
+                task_queue.queue.clear()
+
         generate_cell(
             func=funcs[j],
             file=files[i],
             items=items,
             row=i,
             col=j+1,
+            state=state,
         )
         completed_cells.add((i, j))
         task_queue.task_done()
     getting_data.set()
 
-def generate_cell(func: Callable, file: str, items: list[list[str]], row: int, col: int) -> None:
+def generate_cell(func: Callable, file: str, items: list[list[str]], row: int, col: int, state: dict) -> None:
     """
     Takes a function, file and a file and then sets items[row][col] to the result.
     """
-    
-    items[row][col] = func(file).strip()
+    if not state["thread_stop_event"].is_set():
+        try:
+            result = func(file).strip()
+            if not state["thread_stop_event"].is_set():
+                items[row][col] = result
+        except Exception as e:
+            pass
+            # import pyperclip
+            # pyperclip.copy(f"({row}, {col}): len(items)={len(items)}, len(items[0])={len(items[0])} {e}")
 
-def update_queue(task_queue: PriorityQueue, visible_rows_indices: list[int], rows: int, cols: int):
+def update_queue(task_queue: PriorityQueue, visible_rows_indices: list[int], rows: int, cols: int, state: dict):
     """ Increase the priority of getting the data for the cells that are currently visible. """
     while task_queue.qsize() > 0:
         time.sleep(0.1)
+        if state["thread_stop_event"].is_set():
+            with task_queue.mutex:
+                task_queue.queue.clear()
+            break 
         for row in visible_rows_indices:
             for col in range(cols):
+                if state["generate_data_for_hidden_columns"] == False and col+1 in state["hidden_columns"]: continue
                 if 0 <= row < rows:
                     task_queue.put((1, (row, col)))
 
@@ -124,7 +142,9 @@ def generate_picker_data_from_file(
     items,
     header,
     visible_rows_indices,
-    getting_data
+    getting_data,
+    state,
+
 ) -> None:
     """
     Generate data for Picker based upon the toml file commands.
@@ -155,6 +175,7 @@ def generate_picker_data_from_file(
         picker_header = header,
         visible_rows_indices = visible_rows_indices,
         getting_data = getting_data,
+        state=state,
     )
 
 def generate_picker_data(
@@ -164,7 +185,8 @@ def generate_picker_data(
     items,
     picker_header,
     visible_rows_indices,
-    getting_data
+    getting_data,
+    state,
 ) -> None:
     """
     Generate data from a list of files and a list of column functions which will be used to 
@@ -180,13 +202,13 @@ def generate_picker_data(
 
     items.clear()
     items.extend([[file] + ["..." for _ in column_functions] for file in files])
-    # items[:] = [[file] + ["..." for _ in column_functions] for file in files]
     picker_header[:] = data_header
 
 
-    task_queue = PriorityQueue()
+    task_queue = state["data_generation_queue"]
     for i in range(len(files)):
         for j in range(len(column_functions)):
+            if state["generate_data_for_hidden_columns"] == False and j+1 in state["hidden_columns"]: continue
             task_queue.put((10, (i, j)))
 
     num_workers = os.cpu_count()
@@ -197,14 +219,16 @@ def generate_picker_data(
     for _ in range(num_workers):
         gen_items_thread = threading.Thread(
             target=generate_columns_worker,
-            args=(column_functions, files, items, getting_data, task_queue, completed_cells),
+            args=(column_functions, files, items, getting_data, task_queue, completed_cells, state),
         )
+        state["threads"].append(gen_items_thread)
         gen_items_thread.daemon = True
         gen_items_thread.start()
 
     update_queue_thread = threading.Thread(
         target=update_queue,
-        args=(task_queue, visible_rows_indices, len(files), len(column_functions)),
+        args=(task_queue, visible_rows_indices, len(files), len(column_functions), state),
     )
+    state["threads"].append(update_queue_thread)
     update_queue_thread.daemon = True
     update_queue_thread.start()
