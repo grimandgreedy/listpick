@@ -14,7 +14,7 @@ from listpick.utils import keycodes
 
 logger = logging.getLogger('picker_log')
 
-def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
+def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[list[str]]:
     """ Build help rows based on the keys_dict. """
 
     logger.info(f"function: build_help_rows() (build_help.py)")
@@ -173,6 +173,8 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
         if not found:
             sections["Misc:"].append(key)
 
+    
+
     items = []
     for section_name, section_operations in sections.items():
         section_rows = []
@@ -207,6 +209,26 @@ def build_help_rows(keys_dict: dict, debug: bool = False) -> list[list[str]]:
             items.append([f"  {section_name}", ""])
             items += section_rows
             items.append(["",""])
+
+    if macros:
+        items.append([f"  Macros:", ""])
+        for macro in macros:
+            keys = []
+            for key in macro["keys"]:
+                if key in special_keys:
+                    keys.append(special_keys[key])
+                else:
+                    try:
+                        keys.append(chr(int(key)))
+                    except Exception as e:
+                        keys.append(f"keycode={key}")
+                        if debug: print(f"Error chr({key}): {e}")
+
+            row = [f"    {str(keys)[1:-1]}", macro["description"]]
+            items.append(row)
+        items.append(["",""])
+
+
 
     if debug:
         for operation in keys_dict:

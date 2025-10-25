@@ -52,7 +52,7 @@ picker_keys = {
     "continue_search_backward":         [ord('N')],
     "cancel":                           [27], # Escape key
     "opts_input":                       [keycodes.META_o],
-    "opts_select":                      [ord('o')],
+    # "opts_select":                      [ord('+')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
     "pipe_input":                       [ord('|')],
@@ -69,7 +69,7 @@ picker_keys = {
     "paste":                             [ord('p')],
     "save":                             [19, ord('D')],  # Ctrl+s
     "load":                             [15], # Ctrl+o
-    "open":                             [ord('O')], 
+    # "open":                             [ord('O')], 
     "toggle_footer":                    [ord('_')], 
     "notification_toggle":              [ord('z')],
     "redo":                             [ord('.')],
@@ -238,8 +238,8 @@ edit_menu_keys = {
     "continue_search_forward":          [ord('n'), ord('i')],
     "continue_search_backward":         [ord('N'), ord('I')],
     "cancel":                           [27], # Escape key
-    "opts_input":                       [ord(':')],
-    "opts_select":                      [ord('o')],
+    "opts_input":                       [keycodes.META_o],
+    # "opts_select":                      [ord('+')],
     "mode_next":                        [9], # Tab key
     "mode_prev":                        [353], # Shift+Tab key
     "pipe_input":                       [ord('|')],
@@ -254,7 +254,7 @@ edit_menu_keys = {
     "copy":                             [ord('y')],
     "save":                             [19, ord('D')],  # Ctrl+s
     "load":                             [ord('L'), 15], # Ctrl+o
-    "open":                             [ord('O')], 
+    # "open":                             [ord('O')], 
     "toggle_footer":                    [ord('_')], 
     "visual_selection_toggle":          [ord('v')],
     "visual_deselection_toggle":        [ord('V')],

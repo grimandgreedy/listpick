@@ -162,6 +162,7 @@ class Picker:
         reset_colours: bool = True,
         key_remappings: dict = {},
         keys_dict:dict = picker_keys,
+        macros: list = [],
         display_infobox : bool = False,
         infobox_items: list[list[str]] = [],
         infobox_title: str = "",
@@ -315,6 +316,7 @@ class Picker:
         self.reset_colours = reset_colours
         self.key_remappings = key_remappings
         self.keys_dict = keys_dict
+        self.macros = macros
         self.display_infobox = display_infobox
         self.infobox_items = infobox_items
         self.infobox_title = infobox_title
@@ -1584,6 +1586,7 @@ class Picker:
             "id_column":                                self.id_column,
             "startup_notification":                     self.startup_notification,
             "keys_dict":                                self.keys_dict,
+            "macros":                                   self.macros,
             "cancel_is_back":                           self.cancel_is_back,
             "paginate":                                 self.paginate,
             "leftmost_char":                            self.leftmost_char,
@@ -2286,6 +2289,19 @@ class Picker:
             return True
         return False
 
+    def check_and_run_macro(self, key: int) -> bool:
+        macro_match = False
+        for macro in self.macros:
+            try:
+                if key in macro["keys"]:
+                    macro_match = True
+                    macro["function"](self)
+                    break
+            except:
+                pass
+        return macro_match
+
+
     def copy_dialogue(self) -> None:
         """ Display dialogue to select how rows/cells should be copied. """
         self.logger.info(f"function: copy_dialogue()")
@@ -2873,6 +2889,7 @@ class Picker:
                         self.refreshing_data = False
                         self.data_ready = False
 
+
             elif self.check_key("refresh", key, self.keys_dict) or self.remapped_key(key, curses.KEY_F5, self.key_remappings) or (self.auto_refresh and (time.time() - self.initial_time) >= self.timer):
                 self.logger.debug(f"Get new data (refresh).")
                 try:
@@ -2927,7 +2944,7 @@ class Picker:
                 self.stdscr.refresh()
                 help_data = {
                     # "items": help_lines,
-                    "items": build_help_rows(self.keys_dict),
+                    "items": build_help_rows(self.keys_dict, self.macros),
                     "title": f"{self.title} Help",
                     "colours_start": self.help_colours_start,
                     "colours": help_colours,
@@ -2950,6 +2967,10 @@ class Picker:
                 OptionPicker = Picker(self.stdscr, **help_data)
                 s, o, f = OptionPicker.run()
                 self.draw_screen()
+
+            if self.check_and_run_macro(key):
+                self.draw_screen()
+                continue
 
             if self.check_key("info", key, self.keys_dict):
                 self.logger.info(f"key_function help")
@@ -4573,6 +4594,13 @@ def main() -> None:
             "data": ["Files", []],
             "refresh_time": 1,
         },
+    ]
+    function_data["macros"] = [
+        # {
+        #     "keys": [ord('z')],
+        #     "description": "Display message via dbus.",
+        #     "function": lambda picker_obj: os.system("notify-send 'zkey pressed'")
+        # },
     ]
     # function_data["require_option"] = [True for _ in function_data["items"]]
 
