@@ -103,7 +103,12 @@ def format_row(row: list[str], hidden_columns: list, column_widths: list[int], s
 
 def get_column_widths(items: list[list[str]], header: list[str]=[], max_column_width:int=70, number_columns:bool=True, max_total_width=-1, separator = "    ", unicode_char_width: bool = True) -> list[int]:
     """ Calculate maximum width of each column with clipping. """
-    if len(items) == 0: return [0]
+    if len(items) == 0 and len(header) == 0: return [0]
+    elif len(items) == 0:
+        header_widths = [wcswidth(f"{i}. {str(h)}") if number_columns else wcswidth(str(h)) for i, h in enumerate(header)]
+        col_widths =  [min(max_column_width, header_widths[i]) for i in range(len(header))]
+        return col_widths
+
     assert len(items) > 0
     widths = [max(wcswidth(str(row[i])) for row in items) for i in range(len(items[0]))]
     # widths = [max(len(str(row[i])) for row in items) for i in range(len(items[0]))]

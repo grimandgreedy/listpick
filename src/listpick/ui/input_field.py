@@ -193,7 +193,6 @@ def input_field(
             match_word, left_ptr, right_ptr = get_partially_complete_word(usrtxt, cursor, [" ", "/", "="])
 
             if match_word in completions:
-                # os.system(f"notify-send '{completions[0]}'")
                 index = completions.index(match_word)
                 if index == len(completions) - 1: index = -1
                 completions_disp_str = str(completions[index:])[:max_field_length]

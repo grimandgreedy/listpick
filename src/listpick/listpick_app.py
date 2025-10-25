@@ -24,7 +24,6 @@ import logging
 import copy
 import tempfile
 import queue
-from listpick.utils.generate_data_utils import ProcessSafePriorityQueue
 
 from listpick.pane.pane_utils import get_file_attributes
 from listpick.pane.left_pane_functions import *
@@ -1129,7 +1128,6 @@ class Picker:
                 cell_value = truncate_to_display_width(cell_value, min(cell_width, cell_max_width), self.centre_in_cols, self.unicode_char_width)
                 if wcswidth(cell_value) + cell_pos > self.term_w:
                     cell_value = truncate_to_display_width(cell_value, self.term_w-cell_pos-10, self.centre_in_cols, self.unicode_char_width)
-
                 self.stdscr.addstr(y, cell_pos, cell_value, colour)
 
             # Part of the cell is on screen
@@ -1146,6 +1144,7 @@ class Picker:
                 self.stdscr.addstr(y, self.startx, cell_value, colour)
             else:
                 pass
+
 
 
         def sort_highlights(highlights):
@@ -3139,29 +3138,29 @@ class Picker:
 
             elif self.check_key("settings_options", key, self.keys_dict):
                 options = []
+                options += [["cv", "Centre rows vertically"]]
+                options += [["pc", "Pin cursor to row index during data refresh."]]
+                options += [["ct", "Centre column-set in terminal"]]
+                options += [["cc", "Centre values in cells"]]
+                options += [["!r", "Toggle auto-refresh"]]
+                options += [["th", "Cycle between themes. (accepts th#)"]]
+                options += [["colsel", "Toggle columns."]]
+                options += [["nohl", "Toggle highlights"]]
+                options += [["footer", "Toggle footer"]]
+                options += [["header", "Toggle header"]]
+                options += [["rh", "Toggle row header"]]
+                options += [["modes", "Toggle modes"]]
+                options += [["ft", "Cycle through footer styles (accepts ft#)"]]
+                options += [["file_next", "Go to the next open file."]]
+                options += [["file_prev", "Go to the previous open file."]]
+                options += [["sheet_next", "Go to the next sheet."]]
+                options += [["sheet_prev", "Go to the previous sheet."]]
+                options += [["unicode", "Toggle b/w using len and wcwidth to calculate char width."]]
+                options += [["ara", "Add empty row after cursor."]]
+                options += [["arb", "Add empty row before the cursor."]]
+                options += [["aca", "Add empty column after the selected column."]]
+                options += [["acb", "Add empty column before the selected column."]]
                 if len(self.items) > 0:
-                    options += [["cv", "Centre rows vertically"]]
-                    options += [["pc", "Pin cursor to row index during data refresh."]]
-                    options += [["ct", "Centre column-set in terminal"]]
-                    options += [["cc", "Centre values in cells"]]
-                    options += [["!r", "Toggle auto-refresh"]]
-                    options += [["th", "Cycle between themes. (accepts th#)"]]
-                    options += [["colsel", "Toggle columns."]]
-                    options += [["nohl", "Toggle highlights"]]
-                    options += [["footer", "Toggle footer"]]
-                    options += [["header", "Toggle header"]]
-                    options += [["rh", "Toggle row header"]]
-                    options += [["modes", "Toggle modes"]]
-                    options += [["ft", "Cycle through footer styles (accepts ft#)"]]
-                    options += [["file_next", "Go to the next open file."]]
-                    options += [["file_prev", "Go to the previous open file."]]
-                    options += [["sheet_next", "Go to the next sheet."]]
-                    options += [["sheet_prev", "Go to the previous sheet."]]
-                    options += [["unicode", "Toggle b/w using len and wcwidth to calculate char width."]]
-                    options += [["ara", "Add empty row after cursor."]]
-                    options += [["arb", "Add empty row before the cursor."]]
-                    options += [["aca", "Add empty column after the selected column."]]
-                    options += [["acb", "Add empty column before the selected column."]]
                     options += [[f"col{i}", f"Select column {i}"] for i in range(len(self.items[0]))]
                     options += [[f"s{i}", f"Sort by column {i}"] for i in range(len(self.items[0]))]
                     options += [[f"!{i}", f"Toggle visibility of column {i}"] for i in range(len(self.items[0]))]
@@ -3843,7 +3842,7 @@ class Picker:
                     field_prefix=" Command: ",
                     x=lambda:2,
                     y=lambda: self.get_term_size()[0]-2,
-                    literal=True,
+                    literal=False,
                     max_length=field_end_f,
                     registers=self.registers,
                     refresh_screen_function=lambda: self.draw_screen(),

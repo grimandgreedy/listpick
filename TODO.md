@@ -54,6 +54,12 @@
 > - [ ] Add option to display empty rows with separator value (e.g., show empty cells with |)
 > - [ ] Horizontal scrollbar
 > - [ ] Show tasks screen for active jobs, opening application, etc.
+> - [ ] Check edit_menu_keys... select all, ...
+> - [ ] Problems with empty rows:
+>   - [x] Footer isn't displayed
+>   - [x] Settings aren't displayed properly.
+> - [ ] Add support for macros.
+>   [ ] ["Key", "Description (for help)", "function"]
 
 
 
