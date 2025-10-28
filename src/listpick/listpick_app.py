@@ -3387,10 +3387,10 @@ class Picker:
             elif self.check_key("col_select_next", key, self.keys_dict):
                 self.logger.info(f"key_function col_select_next {self.selected_column}")
                 if len(self.hidden_columns) != len(self.column_widths):
-                    if len(self.items) > 0 and len(self.items[0]) > 0:
+                    if len(self.column_widths):
                         while True:
                             self.hidden_columns
-                            col_index = (self.selected_column +1) % (len(self.items[0]))
+                            col_index = (self.selected_column +1) % (len(self.column_widths))
                             self.selected_column = col_index
                             if self.selected_column not in self.hidden_columns:
                                 break
@@ -3422,10 +3422,10 @@ class Picker:
                 self.logger.info(f"key_function col_select_prev {self.selected_column}")
 
                 if len(self.hidden_columns) != len(self.column_widths):
-                    if len(self.items) > 0 and len(self.items[0]) > 0:
+                    if len(self.column_widths):
                         while True:
                             self.hidden_columns
-                            col_index = (self.selected_column -1) % (len(self.items[0]))
+                            col_index = (self.selected_column -1) % (len(self.column_widths))
                             self.selected_column = col_index
                             if self.selected_column not in self.hidden_columns:
                                 break
@@ -3490,17 +3490,13 @@ class Picker:
                 self.logger.info(f"key_function scroll_far_right")
                 longest_row_str_len = 0
                 longest_row_str_len = sum(self.visible_column_widths) + (len(self.visible_column_widths)-1)*len(self.separator)
-                if len(self.indexed_items):
+                if len(self.column_widths):
                     row_width = sum(self.visible_column_widths) + len(self.separator)*(len(self.visible_column_widths)-1)
                     self.leftmost_char = row_width - (self.rows_w) + self.left_gutter_width+5
-                self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w) + self.left_gutter_width+5)
+                    self.leftmost_char = min(self.leftmost_char, row_width - (self.rows_w) + self.left_gutter_width+5)
 
-                longest_row_str_len = sum(self.visible_column_widths) + (len(self.visible_column_widths)-1)*len(self.separator)
-
-
-
-                if len(self.items):
-                    self.selected_column = len(self.items[0])-1
+                    longest_row_str_len = sum(self.visible_column_widths) + (len(self.visible_column_widths)-1)*len(self.separator)
+                    self.selected_column = len(self.column_widths)-1
 
             elif self.check_key("add_column_before", key, self.keys_dict):
                 self.logger.info(f"key_function add_column_before")

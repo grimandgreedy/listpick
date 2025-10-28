@@ -1,6 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.16.15] 2025-10-??
+ = Fixed changing columns when there are no rows.
+
 ## [0.1.16.14] 2025-10-26
  - Fixed settings not loading when Picker has no rows
  - Fixed footer not displaying correctly when Picker has no rows.
