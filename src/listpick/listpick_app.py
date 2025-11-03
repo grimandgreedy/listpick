@@ -51,6 +51,8 @@ from listpick.pane.get_data import *
 COLOURS_SET = False
 help_colours, notification_colours = {}, {}
 
+os.environ["TMPDIR"] = "/tmp"
+
 class Command:
     def __init__(self, command_type, command_value):
         self.command_type = command_type
