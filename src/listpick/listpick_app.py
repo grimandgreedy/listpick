@@ -76,7 +76,7 @@ class Picker:
         timer: float = 5,
 
         get_new_data: bool =False,
-        refresh_function: Optional[Callable] = lambda items, header, visible_rows_indices, getting_data: None,
+        refresh_function: Callable = lambda items, header, visible_rows_indices, getting_data: None,
         get_data_startup: bool =False,
         track_entries_upon_refresh: bool = True,
         pin_cursor: bool = False,
@@ -2452,13 +2452,14 @@ class Picker:
 
         dump_header = []
         options = [
-            ["Load data (pickle)."],
+            ["Load file(s)."],
         ]
         s, o, f = self.choose_option(self.stdscr, options=options, title="Open file...", header=dump_header)
 
 
         funcs = [
-            lambda opts: load_state(opts)
+            lambda opts: load_state(opts),
+            lambda opts: None
         ]
 
         if s:
@@ -2466,28 +2467,25 @@ class Picker:
             files_to_load = file_picker()
             unrestrict_curses(self.stdscr)
             if files_to_load:
-                index = list(s.keys())[0]
+                # We load only the first file in the selected files, while we add the rest
+                #     to the list so that they can be loaded later.
+
+                # Load only the first file 
                 file_to_load = files_to_load[0]
-                return_val = funcs[index](file_to_load)
-
                 self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
-
                 self.stdscr.clear()
                 self.draw_screen()
-
                 tmp = self.stdscr
 
+                # Add all selected files to the list
                 self.loaded_files += files_to_load
+
+                # Create empty states (lazy loading)
                 self.loaded_file_states += [{} for _ in files_to_load]
+
                 self.loaded_file = file_to_load
                 self.loaded_file_index = len(self.loaded_files)-len(files_to_load)
-
-
                 self.stdscr = tmp
-
-                # self.notification(self.stdscr, f"{repr(file_to_load)} has been loaded!")
-
-                self.set_function_data({}, reset_absent_variables=True)
                 self.load_file(self.loaded_file)
                 # items = return_val["items"]
                 # header = return_val["header"]
