@@ -47,6 +47,7 @@ from listpick.utils.picker_log import setup_logger
 from listpick.utils.user_input import get_char, open_tty, restore_terminal_settings
 from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
+from listpick.file_state import FileState, SheetState
 
 COLOURS_SET = False
 help_colours, notification_colours = {}, {}
@@ -195,6 +196,7 @@ class Picker:
         loaded_files: list[str] = ["Untitled"],
         loaded_file_index: int = 0,
         loaded_file_states: list[dict] = [{}],
+        loaded_file_states_new: list = None,  # Will be initialized to list[FileState]
 
 
         sheets = ["Untitled"],
@@ -366,6 +368,13 @@ class Picker:
         self.loaded_file = loaded_file
         self.loaded_file_index = loaded_file_index
         self.loaded_file_states = loaded_file_states
+
+        # New file state management with FileState dataclass
+        if loaded_file_states_new is None:
+            # Initialize with a single "Untitled" FileState
+            self.loaded_file_states_new = [FileState(path="Untitled", is_untitled=True)]
+        else:
+            self.loaded_file_states_new = loaded_file_states_new
 
         # Multiple sheet support
         self.sheet_index = sheet_index
@@ -672,6 +681,12 @@ class Picker:
             curses.set_escdelay(25)
         except:
             logging.warning("Error trying to set curses.set_escdelay")
+
+    def mark_current_file_modified(self) -> None:
+        """Mark the currently loaded file as modified (dirty flag)."""
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            self.loaded_file_states_new[self.loaded_file_index].mark_modified()
+            self.logger.debug(f"Marked file {self.loaded_file} as modified")
 
     def initialise_variables(self, get_data: bool = False) -> None:
         """
@@ -1618,6 +1633,7 @@ class Picker:
             "loaded_files":                             self.loaded_files,
             "loaded_file_index":                        self.loaded_file_index,
             "loaded_file_states":                       self.loaded_file_states,
+            "loaded_file_states_new":                   self.loaded_file_states_new,
             "sheet_index":                              self.sheet_index,
             "sheets":                                   self.sheets,
             "sheet_name":                               self.sheet_name,
@@ -1651,6 +1667,7 @@ class Picker:
         common_picker_vars = [
             "loaded_file_index",
             "loaded_file_states",
+            "loaded_file_states_new",
             "loaded_files",
             "loaded_file",
             "command_stack",
