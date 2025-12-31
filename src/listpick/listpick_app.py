@@ -197,6 +197,7 @@ class Picker:
         loaded_file_index: int = 0,
         loaded_file_states: list[dict] = [{}],
         loaded_file_states_new: list = None,  # Will be initialized to list[FileState]
+        disable_file_close_warning: bool = False,  # For nested Pickers (dialogs)
 
 
         sheets = ["Untitled"],
@@ -375,6 +376,8 @@ class Picker:
             self.loaded_file_states_new = [FileState(path="Untitled", is_untitled=True)]
         else:
             self.loaded_file_states_new = loaded_file_states_new
+
+        self.disable_file_close_warning = disable_file_close_warning
 
         # Multiple sheet support
         self.sheet_index = sheet_index
@@ -1519,6 +1522,7 @@ class Picker:
                 "split_right": False,
                 "split_left": False,
                 "crosshair_cursor": False,
+                "disable_file_close_warning": True,  # This is a dialog, not a file manager
             }
 
             OptionPicker = Picker(submenu_win, **infobox_data)
@@ -1784,6 +1788,7 @@ class Picker:
             "cell_cursor": False,
             "crosshair_cursor": False,
             "header_separator": " │",
+            "disable_file_close_warning": True,  # This is a dialog, not a file manager
         }
         while True:
             self.update_term_size()
@@ -1878,6 +1883,7 @@ class Picker:
             "unselected_char": "☐",
             "selecting_char": "☒",
             "deselecting_char": "☐",
+            "disable_file_close_warning": True,  # This is a dialog, not a file manager
         }
         while True:
             self.update_term_size()
@@ -1944,6 +1950,7 @@ class Picker:
                 "crosshair_cursor": False,
                 "show_header": False,
                 "screen_size_function": lambda stdscr: (notification_height, notification_width),
+                "disable_file_close_warning": True,  # This is a dialog, not a file manager
             }
             OptionPicker = Picker(submenu_win, **notification_data)
             s, o, f = OptionPicker.run()
@@ -3190,6 +3197,9 @@ class Picker:
                     "cell_cursor": False,
                     "split_right": False,
                     "crosshair_cursor": False,
+                    "disable_file_close_warning": True,  # This is a dialog, not a file manager
+                    "loaded_files": [],  # No files to prevent footer file bar display
+                    "loaded_file_states_new": [],  # Empty file states for dialogs
 
                 }
                 OptionPicker = Picker(self.stdscr, **help_data)
@@ -3315,6 +3325,9 @@ class Picker:
                     "cell_cursor": False,
                     "split_right": False,
                     "crosshair_cursor": False,
+                    "disable_file_close_warning": True,  # This is a dialog, not a file manager
+                    "loaded_files": [],  # No files to prevent footer file bar display
+                    "loaded_file_states_new": [],  # Empty file states for dialogs
 
                 }
                 OptionPicker = Picker(self.stdscr, **info_data)
@@ -3324,6 +3337,14 @@ class Picker:
 
             elif self.check_key("exit", key, self.keys_dict):
                 self.stdscr.clear()
+                # Nested Pickers (dialogs) should just exit without file-close logic
+                if self.disable_file_close_warning:
+                    self.cleanup_threads()
+                    function_data = self.get_function_data()
+                    restore_terminal_settings(tty_fd, self.saved_terminal_state)
+                    return [], "", function_data
+
+                # Main Picker: check for modified files before exiting
                 should_exit = self.close_file_with_warning()
                 if should_exit:
                     self.cleanup_threads()
