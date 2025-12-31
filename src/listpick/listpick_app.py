@@ -47,7 +47,7 @@ from listpick.utils.picker_log import setup_logger
 from listpick.utils.user_input import get_char, open_tty, restore_terminal_settings
 from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
-from listpick.file_state import FileState, SheetState
+from listpick.utils.file_state import FileState, SheetState
 
 COLOURS_SET = False
 help_colours, notification_colours = {}, {}
