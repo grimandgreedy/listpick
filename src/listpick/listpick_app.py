@@ -249,8 +249,8 @@ class Picker:
         self.highlights = highlights
         self.highlights_hide = highlights_hide
         self.number_columns = number_columns
-        self.column_widths, = [],
-        self.column_indices, = [],
+        self.column_widths = []
+        self.column_indices = []
 
 
         self.current_row  = current_row
@@ -741,10 +741,17 @@ class Picker:
         # Ensure that items is a List[List[Str]] object
         if len(self.items) > 0 and not isinstance(self.items[0], list):
             self.items = [[item] for item in self.items]
-        # self.items = [[str(cell) for cell in row] for row in self.items]
+
+        # Convert all cell values to strings (for xlsx files with numeric values)
+        if len(self.items) > 0:
+            self.items = [[str(cell) if cell is not None else "" for cell in row] for row in self.items]
 
         # Ensure that the each of the rows of the items are of the same length
         self.items = pad_lists_to_same_length(self.items)
+
+        # Ensure that header elements are all strings
+        if self.header:
+            self.header = [str(h) if h is not None else "" for h in self.header]
 
         # Ensure that header is of the same length as the rows
         if self.header and len(self.items) > 0 and len(self.header) != len(self.items[0]):
@@ -972,7 +979,19 @@ class Picker:
         try:
             self.draw_screen_(clear)
         except Exception as e:
+            import traceback
             self.logger.warning(f"self.draw_screen_() error. {e}")
+            self.logger.warning(f"Error type: {type(e).__name__}")
+            self.logger.warning(f"Traceback:\n{''.join(traceback.format_tb(e.__traceback__))}")
+            # Log relevant state for debugging
+            self.logger.warning(f"column_widths type: {type(self.column_widths)}, value: {self.column_widths}")
+            self.logger.warning(f"column_indices type: {type(self.column_indices)}, value: {self.column_indices}")
+            self.logger.warning(f"items length: {len(self.items) if hasattr(self.items, '__len__') else 'N/A'}")
+            self.logger.warning(f"header length: {len(self.header) if hasattr(self.header, '__len__') else 'N/A'}")
+            self.logger.warning(f"header: {self.header}")
+            self.logger.warning(f"header types: {[type(h).__name__ for h in self.header]}")
+            self.logger.warning(f"sheets: {self.sheets}")
+            self.logger.warning(f"sheet_states length: {len(self.sheet_states) if hasattr(self.sheet_states, '__len__') else 'N/A'}")
         finally:
             self.stdscr.refresh()
 
@@ -2741,8 +2760,14 @@ class Picker:
 
             if items != None:
                 self.items = items
-                self.header = header if header != None else []
+                # Ensure header elements are strings, not integers or other types
+                self.header = [str(h) if h is not None else "" for h in header] if header != None else []
                 self.sheets = sheets
+
+                # Initialize sheet_states to match the number of sheets
+                self.sheet_states = [{} for _ in sheets]
+                self.sheet_index = 0
+                self.sheet_name = sheets[0] if sheets else "Untitled"
 
                 # Update FileState with sheets and compute hash
                 if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
@@ -2765,8 +2790,13 @@ class Picker:
             items, header, sheets = table_to_list(filename, file_type=filetype, sheet_number=sheet_number)
             if items != None:
                 self.items = items
-                self.header = header if header != None else []
+                # Ensure header elements are strings, not integers or other types
+                self.header = [str(h) if h is not None else "" for h in header] if header != None else []
                 self.sheets = sheets
+                # Update sheet_name based on the sheet_number, but don't reset sheet_index or sheet_states
+                # as they should already be set by switch_sheet
+                if 0 <= sheet_number < len(sheets):
+                    self.sheet_name = sheets[sheet_number]
 
                 self.initialise_variables()
         except Exception as e:
