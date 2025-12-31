@@ -2876,19 +2876,32 @@ class Picker:
         if len(self.loaded_files) <= 1:
             return None
 
-        # Cache file state
+        # Cache file state in both old and new format
         self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            self.loaded_file_states_new[self.loaded_file_index].state_dict = self.get_function_data()
 
         self.loaded_file_index = (self.loaded_file_index + increment) % len(self.loaded_files)
         self.loaded_file = self.loaded_files[self.loaded_file_index]
 
         idx, file = self.loaded_file_index, self.loaded_file
+
+        # Check if we have a FileState for this file
+        current_file_state = None
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+
         # If we already have a loaded state for this file
         if self.loaded_file_states[self.loaded_file_index]:
             self.set_function_data(self.loaded_file_states[self.loaded_file_index])
+        elif current_file_state and current_file_state.state_dict:
+            # Use FileState's cached state
+            self.set_function_data(current_file_state.state_dict)
         else:
             self.set_function_data({}, reset_absent_variables=True)
-            self.load_file(self.loaded_file)
+            # Only load from disk if this is not an untitled file
+            if not (current_file_state and current_file_state.is_untitled):
+                self.load_file(self.loaded_file)
 
         self.loaded_file_index, self.loaded_file = idx, file
 
