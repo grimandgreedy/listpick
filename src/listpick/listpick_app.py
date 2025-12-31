@@ -457,14 +457,24 @@ class Picker:
                 self.colours = get_colours(config["general"]["colour_theme_number"])
 
         # load the rest of the config options
+        debug_changed = False
         if "general" in config:
             for key, val in config["general"].items():
                 self.logger.info(f"set_config: key={key}, val={val}.")
                 try:
+                    if key in ["debug", "debug_level"]:
+                        debug_changed = True
                     setattr(self, key, val)
                 except Exception as e:
                     self.logger.error(f"set_config: key={key}, val={val}. {e}")
-                    
+
+        # Reinitialize logger if debug settings changed
+        if debug_changed:
+            debug_levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]
+            dbglvl = debug_levels[self.debug_level]
+            self.logger = setup_logger(name="picker_log", log_file="picker.log", log_enabled=self.debug, level=dbglvl)
+            self.logger.info(f"Logger reinitialized after config load")
+
         return True
 
     def get_config(self, path: str ="~/.config/listpick/config.toml") -> dict:
@@ -1668,6 +1678,9 @@ class Picker:
         ]
 
         for var in variables:
+            if var == "self":
+                # Skip setting self as an attribute
+                continue
             if var in function_data:
                 setattr(self, var, function_data[var])
             elif reset_absent_variables and var not in common_picker_vars and var not in do_not_set:
@@ -1734,7 +1747,7 @@ class Picker:
         if options == []: options = [[f"{i}"] for i in range(10)]
         cursor = 0
 
-        
+
         option_picker_data = {
             "items": options,
             "colours": notification_colours,
@@ -1767,7 +1780,7 @@ class Picker:
             OptionPicker = Picker(submenu_win, **option_picker_data)
             s, o, f = OptionPicker.run()
 
-            if o == "refresh": 
+            if o == "refresh":
                 self.draw_screen()
                 continue
             if s:
@@ -2436,9 +2449,9 @@ class Picker:
     def load_dialog(self) -> None:
         """ Display dialogue to select which file to load and in what way it should be loaded. """
         self.logger.info(f"function: load_dialog()")
-        
+
         dump_header = []
-        options = [ 
+        options = [
             ["Load data (pickle)."],
         ]
         s, o, f = self.choose_option(self.stdscr, options=options, title="Open file...", header=dump_header)
@@ -4184,7 +4197,16 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         "top_gap": 0,
         "max_column_width": 70,
     }
-    
+
+    # Handle debug flags first so they apply regardless of input source
+    if args.debug:
+        function_data["debug"] = True
+        function_data["debug_level"] = 1
+
+    if args.debug_verbose:
+        function_data["debug"] = True
+        function_data["debug_level"] = 0
+
     if args.file:
         input_arg = args.file[0]
 
@@ -4211,13 +4233,6 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         print("No data provided. Loading empty Picker.")
         return args, function_data
         # sys.exit(1)
-    if args.debug:
-        function_data["debug"] = True
-        function_data["debug_level"] = 1
-
-    if args.debug_verbose:
-        function_data["debug"] = True
-        function_data["debug_level"] = 0
     
     if not args.file_type:
         filetype = guess_file_type(input_arg)

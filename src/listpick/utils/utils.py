@@ -20,6 +20,7 @@ import time
 
 logger = logging.getLogger('picker_log')
 
+TEMP_DIR = "/tmp"
 
 
 def clip_left(text, n):
@@ -317,7 +318,7 @@ def file_picker() -> list[str]:
     """ Run file picker (yazi by default) and return the path of the file picked. If no file is picked an empty string is returned. """
 
     logger.info("function: file_picker (utils.py)")
-    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+    with tempfile.NamedTemporaryFile(delete=False, dir=TEMP_DIR) as tmpfile:
         subprocess.run(f"yazi --chooser-file={tmpfile.name}", shell=True)
 
         lines = tmpfile.readlines()
@@ -333,7 +334,7 @@ def dir_picker() -> str:
     """ Run dir picker (yazi by default) and return the path of the directory one is in upon exit. """
 
     logger.info("function: dir_picker (utils.py)")
-    with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+    with tempfile.NamedTemporaryFile(delete=False, dir=TEMP_DIR) as tmpfile:
         subprocess.run(f"yazi --cwd-file={tmpfile.name}", shell=True)
 
         lines = tmpfile.readlines()
