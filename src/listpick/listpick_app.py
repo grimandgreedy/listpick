@@ -11,6 +11,7 @@ License: MIT
 import curses
 import re
 import os
+import sys
 import subprocess
 import argparse
 import time
@@ -4289,43 +4290,58 @@ class Picker:
                         self.history_edits.append(usrtxt)
             elif self.check_key("edit_ipython", key, self.keys_dict):
                 self.logger.info(f"key_function edit_ipython")
-                import IPython, termios
-                self.stdscr.clear()
-                restrict_curses(self.stdscr)
-                self.stdscr.clear()
-                os.system('cls' if os.name == 'nt' else 'clear')
-                globals()['self'] = self  # make the instance available in IPython namespace
+                try:
+                    import IPython, termios
+                    self.stdscr.clear()
+                    restrict_curses(self.stdscr)
+                    self.stdscr.clear()
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    globals()['self'] = self  # make the instance available in IPython namespace
 
-                from traitlets.config import Config
-                c = Config()
-                # Doesn't work; Config only works with start_ipython, not embed... but start_ipython causes errors
-                # c.InteractiveShellApp.exec_lines = [
-                #     '%clear'
-                # ]
-                msg = "The active Picker object has variable name self.\n"
-                msg += "\te.g., self.items will display the items in Picker"
-                tty_in = open("/dev/tty", "r")
-                tty_out = open("/dev/tty", "w")
+                    from traitlets.config import Config
+                    c = Config()
+                    # Doesn't work; Config only works with start_ipython, not embed... but start_ipython causes errors
+                    # c.InteractiveShellApp.exec_lines = [
+                    #     '%clear'
+                    # ]
+                    msg = "The active Picker object has variable name self.\n"
+                    msg += "\te.g., self.items will display the items in Picker"
 
-                fd = tty_in.fileno()
-                old_attrs = termios.tcgetattr(fd)
-                new_attrs = termios.tcgetattr(fd)
-                new_attrs[3] |= termios.ECHO  # lflags
-                termios.tcsetattr(fd, termios.TCSADRAIN, new_attrs)
+                    # Save original stdin/stdout/stderr and terminal attributes
+                    orig_stdin = sys.stdin
+                    orig_stdout = sys.stdout
+                    orig_stderr = sys.stderr
 
-                sys.stdin = tty_in
-                sys.stdout = tty_out
-                sys.stderr = tty_out
-                IPython.embed(header=msg, config=c)
+                    # Get stdin file descriptor and save terminal attributes
+                    stdin_fd = sys.stdin.fileno()
+                    old_attrs = termios.tcgetattr(stdin_fd)
 
-                unrestrict_curses(self.stdscr)
+                    try:
+                        # Restore normal terminal mode for IPython
+                        new_attrs = termios.tcgetattr(stdin_fd)
+                        new_attrs[3] |= termios.ECHO  # Enable echo (lflags)
+                        termios.tcsetattr(stdin_fd, termios.TCSADRAIN, new_attrs)
 
-                tty_in.close()
-                tty_out.close()
-                self.stdscr.clear()
-                self.stdscr.refresh()
-                self.initialise_variables()
-                self.draw_screen()
+                        IPython.embed(header=msg, config=c)
+                    except Exception as e:
+                        self.logger.error(f"Error during IPython embed: {e}", exc_info=True)
+                    finally:
+                        # Restore terminal attributes
+                        termios.tcsetattr(stdin_fd, termios.TCSADRAIN, old_attrs)
+
+                        # Restore original stdin/stdout/stderr (if they were changed)
+                        sys.stdin = orig_stdin
+                        sys.stdout = orig_stdout
+                        sys.stderr = orig_stderr
+                except Exception as e:
+                    self.logger.error(f"Error in edit_ipython: {e}", exc_info=True)
+                finally:
+                    # Always restore curses state
+                    unrestrict_curses(self.stdscr)
+                    self.stdscr.clear()
+                    self.stdscr.refresh()
+                    self.initialise_variables()
+                    self.draw_screen()
 
 
 
