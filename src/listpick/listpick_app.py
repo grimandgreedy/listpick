@@ -1725,6 +1725,7 @@ class Picker:
         self.indexed_items = [(i, item) for i, item in enumerate(self.items)]
         self.selections = {i:False for i in range(len(self.indexed_items))}
         self.cursor_pos = min(self.cursor_pos, len(self.indexed_items)-1)
+        self.mark_current_file_modified()  # Track modification
         self.initialise_variables()
         self.draw_screen()
 
@@ -2016,6 +2017,8 @@ class Picker:
                     self.centre_in_cols = not self.centre_in_cols
                 elif setting == "cv":
                     self.centre_in_terminal_vertical = not self.centre_in_terminal_vertical
+                elif setting in ["nf", "newfile"]:
+                    self.create_new_file()
                 elif setting == "arb":
                     self.insert_row(self.cursor_pos)
                 elif setting == "ara":
@@ -2419,15 +2422,46 @@ class Picker:
                     if return_val:
                         cursor_pos = self.cursor_pos
                         self.items = tmp_items
+                        self.mark_current_file_modified()  # Track modification
                         self.initialise_variables()
                         self.cursor_pos = cursor_pos
 
     def save_dialog(self) -> None:
-        """ Display dialogue to select how to save the picker data. """
+        """ Display dialogue to select how to save the picker data. Auto-saves to existing files. """
         self.logger.info(f"function: save_dialog()")
-        
+
+        # Check if we can auto-save (file exists on disk and not "Untitled")
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+
+            # Auto-save if file exists on disk and is not untitled
+            if not current_file_state.is_untitled and os.path.exists(current_file_state.path):
+                # Determine format from file extension
+                ext = os.path.splitext(current_file_state.path)[1].lower()
+                format_map = {
+                    ".csv": "csv",
+                    ".tsv": "tsv",
+                    ".json": "json",
+                    ".feather": "feather",
+                    ".parquet": "parquet",
+                    ".msgpack": "msgpack",
+                    ".pkl": "pickle",
+                }
+                save_format = format_map.get(ext, "csv")  # Default to csv
+
+                # Save directly without showing dialog
+                return_val = dump_data(self.get_function_data(), current_file_state.path, format=save_format)
+                if not return_val:  # Success (empty return means no error)
+                    current_file_state.update_hash(self.items, self.header)
+                    self.draw_screen()
+                    self.notification(self.stdscr, message=f"Saved to {current_file_state.display_name}")
+                else:
+                    self.notification(self.stdscr, message=return_val, title="Error")
+                return
+
+        # Fall through to show save dialog for untitled files or if file doesn't exist
         dump_header = []
-        options = [ 
+        options = [
             ["Save data (pickle)."],
             ["Save data (csv)."],
             ["Save data (tsv)."],
@@ -2438,7 +2472,7 @@ class Picker:
             ["Save state"]
         ]
         # require_option = [True, True, True, True, True, True, True, True]
-        s, o, f = self.choose_option(self.stdscr, options=options, title="Save...", header=dump_header)
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Save As...", header=dump_header)
 
 
         funcs = [
@@ -2460,7 +2494,19 @@ class Picker:
                 )
                 if save_path_entered:
                     return_val = funcs[idx](save_path)
-                    if return_val:
+                    if not return_val:  # Success (empty return means no error)
+                        # Update FileState after successful save
+                        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+                            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+                            current_file_state.path = save_path
+                            current_file_state.display_name = save_path.split("/")[-1]
+                            current_file_state.is_untitled = False
+                            current_file_state.update_hash(self.items, self.header)
+
+                            # Update loaded_files list
+                            self.loaded_files[self.loaded_file_index] = save_path
+                            self.loaded_file = save_path
+                    else:
                         self.notification(self.stdscr, message=return_val, title="Error")
 
     def load_dialog(self) -> None:
@@ -2487,21 +2533,41 @@ class Picker:
                 # We load only the first file in the selected files, while we add the rest
                 #     to the list so that they can be loaded later.
 
-                # Load only the first file 
+                # Check if current file is an empty, unmodified "Untitled" file
+                should_remove_untitled = False
+                if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+                    current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+                    should_remove_untitled = (
+                        current_file_state.is_untitled and
+                        not current_file_state.is_modified and
+                        current_file_state.is_empty(self.items, self.header) and
+                        len(self.loaded_files) == 1  # Only if it's the only file
+                    )
+
+                if should_remove_untitled:
+                    # Remove the empty untitled file
+                    del self.loaded_files[self.loaded_file_index]
+                    del self.loaded_file_states_new[self.loaded_file_index]
+                    del self.loaded_file_states[self.loaded_file_index]
+                    self.loaded_file_index = 0
+                else:
+                    # Save current file state before switching
+                    self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+
+                # Load only the first file
                 file_to_load = files_to_load[0]
-                self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
                 self.stdscr.clear()
                 self.draw_screen()
                 tmp = self.stdscr
 
                 # Add all selected files to the list
-                self.loaded_files += files_to_load
-
-                # Create empty states (lazy loading)
-                self.loaded_file_states += [{} for _ in files_to_load]
+                for file_path in files_to_load:
+                    self.loaded_files.append(file_path)
+                    self.loaded_file_states.append({})
+                    self.loaded_file_states_new.append(FileState(path=file_path))
 
                 self.loaded_file = file_to_load
-                self.loaded_file_index = len(self.loaded_files)-len(files_to_load)
+                self.loaded_file_index = len(self.loaded_files) - len(files_to_load)
                 self.stdscr = tmp
                 self.load_file(self.loaded_file)
                 # items = return_val["items"]
@@ -2630,6 +2696,7 @@ class Picker:
             if self.header: row_len = len(self.header)
             elif len(self.items): row_len  = len(self.items[0])
             self.items = self.items[:pos] + [["" for x in range(row_len)]] + self.items[pos:]
+            self.mark_current_file_modified()  # Track modification
             if pos <= self.cursor_pos:
                 self.cursor_pos += 1
             # We are adding a row before so we have to move the cursor down
@@ -2646,6 +2713,7 @@ class Picker:
         self.logger.info(f"function: insert_column(pos={pos})")
         self.items = [row[:pos]+[""]+row[pos:] for row in self.items]
         self.header = self.header[:pos] + [""] + self.header[pos:]
+        self.mark_current_file_modified()  # Track modification
         self.editable_columns = self.editable_columns[:pos] + [self.editable_by_default] + self.editable_columns[pos:]
         if pos <= self.selected_column:
             self.selected_column += 1
@@ -2668,6 +2736,16 @@ class Picker:
                 self.header = header if header != None else []
                 self.sheets = sheets
 
+                # Update FileState with sheets and compute hash
+                if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+                    current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+
+                    # Create SheetState objects from loaded sheets
+                    current_file_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
+                    current_file_state.sheet_index = 0
+
+                    # Compute initial hash (file is not modified after loading)
+                    current_file_state.update_hash(items, header)
 
                 self.initialise_variables()
         except Exception as e:
@@ -2685,6 +2763,113 @@ class Picker:
                 self.initialise_variables()
         except Exception as e:
             self.notification(self.stdscr, message=f"Error loading {filename}, sheet {sheet_number}: {e}")
+
+    def create_new_file(self) -> None:
+        """Create a new untitled file and switch to it."""
+        self.logger.info("function: create_new_file()")
+
+        # Save current file state
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            current_state = self.loaded_file_states_new[self.loaded_file_index]
+            current_state.state_dict = self.get_function_data()
+
+        # Generate unique "Untitled" name
+        untitled_numbers = [
+            fs.untitled_number for fs in self.loaded_file_states_new if fs.is_untitled
+        ]
+        if not untitled_numbers:
+            new_name = "Untitled"
+            new_number = 0
+        else:
+            new_number = max(untitled_numbers) + 1
+            new_name = f"Untitled-{new_number + 1}"  # Untitled-2, Untitled-3, etc.
+
+        # Create new FileState
+        new_file_state = FileState(
+            path=new_name,
+            is_untitled=True,
+            untitled_number=new_number
+        )
+
+        # Add to lists
+        self.loaded_files.append(new_name)
+        self.loaded_file_states_new.append(new_file_state)
+        self.loaded_file_states.append({})  # Keep old format in sync during migration
+
+        # Switch to new file
+        self.loaded_file_index = len(self.loaded_files) - 1
+        self.loaded_file = new_name
+
+        # Initialize empty picker state
+        self.set_function_data({}, reset_absent_variables=True)
+        self.items = [[""]]
+        self.header = []
+        self.initialise_variables()
+        self.draw_screen()
+
+    def close_file_with_warning(self) -> bool:
+        """
+        Close the current file, prompting if modified.
+        Returns True if should exit application, False otherwise.
+        """
+        self.logger.info("function: close_file_with_warning()")
+
+        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
+            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
+
+            # Check if modified using hybrid approach (dirty flag + hash verification)
+            if current_file_state.check_modified(self.items, self.header):
+                # Show confirmation dialog
+                options = [
+                    ["Save and close"],
+                    ["Close without saving"],
+                    ["Cancel (don't close)"]
+                ]
+                s, o, f = self.choose_option(
+                    self.stdscr,
+                    options=options,
+                    title=f"Save changes?",
+                    header=[]
+                )
+
+                if s:
+                    idx = list(s.keys())[0]
+                    if idx == 0:  # Save and close
+                        self.save_dialog()
+                        # Check if save succeeded (file might still be modified if save was cancelled)
+                        if current_file_state.is_modified:
+                            return False  # Save was cancelled, don't close
+                    elif idx == 1:  # Close without saving
+                        pass  # Continue to close
+                    else:  # idx == 2, Cancel
+                        return False
+                else:
+                    return False  # User cancelled
+
+        # Proceed with closing
+        if len(self.loaded_files) <= 1:
+            # Last file, signal to exit application
+            return True
+        else:
+            # Remove file from lists
+            del self.loaded_files[self.loaded_file_index]
+            del self.loaded_file_states_new[self.loaded_file_index]
+            del self.loaded_file_states[self.loaded_file_index]
+
+            # Adjust index and load new file
+            self.loaded_file_index = min(self.loaded_file_index, len(self.loaded_files) - 1)
+            self.loaded_file = self.loaded_files[self.loaded_file_index]
+
+            # Load state
+            if self.loaded_file_states_new[self.loaded_file_index].state_dict:
+                self.set_function_data(self.loaded_file_states_new[self.loaded_file_index].state_dict)
+            else:
+                self.set_function_data({}, reset_absent_variables=True)
+                if os.path.exists(self.loaded_file):
+                    self.load_file(self.loaded_file)
+
+            self.draw_screen()
+            return False  # Don't exit application
 
     def switch_file(self, increment=1) -> None:
         """ Go to the next file. """
@@ -3126,27 +3311,12 @@ class Picker:
 
             elif self.check_key("exit", key, self.keys_dict):
                 self.stdscr.clear()
-                if len(self.loaded_files) <= 1:
+                should_exit = self.close_file_with_warning()
+                if should_exit:
                     self.cleanup_threads()
                     function_data = self.get_function_data()
                     restore_terminal_settings(tty_fd, self.saved_terminal_state)
                     return [], "", function_data
-                else:
-                    del self.loaded_files[self.loaded_file_index]
-                    del self.loaded_file_states[self.loaded_file_index]
-                    self.loaded_file_index = min(self.loaded_file_index, len(self.loaded_files)-1)
-                    self.loaded_file = self.loaded_files[self.loaded_file_index]
-                    idx, file = self.loaded_file_index, self.loaded_file
-
-
-                    # If we already have a loaded state for this file
-                    if self.loaded_file_states[self.loaded_file_index]:
-                        self.set_function_data(self.loaded_file_states[self.loaded_file_index])
-                    else:
-                        self.set_function_data({}, reset_absent_variables=True)
-                        self.load_file(self.loaded_file)
-                    self.loaded_file_index, self.loaded_file = idx, file
-                    self.draw_screen()
 
             elif self.check_key("full_exit", key, self.keys_dict):
                 self.cleanup_threads()
@@ -3574,11 +3744,13 @@ class Picker:
                 if row_len > 1:
                     self.items = [row[:self.selected_column] + row[self.selected_column+1:] for row in self.items]
                     self.header = self.header[:self.selected_column] + self.header[self.selected_column+1:]
+                    self.mark_current_file_modified()  # Track modification
                     self.editable_columns = self.editable_columns[:self.selected_column] + self.editable_columns[self.selected_column+1:]
                     self.selected_column = min(self.selected_column, row_len-2)
                 elif row_len == 1:
                     self.items = [[""] for _ in range(len(self.items))]
                     self.header = [""] if self.header else []
+                    self.mark_current_file_modified()  # Track modification
                     self.editable_columns = []
                     self.selected_column = min(self.selected_column, row_len-2)
                 self.initialise_variables()
@@ -4007,6 +4179,7 @@ class Picker:
                         if usrtxt.startswith("```"):
                             usrtxt = str(eval(usrtxt[3:]))
                         self.indexed_items[self.cursor_pos][1][self.selected_column] = usrtxt
+                        self.mark_current_file_modified()  # Track modification
                         self.history_edits.append(usrtxt)
             elif self.check_key("edit_nvim", key, self.keys_dict):
 
@@ -4046,6 +4219,7 @@ class Picker:
                         for i, j in selected_cells_indices:
                             self.items[i][j] = edited_cells[count]
                             count += 1
+                        self.mark_current_file_modified()  # Track modification
 
                     self.refresh_and_draw_screen()
 
@@ -4266,6 +4440,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
             if args.file:
                 function_data["loaded_file"] = args.file[0]
                 function_data["loaded_files"] = args.file
+                # Initialize FileState objects for each file
+                function_data["loaded_file_states_new"] = [FileState(path=f) for f in args.file]
             break
 
         except Exception as e:
@@ -4280,6 +4456,15 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     function_data["items"] = items
     if header: function_data["header"] = header
     function_data["sheets"] = sheets
+
+    # Initialize sheets and hash for the first loaded file
+    if args.file and "loaded_file_states_new" in function_data:
+        first_file_state = function_data["loaded_file_states_new"][0]
+        # Create SheetState objects from loaded sheets
+        if sheets:
+            first_file_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
+        # Compute initial hash (file is not modified after loading from disk)
+        first_file_state.update_hash(items, header)
 
     return args, function_data
 

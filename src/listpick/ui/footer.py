@@ -105,7 +105,19 @@ class StandardFooter(Footer):
         if len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
 
             sep = "◢ "
-            files = [x.split("/")[-1] for x in state["loaded_files"]]
+
+            # Use FileState objects if available, otherwise fall back to paths
+            file_states = state.get("loaded_file_states_new", [])
+            if file_states:
+                # Build file names from FileState objects with modified indicator
+                files = [
+                    fs.display_name + (" *" if fs.is_modified else "")
+                    for fs in file_states
+                ]
+            else:
+                # Fallback to old behavior
+                files = [x.split("/")[-1] for x in state["loaded_files"]]
+
             filename = state["loaded_file"].split("/")[:-1]
 
             files_str = sep.join(files)
@@ -113,7 +125,14 @@ class StandardFooter(Footer):
 
             idx = state["loaded_file_index"]
             current_file_x = sum((len(x) for x in files[:idx])) + idx*len(sep)
-            current_file_str = state["loaded_file"].split("/")[-1]
+
+            # Get current file display name with modified indicator
+            if file_states and idx < len(file_states):
+                current_file_state = file_states[idx]
+                current_file_str = current_file_state.display_name + (" *" if current_file_state.is_modified else "")
+            else:
+                current_file_str = state["loaded_file"].split("/")[-1]
+
             current_file_x_end = current_file_x + len(current_file_str) + 2
             self.stdscr.addstr(self.files_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
             if current_file_x_end < w:
@@ -131,15 +150,33 @@ class StandardFooter(Footer):
         if len(state["sheets"]) > 1:
 
             sep = "◢ "
-            sheets = [x.split("/")[-1] for x in state["sheets"]]
+
+            # Try to use SheetState objects from FileState if available
+            file_states = state.get("loaded_file_states_new", [])
+            file_idx = state.get("loaded_file_index", 0)
+
+            if file_states and file_idx < len(file_states):
+                current_file_state = file_states[file_idx]
+                # Use sheet names from FileState.sheets
+                sheets = [sheet.display_name for sheet in current_file_state.sheets]
+                idx = current_file_state.sheet_index
+            else:
+                # Fallback to old behavior
+                sheets = [x.split("/")[-1] for x in state["sheets"]]
+                idx = state["sheet_index"]
+
             filename = state["sheet_name"].split("/")[:-1]
 
             sheets_str = sep.join(sheets)
             sheets_str = sheets_str[:w-2]
 
-            idx = state["sheet_index"]
             current_sheet_x = sum((len(x) for x in sheets[:idx])) + idx*len(sep)
-            current_sheet_str = state["sheet_name"].split("/")[-1]
+
+            if file_states and file_idx < len(file_states) and idx < len(file_states[file_idx].sheets):
+                current_sheet_str = file_states[file_idx].sheets[idx].display_name
+            else:
+                current_sheet_str = state["sheet_name"].split("/")[-1]
+
             current_sheet_x_end = current_sheet_x + len(current_sheet_str) + 2
             self.stdscr.addstr(self.sheets_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
             if current_sheet_x_end < w:
