@@ -2473,11 +2473,23 @@ class Picker:
                     ".parquet": "parquet",
                     ".msgpack": "msgpack",
                     ".pkl": "pickle",
+                    ".xlsx": "xlsx",
+                    ".ods": "ods",
                 }
                 save_format = format_map.get(ext, "csv")  # Default to csv
 
                 # Save directly without showing dialog
-                return_val = dump_data(self.get_function_data(), current_file_state.path, format=save_format)
+                function_data = self.get_function_data()
+
+                # For multi-sheet formats (xlsx, ods), include all sheets
+                if save_format in ["xlsx", "ods"] and len(self.sheets) > 1:
+                    # Update current sheet state before saving
+                    self.sheet_states[self.sheet_index] = self.get_function_data()
+                    function_data["sheets"] = self.sheets
+                    function_data["sheet_states"] = self.sheet_states
+                    function_data["original_file_path"] = current_file_state.path
+
+                return_val = dump_data(function_data, current_file_state.path, format=save_format)
                 if not return_val:  # Success (empty return means no error)
                     current_file_state.update_hash(self.items, self.header)
                     self.draw_screen()
