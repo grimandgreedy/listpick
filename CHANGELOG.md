@@ -1,9 +1,11 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
-## [0.1.17.0] 2026-01-01
+## [0.1.17.0] 2026-01-03
  - Fix crash when opening files on Mac OS
  - Fix logger creation priority when we use the --debug or --debug-verbose flags
+    - I.e., ensure that a logger is created when we pass --debug
  - Fix drop to ipython functionality
+ - Ensure that header the headerless flag is consistent when we change sheets
  - Create testing suite
    - Added some unit testing for utils
    - Added some e2e testing using kitty
