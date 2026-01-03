@@ -106,7 +106,7 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
         "settings_options":                 "Settings options dialogue.",
         "continue_search_forward":          "Continue search forwards.",
         "continue_search_backward":         "Continue search backwards.",
-        "cancel":                           "Cancel; escape.",
+        "cancel":                           "Cancel, escape.",
         "opts_input":                       "Options input.",
         "opts_select":                      "Options select dialogue.",
         "mode_next":                        "Cycle through modes forwards.",
@@ -128,7 +128,7 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
         "open":                             "Attempt to open file with selected cell value(s).",
         "toggle_footer":                    "Toggle footer.",
         "notification_toggle":              "Toggle empty notification.",
-        "redo":                             "Redo.",
+        "redo":                             "Redo (applied setting).",
         "undo":                             "Undo.",
         "scroll_right":                     "Scroll right (5 chars).",
         "scroll_left":                      "Scroll left (5 chars).",
@@ -151,16 +151,16 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
         "cycle_left_pane":                  "Cycle through left pane views",
     }
     sections = {
-        "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_right_25", "scroll_left_25", "scroll_far_right", "scroll_far_left" ],
+        "Navigation:": [ "cursor_down", "cursor_up", "half_page_up", "half_page_down", "page_up", "page_down", "cursor_bottom", "cursor_top", "five_up", "five_down", "scroll_right", "scroll_left", "scroll_right_25", "scroll_left_25", "scroll_far_right", "scroll_far_left", "col_select_next", "col_select_prev" , "col_select", "col_hide"],
         "Selection:": [ "toggle_select", "select_all", "select_none", "visual_selection_toggle", "visual_deselection_toggle", "enter" ],
         "UI:": [ "toggle_footer", "redraw_screen", "decrease_lines_per_page", "increase_lines_per_page", "increase_column_width", "decrease_column_width", "notification_toggle", "toggle_right_pane", "cycle_right_pane", "toggle_left_pane", "cycle_left_pane"],
-        "Sort:": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
-        "Data manipulation:": [ "delete", "delete_column", "edit", "edit_nvim", "edit_picker", "edit_ipython", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
+        "Sort (On selected column):": [ "cycle_sort_method", "cycle_sort_method_reverse", "cycle_sort_order", ] ,
         "Filter and search:": [ "filter_input", "search_input", "continue_search_forward", "continue_search_backward", ] ,
         "Settings:": [ "settings_input", "settings_options" ],
-        "Options and modes:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts", "col_select", "col_select_next", "col_select_prev", "col_hide" ],
+        "Options and modes:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts" ],
         "Save, load, copy and paste:": [ "save", "load", "open", "copy", "paste" ],
-        "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right" ],
+        "Data manipulation:": [ "delete", "delete_column", "edit", "edit_nvim", "edit_picker", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
+        "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right", "edit_ipython"],
     }
 
     ## Add any keys not in section keys to misc.
