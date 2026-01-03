@@ -17,20 +17,21 @@ Create a Picker:
 ```
 from listpick.listpick_app import Picker, start_curses, close_curses
 
-stdscr = start_curses()
+if __name__ == "__main__":
+    stdscr = start_curses()
 
-x = Picker(
-    stdscr,
-    items=[
-        ["row zero column zero", "row zero column one"],
-        ["row one column zero", "row one column one"]
-    ],
-    header=["H0", "H1"],
-    cell_cursor=True,
-)
-x.run()
+    x = Picker(
+        stdscr,
+        items=[
+            ["row zero column zero", "row zero column one"],
+            ["row one column zero", "row one column one"]
+        ],
+        header=["H0", "H1"],
+        cell_cursor=True,
+    )
+    x.run()
 
-close_curses(stdscr)
+    close_curses(stdscr)
 
 ```
 
@@ -98,56 +99,62 @@ listpick -i ~/items.csv
    - Text files (TSV, CSV)
    - JSON
    - XLSX
-   - ODS (OpenDocument Spreadsheet)
+   - ODS
    - Pickle
 
-2. **Generate data based on an toml file with relevant commands to generate the rows.**
+2. **Pipe data to listpick:**
+
+```bash
+df -h | listpick --stdin
+```
+
+3. **Generate data based on an toml file with relevant commands to generate the rows.**
 ```python 
 listpick -g ./examples/data_generation/video_duplicates.toml
 ```
 
-  - See ./examples/
+  - See `./examples/data_generation/`
 
-3. **Highlighting:**
+4. **Highlighting:**
   - Highlight specific strings for display purposes.
   - E.g., when we search for a string we will highlight strings in the rows that match the search.
 
-4. **Filtering and Sorting:**
+5. **Filtering and Sorting:**
   - Apply custom filters and sort criteria on the fly
 
-5. **Modes:**
+6. **Modes:**
   - Default modes are supported so that a certain filter/search/sort can structure the data in a way that is easy to move between.
 
 
-6. **Options:**
+7. **Options:**
   - Along with returning the selected rows, the user can also return options.
   - Input field with readline support
   - Options select box
 
-7. **Colour themes:**
+8. **Colour themes:**
   - Several colour themes are available
 
-8. **Copy rows:**
+9. **Copy rows:**
   - 'y' to copy rows in various formats: CSV, TSV, python list
-9. **Save data:**
+10. **Save data:**
   - Data can be saved so that it can be loaded with the -i flag.
   - This is very helpful if your data generation takes a long time.
-10. **Customisable keybinds:**
+11. **Customisable keybinds:**
    - The Picker object takes a keys_dict variable which allows all keys to be customised. Default keys can be seen in src/listpick/ui/keys.py.
    - Also allows the restriction of certain functions by not assigning a key.
-11. **Dynamic or manual refresh of data**:
+12. **Dynamic or manual refresh of data**:
    - If a refresh_function is passed with auto_refresh=True then listpick will automatically refresh the data.
     - If a refresh_function is passed then one can also manually refresh by pressing f5.
-12. Notifications.
+13. Notifications.
    - Supports notifications upon certain events
-13. Visual options
+14. Visual options
    - Display/hide title. 
    - Display/hide footer with selection information
    - Display/hide columns
    - Display/hide highlights
    - Option to centre in cells, centre in terminal and centre rows vertically.
 
-14. Change settings on the fly.
+15. Change settings on the fly.
    - Press '~' to see list of display settings or press '`' to enter a command to change display settings.
    - Change visual options
        - Cycle through themes
@@ -158,7 +165,7 @@ listpick -g ./examples/data_generation/video_duplicates.toml
    - Toggle auto-refresh
    - Toggle highlights
 
-15. Pipe the data from the selected rows in the focussed column to a bash command ('|')
+16. Pipe the data from the selected rows in the focussed column to a bash command ('|')
    - By default when you press '|' it will fill the input field with `xargs `. You can remove this if you like (^U).
    - For example, if you run `xargs -d '\n' -I {} notify-send {}` to this it will display notifications containing the data from the current column 
    - Useful for:
