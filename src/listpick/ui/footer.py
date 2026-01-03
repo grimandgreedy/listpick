@@ -155,15 +155,22 @@ class StandardFooter(Footer):
             file_states = state.get("loaded_file_states_new", [])
             file_idx = state.get("loaded_file_index", 0)
 
-            if file_states and file_idx < len(file_states):
+            # Always use state["sheet_index"] as the source of truth
+            idx = state["sheet_index"]
+
+            if file_states and file_idx < len(file_states) and len(file_states[file_idx].sheets) > 0:
                 current_file_state = file_states[file_idx]
                 # Use sheet names from FileState.sheets
                 sheets = [sheet.display_name for sheet in current_file_state.sheets]
-                idx = current_file_state.sheet_index
             else:
-                # Fallback to old behavior
-                sheets = [x.split("/")[-1] for x in state["sheets"]]
-                idx = state["sheet_index"]
+                # Fallback to old behavior - handle both strings and objects
+                raw_sheets = state["sheets"]
+                if raw_sheets and hasattr(raw_sheets[0], 'name'):
+                    # sheets are SheetState objects
+                    sheets = [s.name for s in raw_sheets]
+                else:
+                    # sheets are strings
+                    sheets = [x.split("/")[-1] if isinstance(x, str) else str(x) for x in raw_sheets]
 
             filename = state["sheet_name"].split("/")[:-1]
 
