@@ -1,0 +1,10 @@
+[environment]
+cwd = "tests/fixtures/e2e"
+
+[data]
+commands = [
+    "echo -e 'file1.txt\\nfile2.txt\\nfile3.txt'",
+    "echo -e 'desc1\\ndesc2\\ndesc3'"
+]
+
+header = ["Filename", "Description"]
