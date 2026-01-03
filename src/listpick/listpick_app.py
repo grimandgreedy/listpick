@@ -897,6 +897,8 @@ class Picker:
         if len(self.right_panes): self.right_pane_index %= len(self.right_panes)
         else: self.right_pane_index = 0
         
+        # Ensure that cursor < len(self.items)
+        self.cursor_pos = min(self.cursor_pos, len(self.indexed_items)-1)
 
 
     def move_column(self, direction: int) -> None:
@@ -2329,6 +2331,7 @@ class Picker:
             elif new_pos in self.unselectable_indices: new_pos -= 1
             else: break
         self.cursor_pos = new_pos
+        self.cursor_pos = min(self.cursor_pos, len(self.indexed_items)-1)
         self.ensure_no_overscroll()
         return True
 

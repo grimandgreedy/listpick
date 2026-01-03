@@ -433,6 +433,8 @@
 > - [x] Header columns are not aligned with long header values.
 >   - [x] Done: 2025-08-27
 > - [ ] Pressing page forward/page back in an empty picker changes the index in the footer from 0 to 1...
+> - [x] When I add a remove the last download in a list in aria2tui it leaves me on 5/4 and so when I press enter listpick crashes
+>  - [x] Fixed. Ensure that whenever a Picker is created or updated the cursor is on an existing row (unless there are no rows)
 
 
 

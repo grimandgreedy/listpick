@@ -1,5 +1,8 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+## [0.1.17.1] 2026-01-04
+ - Bug fix: Ensure that a Picker cannot be created with the cursor on a non-existent row--except when there are no rows
+
 ## [0.1.17.0] 2026-01-03
  - Fix crash when opening files on Mac OS
  - Fix logger creation priority when we use the --debug or --debug-verbose flags
