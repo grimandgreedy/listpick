@@ -296,11 +296,16 @@ def input_field(
             kill_ring_index = (kill_ring_index + 1)%len(kill_ring)
             if kill_ring_active and len(kill_ring):
                 if cursor == 0:
+                    # Remove the previously yanked text from the end
                     usrtxt = usrtxt[:-len(kill_ring[prev_kill_ring_index])]
+                    # Append the new yanked text
                     usrtxt += kill_ring[kill_ring_index]
                 else:
-                    usrtxt = usrtxt[-cursor:-(cursor+len(kill_ring[prev_kill_ring_index]))]
-                    usrtxt = usrtxt[:-cursor] + kill_ring[kill_ring_index] + usrtxt[-cursor:]
+                    # Remove the previously yanked text
+                    prev_yank_len = len(kill_ring[prev_kill_ring_index])
+                    # Text structure: [before_yank][previous_yank][after_cursor]
+                    # We need to remove [previous_yank] and insert [new_yank]
+                    usrtxt = usrtxt[:-(cursor + prev_yank_len)] + kill_ring[kill_ring_index] + usrtxt[-cursor:]
 
         elif key == 3:                                                           # ctrl+c
             # Immediate exit
@@ -350,8 +355,15 @@ def input_field(
         elif key == 21 or key == "^U":                                          # CTRL+U
             # Delete from cursor to beginning of usrtxt
             if cursor == 0:
+                # Delete everything and add to kill ring
+                if usrtxt:
+                    kill_ring.append(usrtxt)
                 usrtxt = ""
             else:
+                # Delete from start to cursor position and add to kill ring
+                deleted_text = usrtxt[:-(cursor+1)]
+                if deleted_text:
+                    kill_ring.append(deleted_text)
                 usrtxt = usrtxt[-(cursor+1):]
             cursor = len(usrtxt)
             potential_path = usrtxt
@@ -359,7 +371,15 @@ def input_field(
 
         elif key == 11 or key == "^K":                                          # CTRL+K
             # Delete from cursor to end of usrtxt
-            if cursor: usrtxt = usrtxt[:-cursor]
+            if cursor:
+                # Delete from cursor to end and add to kill ring
+                deleted_text = usrtxt[-cursor:]
+                if deleted_text:
+                    kill_ring.append(deleted_text)
+                usrtxt = usrtxt[:-cursor]
+            else:
+                # Cursor at end, nothing to delete
+                pass
             cursor = 0
             potential_path = usrtxt
             kill_ring_active = False
