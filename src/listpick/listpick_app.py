@@ -2799,7 +2799,13 @@ class Picker:
     def load_sheet(self, filename: str, sheet_number: int = 0):
         filetype = guess_file_type(filename)
         try:
-            items, header, sheets = table_to_list(filename, file_type=filetype, sheet_number=sheet_number)
+            headerless = (self.header == [] and self.items in [[], [[]]])
+            items, header, sheets = table_to_list(
+                filename,
+                file_type=filetype,
+                sheet_number=sheet_number,
+                first_row_is_header=not headerless
+                )
             if items != None:
                 self.items = items
                 # Ensure header elements are strings, not integers or other types
