@@ -4466,7 +4466,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
     parser.add_argument('-t', dest='file_type', choices=['tsv', 'csv', 'json', 'xlsx', 'ods', 'pkl'], help='Type of file (tsv, csv, json, xlsx, ods)')
     parser.add_argument('--debug', action="store_true", help="Enable debug log.")
     parser.add_argument('--debug-verbose', action="store_true", help="Enable debug verbose log.")
-    parser.add_argument('--headerless', action="store_false", help="By default the first row is interpreted as a header row. If --headerless is passed then there is no header.")
+    parser.add_argument('--headerless', action="store_true", help="By default the first row is loaded as data. If --headerless is passed then the first row is interpreted as a header row.")
     args = parser.parse_args()
 
 
