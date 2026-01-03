@@ -37,7 +37,7 @@ setuptools.setup(
 
     entry_points={
         'console_scripts': [
-            'listpick = listpick:main',
+            'listpick = listpick.listpick_app:main',
         ]
     },
     install_requires = [

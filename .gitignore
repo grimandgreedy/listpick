@@ -33,3 +33,14 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Test screenshots
+test_screenshots/
+
+# Pytest
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
