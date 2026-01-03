@@ -3,6 +3,10 @@ Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 ## [0.1.17.0] 2026-01-01
  - Fix crash when opening files on Mac OS
  - Fix logger creation priority when we use the --debug or --debug-verbose flags
+ - Fix drop to ipython functionality
+ - Create testing suite
+   - Added some unit testing for utils
+   - Added some e2e testing using kitty
 
 ## [0.1.16.16-17] 2025-11-04
  - Major bug fix on macosx. Calling multiprocessing.Manager() resulted in instacrash.

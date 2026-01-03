@@ -60,6 +60,8 @@
 >   - [x] Settings aren't displayed properly.
 > - [ ] Add support for macros.
 >   [ ] ["Key", "Description (for help)", "function"]
+> - [ ] Kill ring issues. Inconsistent ordering. Needs refactoring
+> - [ ] When we open an xlsx, by default it loads all of the data into items. However when we switch sheets it loads the first row into the header
 
 
 
@@ -187,6 +189,14 @@
 >     - [x] Graphs
 >  - [ ] Left pane
 >  - [ ] top/bottom panes?
+> - [ ] Testing suite
+>   - [ ] Unit testing
+>    - [x] Add testing for utils
+>   - [ ] E2E testing
+>    - [x] Test selection count
+>    - [x] Test filtering
+>    - [x] Test adding and modifying rows
+>    - [x] Test saving
 
 
 
