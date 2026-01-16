@@ -40,6 +40,7 @@ def generate_columns_worker(
     state: dict,
 ) -> None:
     """ Get a task from the priorty queue and fill the data for that cell."""
+    logger.info("generate_columns_worker started")
     while task_queue.qsize() > 0 and not state["thread_stop_event"].is_set():
         _, (i, j) = task_queue.get()
 
@@ -73,9 +74,7 @@ def generate_cell(func: Callable, file: str, items: list[list[str]], row: int, c
             if not state["thread_stop_event"].is_set():
                 items[row][col] = result
         except Exception as e:
-            pass
-            # import pyperclip
-            # pyperclip.copy(f"({row}, {col}): len(items)={len(items)}, len(items[0])={len(items[0])} {e}")
+            logger.error(f"generate_cell error at ({row}, {col}): {e}")
 
 def update_queue(task_queue: PriorityQueue, visible_rows_indices: list[int], rows: int, cols: int, state: dict):
     """ Increase the priority of getting the data for the cells that are currently visible. """
@@ -198,7 +197,7 @@ def generate_picker_data(
     picker_header: the picker header will be passed in so that it can be set for the class
 
     """
-    logger.info("function: generate_picker_data (generate_data.py)")
+    logger.info(f"generate_picker_data: {len(files)} files, {len(column_functions)} column_functions")
 
     items.clear()
     items.extend([[file] + ["..." for _ in column_functions] for file in files])

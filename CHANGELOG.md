@@ -1,5 +1,9 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
+
+## [0.1.17.2-3] 2026-01-16
+ - Fix cell population issue with the multithreaded data generator. It was caused by list replacement while padding the sublists; so the background workers weren't able to populate the cells as their reference lists had actually been replaced.
+
 ## [0.1.17.1] 2026-01-04
  - Bug fix: Ensure that a Picker cannot be created with the cursor on a non-existent row--except when there are no rows
 
