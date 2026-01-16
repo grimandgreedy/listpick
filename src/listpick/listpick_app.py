@@ -743,11 +743,19 @@ class Picker:
             self.items = [[item] for item in self.items]
 
         # Convert all cell values to strings (for xlsx files with numeric values)
+        # Note: We modify in place to preserve references for background threads
         if len(self.items) > 0:
-            self.items = [[str(cell) if cell is not None else "" for cell in row] for row in self.items]
+            for i, row in enumerate(self.items):
+                for j, cell in enumerate(row):
+                    self.items[i][j] = str(cell) if cell is not None else ""
 
         # Ensure that the each of the rows of the items are of the same length
-        self.items = pad_lists_to_same_length(self.items)
+        # Note: We modify in place to preserve references for background threads
+        if self.items and self.items != [[]]:
+            max_length = max(len(row) for row in self.items)
+            for row in self.items:
+                while len(row) < max_length:
+                    row.append('')
 
         # Ensure that header elements are all strings
         if self.header:
