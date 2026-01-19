@@ -200,20 +200,10 @@ class Picker:
 
         command_stack: list = [],
 
-        loaded_file: str = "Untitled",
-        loaded_files: list[str] = ["Untitled"],
-        loaded_file_index: int = 0,
-        loaded_file_states: list[dict] = [{}],
-        loaded_file_states_new: list = None,  # Will be initialized to list[FileState]
-        disable_file_close_warning: bool = False,  # For nested Pickers (dialogs)
-        
-        # New PickerState architecture
+        # PickerState architecture
         loaded_picker_states: list[PickerState] = None,  # Will be initialized to list[PickerState]
         picker_state_index: int = 0,
-        sheets = ["Untitled"],
-        sheet_name = "Untitled",
-        sheet_index = 0,
-        sheet_states: list = [{}],
+        disable_file_close_warning: bool = False,  # For nested Pickers (dialogs)
 
         split_right: bool = False,
         right_panes: list = [],
@@ -382,22 +372,9 @@ class Picker:
         self.debug = debug
         self.debug_level = debug_level
 
-        # Multiple file support
-        self.loaded_files = loaded_files
-        self.loaded_file = loaded_file
-        self.loaded_file_index = loaded_file_index
-        self.loaded_file_states = loaded_file_states
-
-        # New file state management with FileState dataclass
-        if loaded_file_states_new is None:
-            # Initialize with a single "Untitled" FileState
-            self.loaded_file_states_new = [FileState(path="Untitled", is_untitled=True)]
-        else:
-            self.loaded_file_states_new = loaded_file_states_new
-
         self.disable_file_close_warning = disable_file_close_warning
         
-        # New PickerState architecture
+        # PickerState architecture
         with open("/tmp/listpick_debug.txt", "a") as f:
             if loaded_picker_states is None:
                 f.write("loaded_picker_states is None, auto-creating...\n")
@@ -414,12 +391,6 @@ class Picker:
             self.picker_state_index = picker_state_index
             f.write(f"Final: self.loaded_picker_states has {len(self.loaded_picker_states)} states\n")
             f.write(f"Final: picker_state_index = {self.picker_state_index}\n")
-
-        # Multiple sheet support
-        self.sheet_index = sheet_index
-        self.sheet_name = sheet_name
-        self.sheet_states = sheet_states
-        self.sheets = sheets
 
         self.split_right = split_right
         self.right_panes = right_panes
@@ -485,47 +456,73 @@ class Picker:
             return current_state.sub_states[current_state.sub_state_index]
         return None
     
-    # === Phase 1: Properties for backward compatibility ===
-    # These replace direct attribute access, computing values from PickerState
+    # === Backward Compatibility Properties ===
+    # These properties compute values from PickerState for legacy code
     
-    def get_loaded_file(self) -> str:
+    @property
+    def loaded_file(self) -> str:
         """Get current file path from PickerState."""
         state = self.get_current_picker_state()
         return state.path if state else "Untitled"
     
-    def set_loaded_file(self, value: str) -> None:
+    @loaded_file.setter
+    def loaded_file(self, value: str) -> None:
         """Update current PickerState path."""
         state = self.get_current_picker_state()
         if state:
             state.path = value
             state.display_name = value.split("/")[-1]
     
-    def get_loaded_files(self) -> list:
+    @property
+    def loaded_files(self) -> list:
         """Get list of file paths from PickerStates."""
         return [ps.path for ps in self.loaded_picker_states]
     
-    def set_loaded_files(self, value: list) -> None:
-        """Setter for loaded_files - stores during initialization."""
-        self._loaded_files_init = value
+    @loaded_files.setter
+    def loaded_files(self, value: list) -> None:
+        """Setter for loaded_files - no-op for backward compatibility."""
+        pass  # Managed via loaded_picker_states now
     
-    def get_loaded_file_index(self) -> int:
+    @property
+    def loaded_file_index(self) -> int:
         """Alias for picker_state_index."""
         return self.picker_state_index
     
-    def set_loaded_file_index(self, value: int) -> None:
+    @loaded_file_index.setter
+    def loaded_file_index(self, value: int) -> None:
         """Update picker_state_index."""
         self.picker_state_index = value
     
-    # === Phase 2: Properties for sheet access ===
+    @property
+    def loaded_file_states(self) -> list:
+        """Legacy compatibility - returns empty list."""
+        return []
     
-    def get_sheets(self) -> list:
+    @loaded_file_states.setter
+    def loaded_file_states(self, value: list) -> None:
+        """Legacy compatibility - no-op."""
+        pass
+    
+    @property
+    def loaded_file_states_new(self) -> list:
+        """Legacy compatibility - returns empty list."""
+        return []
+    
+    @loaded_file_states_new.setter
+    def loaded_file_states_new(self, value: list) -> None:
+        """Legacy compatibility - no-op."""
+        pass
+    
+    @property
+    def sheets(self) -> list:
         """Get sheet names from current PickerState."""
         state = self.get_current_picker_state()
         if state and isinstance(state, FilePickerState):
             return [s.name for s in state.sub_states]
         return ["Untitled"]
     
-    def set_sheets(self, value: list) -> None:
+    @sheets.setter
+    def sheets(self, value: list) -> None:
         """Update sheets in current FilePickerState."""
         state = self.get_current_picker_state()
         if state and isinstance(state, FilePickerState):
@@ -533,28 +530,49 @@ class Picker:
             state.sheets = [PickerSheetState(name=name) if isinstance(name, str) else name for name in value]
             state.sub_states = state.sheets
     
-    def get_sheet_index(self) -> int:
+    @property
+    def sheet_index(self) -> int:
         """Get current sheet index from PickerState."""
         state = self.get_current_picker_state()
         return state.sub_state_index if state else 0
     
-    def set_sheet_index(self, value: int) -> None:
+    @sheet_index.setter
+    def sheet_index(self, value: int) -> None:
         """Update current sheet index in PickerState."""
         state = self.get_current_picker_state()
         if state:
             state.sub_state_index = value
     
-    def get_sheet_name(self) -> str:
+    @property
+    def sheet_name(self) -> str:
         """Get current sheet name from PickerState."""
         sub = self.get_current_sub_state()
         return sub.name if sub else "Untitled"
     
-    def set_sheet_name(self, value: str) -> None:
+    @sheet_name.setter
+    def sheet_name(self, value: str) -> None:
         """Update current sheet name."""
         sub = self.get_current_sub_state()
         if sub:
             sub.name = value
             sub.display_name = value
+    
+    @property
+    def sheet_states(self) -> list:
+        """Get sheet states from current PickerState."""
+        state = self.get_current_picker_state()
+        if state and isinstance(state, FilePickerState):
+            return [s.state_dict for s in state.sub_states]
+        return [{}]
+    
+    @sheet_states.setter
+    def sheet_states(self, value: list) -> None:
+        """Update sheet states in current PickerState."""
+        state = self.get_current_picker_state()
+        if state and isinstance(state, FilePickerState):
+            for i, state_dict in enumerate(value):
+                if i < len(state.sub_states):
+                    state.sub_states[i].state_dict = state_dict
     
     def set_config(self, path: str ="~/.config/listpick/config.toml") -> bool:
         """ Set config from toml file.
@@ -1814,17 +1832,9 @@ class Picker:
             "reset_colours":                            self.reset_colours,
             "unicode_char_width":                       self.unicode_char_width,
             "command_stack":                            self.command_stack,
-            "loaded_file":                              self.loaded_file,
-            "loaded_files":                             self.loaded_files,
-            "loaded_file_index":                        self.loaded_file_index,
-            "loaded_file_states":                       self.loaded_file_states,
-            "loaded_file_states_new":                   self.loaded_file_states_new,
+            # NEW: Only PickerState management (legacy attributes removed)
             "loaded_picker_states":                     self.loaded_picker_states,
             "picker_state_index":                       self.picker_state_index,
-            "sheet_index":                              self.sheet_index,
-            "sheets":                                   self.sheets,
-            "sheet_name":                               self.sheet_name,
-            "sheet_states":                             self.sheet_states,
             "split_right":                              self.split_right,
             "right_panes":                              self.right_panes,
             "right_pane_index":                         self.right_pane_index,
@@ -1851,14 +1861,13 @@ class Picker:
         x = Picker(self.stdscr, reset_colours=False)
 
 
+        # Variables that should not be restored from cached state
+        # (they are managed separately or are global Picker settings)
         common_picker_vars = [
-            "loaded_file_index",
-            "loaded_file_states",
-            "loaded_file_states_new",
-            "loaded_files",
-            "loaded_file",
+            # PickerState management (managed separately)
             "loaded_picker_states",
             "picker_state_index",
+            # Global settings
             "command_stack",
             "colour_theme_number",
             "reset_colours",
@@ -1869,7 +1878,6 @@ class Picker:
             "history_opts",
             "history_edits",
             "history_pipes",
-            "reset_colours",
             "cell_cursor",
             "top_gap",
             "unicode_char_width",
@@ -1880,7 +1888,6 @@ class Picker:
             "split_right",
             "left_pane_index",
             "split_left",
-            "left_pane_index",
         ]
 
         for var in variables:
@@ -2940,6 +2947,7 @@ class Picker:
 
 
     def load_file(self, filename: str) -> None:
+        """Load a file and update the current FilePickerState with sheet information."""
         if not os.path.exists(filename):
             self.notification(self.stdscr, message = f"File not found: {filename}")
             return None
@@ -2952,14 +2960,8 @@ class Picker:
                 self.items = items
                 # Ensure header elements are strings, not integers or other types
                 self.header = [str(h) if h is not None else "" for h in header] if header != None else []
-                self.sheets = sheets
 
-                # Initialize sheet_states to match the number of sheets
-                self.sheet_states = [{} for _ in sheets]
-                self.sheet_index = 0
-                self.sheet_name = sheets[0] if sheets else "Untitled"
-
-                # NEW: Update FilePickerState with sheets and compute hash
+                # Update FilePickerState with sheets and compute hash
                 if 0 <= self.picker_state_index < len(self.loaded_picker_states):
                     current_state = self.loaded_picker_states[self.picker_state_index]
                     if isinstance(current_state, FilePickerState):
@@ -2971,27 +2973,19 @@ class Picker:
                         
                         # Compute initial hash (file is not modified after loading)
                         current_state.update_hash(items, header)
-                        
-                        # Sync self.sheets with PickerState (TODO: remove this later)
-                        self.sheets = [s.name for s in current_state.sheets]
-                        self.sheet_index = current_state.sub_state_index
                 
-                # LEGACY: Update FileState with sheets
-                if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-                    current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-
-                    # Create SheetState objects from loaded sheets
-                    current_file_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
-                    current_file_state.sheet_index = 0
-
-                    # Compute initial hash (file is not modified after loading)
-                    current_file_state.update_hash(items, header)
+                # LEGACY SYNC: Update self.sheets for backward compatibility (TODO: remove later)
+                self.sheets = sheets
+                self.sheet_states = [{} for _ in sheets]
+                self.sheet_index = 0
+                self.sheet_name = sheets[0] if sheets else "Untitled"
 
                 self.initialise_variables()
         except Exception as e:
             self.notification(self.stdscr, message=f"Error loading {filename}: {e}")
 
     def load_sheet(self, filename: str, sheet_number: int = 0):
+        """Load a specific sheet from a multi-sheet file."""
         filetype = guess_file_type(filename)
         try:
             headerless = (self.header == [] and self.items in [[], [[]]])
@@ -3005,9 +2999,17 @@ class Picker:
                 self.items = items
                 # Ensure header elements are strings, not integers or other types
                 self.header = [str(h) if h is not None else "" for h in header] if header != None else []
+                
+                # Update PickerState with sheet info
+                current_state = self.get_current_picker_state()
+                if current_state and isinstance(current_state, FilePickerState):
+                    # Update sheet_name in current sub-state
+                    if 0 <= sheet_number < len(sheets):
+                        if sheet_number < len(current_state.sub_states):
+                            current_state.sub_states[sheet_number].name = sheets[sheet_number]
+                
+                # LEGACY SYNC: Update self.sheets for backward compatibility (TODO: remove later)
                 self.sheets = sheets
-                # Update sheet_name based on the sheet_number, but don't reset sheet_index or sheet_states
-                # as they should already be set by switch_sheet
                 if 0 <= sheet_number < len(sheets):
                     self.sheet_name = sheets[sheet_number]
 
@@ -3289,30 +3291,45 @@ class Picker:
         self.loaded_file_index, self.loaded_file = idx, file
 
     def switch_sheet(self, increment=1) -> None:
-        if not os.path.exists(self.loaded_file):
-            self.notification(self.stdscr, message=f"File {repr(self.loaded_file)} not found.")
+        """Switch to next/previous sheet in multi-sheet file using PickerState."""
+        # Get current PickerState
+        current_state = self.get_current_picker_state()
+        if not current_state or not isinstance(current_state, FilePickerState):
             return None
-        if len(self.sheets) <= 1:
+        
+        # Check if file exists
+        if not current_state.is_untitled and not os.path.exists(current_state.path):
+            self.notification(self.stdscr, message=f"File {repr(current_state.path)} not found.")
+            return None
+        
+        # Check if multi-sheet file
+        if len(current_state.sub_states) <= 1:
             return None
 
-        # Cache sheet state
-        self.sheet_states[self.sheet_index] = self.get_function_data()
+        # Save current sub-state to its state_dict
+        current_sub = current_state.sub_states[current_state.sub_state_index]
+        current_sub.state_dict = self.get_function_data()
 
-        self.sheet_index = (self.sheet_index + increment) % len(self.sheets)
-        self.sheet_name = self.sheets[self.sheet_index]
+        # Move to next sheet
+        current_state.sub_state_index = (current_state.sub_state_index + increment) % len(current_state.sub_states)
+        new_sub = current_state.sub_states[current_state.sub_state_index]
 
-        # If we already have a loaded state for this file
-        if self.sheet_states[self.sheet_index]:
-            self.set_function_data(self.sheet_states[self.sheet_index])
+        # Load the new sheet's state
+        if new_sub.state_dict:
+            # Restore cached state for this sheet
+            self.set_function_data(new_sub.state_dict)
         else:
+            # First time viewing this sheet - load from file
             function_data = {
-                "sheet_index": self.sheet_index,
-                "sheet_name":  self.sheet_name,
-                "sheet_states":self.sheet_states,
-                "sheets":       self.sheets,
+                "sheet_index": current_state.sub_state_index,
+                "sheet_name": new_sub.name,
             }
             self.set_function_data(function_data, reset_absent_variables=True)
-            self.load_sheet(self.loaded_file, sheet_number=self.sheet_index)
+            self.load_sheet(current_state.path, sheet_number=current_state.sub_state_index)
+        
+        # LEGACY SYNC: Update self.sheet_index for backward compatibility (TODO: remove later)
+        self.sheet_index = current_state.sub_state_index
+        self.sheet_name = new_sub.name
 
     def toggle_right_pane(self):
         if len(self.right_panes):
@@ -4871,11 +4888,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
                 first_row_is_header=args.headerless,
             )
             if args.file:
-                function_data["loaded_file"] = args.file[0]
-                function_data["loaded_files"] = args.file
-                # Initialize FileState objects for each file (legacy)
-                function_data["loaded_file_states_new"] = [FileState(path=f) for f in args.file]
-                # NEW: Initialize FilePickerState objects for each file
+                # Initialize FilePickerState objects for each file
                 function_data["loaded_picker_states"] = [FilePickerState(path=f) for f in args.file]
                 function_data["picker_state_index"] = 0
                 
@@ -4896,18 +4909,8 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
 
     function_data["items"] = items
     if header: function_data["header"] = header
-    function_data["sheets"] = sheets
 
-    # Initialize sheets and hash for the first loaded file
-    if args.file and "loaded_file_states_new" in function_data:
-        first_file_state = function_data["loaded_file_states_new"][0]
-        # Create SheetState objects from loaded sheets
-        if sheets:
-            first_file_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
-        # Compute initial hash (file is not modified after loading from disk)
-        first_file_state.update_hash(items, header)
-    
-    # NEW: Initialize sheets and hash for PickerState objects
+    # Initialize sheets and hash for PickerState objects
     if args.file and "loaded_picker_states" in function_data:
         first_picker_state = function_data["loaded_picker_states"][0]
         if isinstance(first_picker_state, FilePickerState):

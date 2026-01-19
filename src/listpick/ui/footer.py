@@ -56,7 +56,9 @@ class StandardFooter(Footer):
     def adjust_sizes(self, h, w):
         state = self.get_state()
 
-        self.sheets_y=-1
+        self.sheets_y = -1
+        self.files_y = -1
+        
         if state["footer_string"]:
             self.footer_string_y = h-1
             self.picker_info_y = h-3
@@ -70,7 +72,7 @@ class StandardFooter(Footer):
             self.footer_string_y = -1
             self.height = 2
 
-        # Check for sheets: Use PickerState if available, else fall back to old system
+        # Check for sheets using PickerState
         has_sheets = False
         picker_states = state.get("loaded_picker_states", [])
         picker_state_index = state.get("picker_state_index", 0)
@@ -78,32 +80,28 @@ class StandardFooter(Footer):
         if picker_states and 0 <= picker_state_index < len(picker_states):
             current_state = picker_states[picker_state_index]
             has_sheets = len(current_state.sub_states) > 1
-        elif len(state.get("sheets", [])) > 1:
-            has_sheets = True
         
         if has_sheets:
             self.height += 1
             self.picker_info_y -= 1
             self.sort_info_y -= 1
-            self.footer_string_y -= 1
+            if self.footer_string_y > 0:
+                self.footer_string_y -= 1
             self.sheets_y = h-1
 
-        # Check for multiple PickerStates/files
-        # Priority: Use PickerStates if they exist, otherwise fall back to loaded_files
+        # Check for multiple PickerStates
         has_multiple_states = False
         if picker_states:
-            # PickerStates are present - use them as source of truth
             has_multiple_states = len(picker_states) > 1
-        elif len(state.get("loaded_files", [])) > 1 and state.get("loaded_file") in state.get("loaded_files", []):
-            # No PickerStates - fall back to old system
-            has_multiple_states = True
         
         if has_multiple_states:
             self.height += 1
             self.picker_info_y -= 1
             self.sort_info_y -= 1
-            self.footer_string_y -= 1
-            self.sheets_y -= 1
+            if self.footer_string_y > 0:
+                self.footer_string_y -= 1
+            if self.sheets_y > 0:
+                self.sheets_y -= 1
 
             self.files_y = h-1
         if state["search_query"] and self.height < 3:
@@ -122,10 +120,10 @@ class StandardFooter(Footer):
         for i in range(self.height):
             self.stdscr.addstr(h-self.height+i, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
 
-        # Display loaded files/PickerStates
+        # Display loaded PickerStates (files row)
         picker_states = state.get("loaded_picker_states", [])
         
-        # Use PickerStates if available (new system), otherwise fall back to old system
+        # Show files row ONLY if there are multiple PickerStates
         if picker_states and len(picker_states) > 1:
             sep = "◢ "
             
@@ -153,58 +151,12 @@ class StandardFooter(Footer):
                 states_str = states_str[current_state_x_end-w:current_state_x_end][:w-2]
                 self.stdscr.addstr(self.files_y, 0, f" {states_str}", curses.color_pair(self.colours_start+4))
                 self.stdscr.addstr(self.files_y, w - (len(current_state_str)+3), f" {current_state_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
-        
-        # LEGACY: Fall back to old file display logic
-        elif len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
-
-            sep = "◢ "
-
-            # Use FileState objects if available, otherwise fall back to paths
-            file_states = state.get("loaded_file_states_new", [])
-            if file_states:
-                # Build file names from FileState objects with modified indicator
-                files = [
-                    fs.display_name + (" *" if fs.is_modified else "")
-                    for fs in file_states
-                ]
-            else:
-                # Fallback to old behavior
-                files = [x.split("/")[-1] for x in state["loaded_files"]]
-
-            filename = state["loaded_file"].split("/")[:-1]
-
-            files_str = sep.join(files)
-            files_str = files_str[:w-2]
-
-            idx = state["loaded_file_index"]
-            current_file_x = sum((len(x) for x in files[:idx])) + idx*len(sep)
-
-            # Get current file display name with modified indicator
-            if file_states and idx < len(file_states):
-                current_file_state = file_states[idx]
-                current_file_str = current_file_state.display_name + (" *" if current_file_state.is_modified else "")
-            else:
-                current_file_str = state["loaded_file"].split("/")[-1]
-
-            current_file_x_end = current_file_x + len(current_file_str) + 2
-            self.stdscr.addstr(self.files_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
-            if current_file_x_end < w:
-
-                self.stdscr.addstr(self.files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
-
-                self.stdscr.addstr(self.files_y, current_file_x, f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
-            else:
-                files_str = sep.join(files)
-                files_str = files_str[current_file_x_end-w:current_file_x_end][:w-2]
-                self.stdscr.addstr(self.files_y, 0, f" {files_str}", curses.color_pair(self.colours_start+4))
-
-                self.stdscr.addstr(self.files_y, w - (len(current_file_str)+3), f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
 
         # Display sheets/sub-states
         picker_states = state.get("loaded_picker_states", [])
         picker_state_index = state.get("picker_state_index", 0)
         
-        # Use PickerState sub_states if available
+        # Use PickerState sub_states
         if picker_states and 0 <= picker_state_index < len(picker_states):
             current_state = picker_states[picker_state_index]
             
@@ -231,58 +183,6 @@ class StandardFooter(Footer):
                     sheets_str = sheets_str[current_sheet_x_end-w:current_sheet_x_end][:w-2]
                     self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
                     self.stdscr.addstr(self.sheets_y, w - (len(current_sheet_str)+3), f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
-        
-        # LEGACY: Fall back to old sheet display
-        elif len(state.get("sheets", [])) > 1:
-
-            sep = "◢ "
-
-            # Try to use SheetState objects from FileState if available
-            file_states = state.get("loaded_file_states_new", [])
-            file_idx = state.get("loaded_file_index", 0)
-
-            # Always use state["sheet_index"] as the source of truth
-            idx = state["sheet_index"]
-
-            if file_states and file_idx < len(file_states) and len(file_states[file_idx].sheets) > 0:
-                current_file_state = file_states[file_idx]
-                # Use sheet names from FileState.sheets
-                sheets = [sheet.display_name for sheet in current_file_state.sheets]
-            else:
-                # Fallback to old behavior - handle both strings and objects
-                raw_sheets = state["sheets"]
-                if raw_sheets and hasattr(raw_sheets[0], 'name'):
-                    # sheets are SheetState objects
-                    sheets = [s.name for s in raw_sheets]
-                else:
-                    # sheets are strings
-                    sheets = [x.split("/")[-1] if isinstance(x, str) else str(x) for x in raw_sheets]
-
-            filename = state["sheet_name"].split("/")[:-1]
-
-            sheets_str = sep.join(sheets)
-            sheets_str = sheets_str[:w-2]
-
-            current_sheet_x = sum((len(x) for x in sheets[:idx])) + idx*len(sep)
-
-            if file_states and file_idx < len(file_states) and idx < len(file_states[file_idx].sheets):
-                current_sheet_str = file_states[file_idx].sheets[idx].display_name
-            else:
-                current_sheet_str = state["sheet_name"].split("/")[-1]
-
-            current_sheet_x_end = current_sheet_x + len(current_sheet_str) + 2
-            self.stdscr.addstr(self.sheets_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
-            if current_sheet_x_end < w:
-
-                self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
-
-                self.stdscr.addstr(self.sheets_y, current_sheet_x, f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
-            else:
-                sheets_str = sep.join(sheets)
-                sheets_str = sheets_str[current_sheet_x_end-w:current_sheet_x_end][:w-2]
-                self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
-
-                self.stdscr.addstr(self.sheets_y, w - (len(current_sheet_str)+3), f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
                 
 
 
