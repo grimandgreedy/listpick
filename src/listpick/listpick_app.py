@@ -2260,17 +2260,11 @@ class Picker:
                 elif setting == "unicode":
                     self.unicode_char_width = not self.unicode_char_width
                 elif setting == "file_next":
-                    # Switch to next PickerState (or file for backward compat)
-                    if self.loaded_picker_states:
-                        self.switch_picker_state(increment=1)
-                    else:
-                        self.switch_file(increment=1)
+                    # Switch to next PickerState
+                    self.switch_picker_state(increment=1)
                 elif setting == "file_prev":
-                    # Switch to previous PickerState (or file for backward compat)
-                    if self.loaded_picker_states:
-                        self.switch_picker_state(increment=-1)
-                    else:
-                        self.switch_file(increment=-1)
+                    # Switch to previous PickerState
+                    self.switch_picker_state(increment=-1)
                     # self.draw_screen()
                     # self.stdscr.refresh()
 
@@ -3255,40 +3249,6 @@ class Picker:
         self.load_picker_state(next_state, use_cached_state=True)
         
         self.logger.info(f"Switched to PickerState {self.picker_state_index}: {self.loaded_picker_states[self.picker_state_index].display_name}")
-
-    def switch_file(self, increment=1) -> None:
-        """ Go to the next file. """
-        if len(self.loaded_files) <= 1:
-            return None
-
-        # Cache file state in both old and new format
-        self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
-        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-            self.loaded_file_states_new[self.loaded_file_index].state_dict = self.get_function_data()
-
-        self.loaded_file_index = (self.loaded_file_index + increment) % len(self.loaded_files)
-        self.loaded_file = self.loaded_files[self.loaded_file_index]
-
-        idx, file = self.loaded_file_index, self.loaded_file
-
-        # Check if we have a FileState for this file
-        current_file_state = None
-        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-
-        # If we already have a loaded state for this file
-        if self.loaded_file_states[self.loaded_file_index]:
-            self.set_function_data(self.loaded_file_states[self.loaded_file_index])
-        elif current_file_state and current_file_state.state_dict:
-            # Use FileState's cached state
-            self.set_function_data(current_file_state.state_dict)
-        else:
-            self.set_function_data({}, reset_absent_variables=True)
-            # Only load from disk if this is not an untitled file
-            if not (current_file_state and current_file_state.is_untitled):
-                self.load_file(self.loaded_file)
-
-        self.loaded_file_index, self.loaded_file = idx, file
 
     def switch_sheet(self, increment=1) -> None:
         """Switch to next/previous sheet in multi-sheet file using PickerState."""
@@ -4448,18 +4408,12 @@ class Picker:
                             # Re-sort self.items after applying filter
                             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("file_next", key, self.keys_dict):
-                # Switch to next PickerState (or file for backward compat)
-                if self.loaded_picker_states:
-                    self.switch_picker_state(increment=1)
-                else:
-                    self.switch_file(increment=1)
+                # Switch to next PickerState
+                self.switch_picker_state(increment=1)
 
             elif self.check_key("file_prev", key, self.keys_dict):
-                # Switch to previous PickerState (or file for backward compat)
-                if self.loaded_picker_states:
-                    self.switch_picker_state(increment=-1)
-                else:
-                    self.switch_file(increment=-1)
+                # Switch to previous PickerState
+                self.switch_picker_state(increment=-1)
 
             elif self.check_key("toggle_right_pane", key, self.keys_dict):
                 self.toggle_right_pane()
