@@ -16,7 +16,10 @@ import subprocess
 import argparse
 import time
 from wcwidth import wcswidth
-from typing import Callable, Optional, Tuple, Dict
+from typing import Callable, Optional, Tuple, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from listpick.utils.picker_state import SubState
 import json
 import threading
 import multiprocessing
@@ -51,7 +54,7 @@ from listpick.pane.get_data import *
 from listpick.utils.file_state import FileState, SheetState
 from listpick.utils.picker_state import (
     PickerState, FilePickerState, StaticPickerState, DynamicPickerState, 
-    SheetState as PickerSheetState
+    SubState, SheetState as PickerSheetState
 )
 
 COLOURS_SET = False
@@ -228,6 +231,14 @@ class Picker:
 
     ):
 
+        # Debug: Check what we received  
+        with open("/tmp/listpick_debug.txt", "a") as f:
+            f.write(f"\n=== Picker.__init__ called ===\n")
+            f.write(f"loaded_picker_states is None: {loaded_picker_states is None}\n")
+            if loaded_picker_states is not None:
+                f.write(f"loaded_picker_states length: {len(loaded_picker_states)}\n")
+                f.write(f"loaded_picker_states paths: {[ps.path for ps in loaded_picker_states]}\n")
+        
         self.screen_size_function = screen_size_function
         self.stdscr = stdscr
         self.items = items
@@ -387,15 +398,22 @@ class Picker:
         self.disable_file_close_warning = disable_file_close_warning
         
         # New PickerState architecture
-        if loaded_picker_states is None:
-            # Auto-detect and create appropriate PickerState
-            self.loaded_picker_states = self._create_default_picker_state(
-                items, header, refresh_function, auto_refresh, get_new_data, timer
-            )
-        else:
-            self.loaded_picker_states = loaded_picker_states
-        
-        self.picker_state_index = picker_state_index
+        with open("/tmp/listpick_debug.txt", "a") as f:
+            if loaded_picker_states is None:
+                f.write("loaded_picker_states is None, auto-creating...\n")
+                # Auto-detect and create appropriate PickerState
+                self.loaded_picker_states = self._create_default_picker_state(
+                    items, header, refresh_function, auto_refresh, get_new_data, timer
+                )
+                f.write(f"Auto-created {len(self.loaded_picker_states)} PickerState(s): {[type(ps).__name__ for ps in self.loaded_picker_states]}\n")
+            else:
+                f.write(f"Received {len(loaded_picker_states)} PickerState(s) from params\n")
+                self.loaded_picker_states = loaded_picker_states
+                f.write(f"Set self.loaded_picker_states to {len(self.loaded_picker_states)} states\n")
+            
+            self.picker_state_index = picker_state_index
+            f.write(f"Final: self.loaded_picker_states has {len(self.loaded_picker_states)} states\n")
+            f.write(f"Final: picker_state_index = {self.picker_state_index}\n")
 
         # Multiple sheet support
         self.sheet_index = sheet_index
@@ -453,6 +471,90 @@ class Picker:
             if not attr_name.startswith('__') and not callable(getattr(self, attr_name)):
                 size += sys.getsizeof(getattr(self, attr_name))
         return size
+    
+    def get_current_picker_state(self) -> Optional[PickerState]:
+        """Get the current PickerState object."""
+        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+            return self.loaded_picker_states[self.picker_state_index]
+        return None
+    
+    def get_current_sub_state(self) -> Optional[SubState]:
+        """Get the current sub-state (sheet) from current PickerState."""
+        current_state = self.get_current_picker_state()
+        if current_state and 0 <= current_state.sub_state_index < len(current_state.sub_states):
+            return current_state.sub_states[current_state.sub_state_index]
+        return None
+    
+    # === Phase 1: Properties for backward compatibility ===
+    # These replace direct attribute access, computing values from PickerState
+    
+    def get_loaded_file(self) -> str:
+        """Get current file path from PickerState."""
+        state = self.get_current_picker_state()
+        return state.path if state else "Untitled"
+    
+    def set_loaded_file(self, value: str) -> None:
+        """Update current PickerState path."""
+        state = self.get_current_picker_state()
+        if state:
+            state.path = value
+            state.display_name = value.split("/")[-1]
+    
+    def get_loaded_files(self) -> list:
+        """Get list of file paths from PickerStates."""
+        return [ps.path for ps in self.loaded_picker_states]
+    
+    def set_loaded_files(self, value: list) -> None:
+        """Setter for loaded_files - stores during initialization."""
+        self._loaded_files_init = value
+    
+    def get_loaded_file_index(self) -> int:
+        """Alias for picker_state_index."""
+        return self.picker_state_index
+    
+    def set_loaded_file_index(self, value: int) -> None:
+        """Update picker_state_index."""
+        self.picker_state_index = value
+    
+    # === Phase 2: Properties for sheet access ===
+    
+    def get_sheets(self) -> list:
+        """Get sheet names from current PickerState."""
+        state = self.get_current_picker_state()
+        if state and isinstance(state, FilePickerState):
+            return [s.name for s in state.sub_states]
+        return ["Untitled"]
+    
+    def set_sheets(self, value: list) -> None:
+        """Update sheets in current FilePickerState."""
+        state = self.get_current_picker_state()
+        if state and isinstance(state, FilePickerState):
+            from listpick.utils.picker_state import SheetState as PickerSheetState
+            state.sheets = [PickerSheetState(name=name) if isinstance(name, str) else name for name in value]
+            state.sub_states = state.sheets
+    
+    def get_sheet_index(self) -> int:
+        """Get current sheet index from PickerState."""
+        state = self.get_current_picker_state()
+        return state.sub_state_index if state else 0
+    
+    def set_sheet_index(self, value: int) -> None:
+        """Update current sheet index in PickerState."""
+        state = self.get_current_picker_state()
+        if state:
+            state.sub_state_index = value
+    
+    def get_sheet_name(self) -> str:
+        """Get current sheet name from PickerState."""
+        sub = self.get_current_sub_state()
+        return sub.name if sub else "Untitled"
+    
+    def set_sheet_name(self, value: str) -> None:
+        """Update current sheet name."""
+        sub = self.get_current_sub_state()
+        if sub:
+            sub.name = value
+            sub.display_name = value
     
     def set_config(self, path: str ="~/.config/listpick/config.toml") -> bool:
         """ Set config from toml file.
@@ -704,16 +806,10 @@ class Picker:
             logging.warning("Error trying to set curses.set_escdelay")
 
     def mark_current_file_modified(self) -> None:
-        """Mark the currently loaded file/PickerState as modified (dirty flag)."""
-        # NEW: Mark PickerState as modified
+        """Mark the currently loaded PickerState as modified (dirty flag)."""
         if 0 <= self.picker_state_index < len(self.loaded_picker_states):
             self.loaded_picker_states[self.picker_state_index].mark_modified()
             self.logger.debug(f"Marked PickerState {self.loaded_picker_states[self.picker_state_index].display_name} as modified")
-        
-        # LEGACY: Also mark old FileState for backward compatibility
-        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-            self.loaded_file_states_new[self.loaded_file_index].mark_modified()
-            self.logger.debug(f"Marked file {self.loaded_file} as modified")
     
     def _create_default_picker_state(self, items, header, refresh_function, 
                                      auto_refresh, get_new_data, timer) -> list[PickerState]:
@@ -1791,9 +1887,12 @@ class Picker:
             if var == "self":
                 # Skip setting self as an attribute
                 continue
+            # Don't set common_picker_vars or do_not_set variables
+            if var in common_picker_vars or var in do_not_set:
+                continue
             if var in function_data:
                 setattr(self, var, function_data[var])
-            elif reset_absent_variables and var not in common_picker_vars and var not in do_not_set:
+            elif reset_absent_variables:
                 # Set value to the default for an empty picker
                 setattr(self, var, getattr(x, var))
 
@@ -2555,48 +2654,7 @@ class Picker:
                 self.export_dialog()
                 return
         
-        # LEGACY: Fallback to old FileState check for backward compatibility
-        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-
-            # Auto-save if file exists on disk and is not untitled
-            if not current_file_state.is_untitled and os.path.exists(current_file_state.path):
-                # Determine format from file extension
-                ext = os.path.splitext(current_file_state.path)[1].lower()
-                format_map = {
-                    ".csv": "csv",
-                    ".tsv": "tsv",
-                    ".json": "json",
-                    ".feather": "feather",
-                    ".parquet": "parquet",
-                    ".msgpack": "msgpack",
-                    ".pkl": "pickle",
-                    ".xlsx": "xlsx",
-                    ".ods": "ods",
-                }
-                save_format = format_map.get(ext, "csv")  # Default to csv
-
-                # Save directly without showing dialog
-                function_data = self.get_function_data()
-
-                # For multi-sheet formats (xlsx, ods), include all sheets
-                if save_format in ["xlsx", "ods"] and len(self.sheets) > 1:
-                    # Update current sheet state before saving
-                    self.sheet_states[self.sheet_index] = self.get_function_data()
-                    function_data["sheets"] = self.sheets
-                    function_data["sheet_states"] = self.sheet_states
-                    function_data["original_file_path"] = current_file_state.path
-
-                return_val = dump_data(function_data, current_file_state.path, format=save_format)
-                if not return_val:  # Success (empty return means no error)
-                    current_file_state.update_hash(self.items, self.header)
-                    self.draw_screen()
-                    self.notification(self.stdscr, message=f"Saved to {current_file_state.display_name}")
-                else:
-                    self.notification(self.stdscr, message=return_val, title="Error")
-                return
-
-        # Fall through to show save dialog for untitled files or if file doesn't exist
+        # Fall through to show save dialog for untitled files or if file doesn't exist (FilePickerState)
         dump_header = []
         options = [
             ["Save data (pickle)."],
@@ -2632,17 +2690,15 @@ class Picker:
                 if save_path_entered:
                     return_val = funcs[idx](save_path)
                     if not return_val:  # Success (empty return means no error)
-                        # Update FileState after successful save
-                        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-                            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-                            current_file_state.path = save_path
-                            current_file_state.display_name = save_path.split("/")[-1]
-                            current_file_state.is_untitled = False
-                            current_file_state.update_hash(self.items, self.header)
-
-                            # Update loaded_files list
-                            self.loaded_files[self.loaded_file_index] = save_path
-                            self.loaded_file = save_path
+                        # Update PickerState after successful "Save As"
+                        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+                            current_state = self.loaded_picker_states[self.picker_state_index]
+                            if isinstance(current_state, FilePickerState):
+                                current_state.path = save_path
+                                current_state.display_name = save_path.split("/")[-1]
+                                current_state.is_untitled = False
+                                current_state.update_hash(self.items, self.header)
+                                self.logger.info(f"Updated FilePickerState after Save As: {save_path}")
                     else:
                         self.notification(self.stdscr, message=return_val, title="Error")
     
@@ -2706,55 +2762,40 @@ class Picker:
                 # We load only the first file in the selected files, while we add the rest
                 #     to the list so that they can be loaded later.
 
-                # Check if current file is an empty, unmodified "Untitled" file
+                # Check if current PickerState is an empty, unmodified "Untitled" file
                 should_remove_untitled = False
-                if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-                    current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-                    should_remove_untitled = (
-                        current_file_state.is_untitled and
-                        not current_file_state.is_modified and
-                        current_file_state.is_empty(self.items, self.header) and
-                        len(self.loaded_files) == 1  # Only if it's the only file
-                    )
+                if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+                    current_state = self.loaded_picker_states[self.picker_state_index]
+                    if isinstance(current_state, FilePickerState):
+                        should_remove_untitled = (
+                            current_state.is_untitled and
+                            not current_state.is_modified and
+                            current_state.is_empty(self.items, self.header) and
+                            len(self.loaded_picker_states) == 1  # Only if it's the only state
+                        )
 
                 if should_remove_untitled:
-                    # Remove the empty untitled file
-                    del self.loaded_files[self.loaded_file_index]
-                    del self.loaded_file_states_new[self.loaded_file_index]
-                    del self.loaded_file_states[self.loaded_file_index]
-                    self.loaded_file_index = 0
+                    # Remove the empty untitled PickerState
+                    del self.loaded_picker_states[self.picker_state_index]
+                    self.picker_state_index = 0
                 else:
-                    # Save current file state before switching
-                    self.loaded_file_states[self.loaded_file_index] = self.get_function_data()
+                    # Save current state before switching
+                    self.save_current_picker_state()
 
-                # Load only the first file
-                file_to_load = files_to_load[0]
-                self.stdscr.clear()
-                self.draw_screen()
-                tmp = self.stdscr
-
-                # Add all selected files to the list
+                # Add all selected files as FilePickerStates
                 for file_path in files_to_load:
-                    self.loaded_files.append(file_path)
-                    self.loaded_file_states.append({})
-                    self.loaded_file_states_new.append(FileState(path=file_path))
-                    
-                    # NEW: Also create FilePickerState for new architecture
                     self.loaded_picker_states.append(FilePickerState(path=file_path))
 
-                self.loaded_file = file_to_load
-                self.loaded_file_index = len(self.loaded_files) - len(files_to_load)
-                self.stdscr = tmp
-                self.load_file(self.loaded_file)
-                # items = return_val["items"]
-                # header = return_val["header"]
-                self.stdscr.clear()
-                # self.initialise_variables()
+                # Switch to first loaded file
+                self.picker_state_index = len(self.loaded_picker_states) - len(files_to_load)
+                
+                # Load the new state
+                self.load_picker_state(
+                    self.loaded_picker_states[self.picker_state_index],
+                    use_cached_state=False  # First load
+                )
+                
                 self.draw_screen()
-                # self.stdscr.refresh()
-
-                # if return_val:
-                #     notification(stdscr, message=return_val, title="Error")
 
     def set_registers(self):
         """ Set registers to be sent to the input field. """
@@ -2918,7 +2959,24 @@ class Picker:
                 self.sheet_index = 0
                 self.sheet_name = sheets[0] if sheets else "Untitled"
 
-                # Update FileState with sheets and compute hash
+                # NEW: Update FilePickerState with sheets and compute hash
+                if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+                    current_state = self.loaded_picker_states[self.picker_state_index]
+                    if isinstance(current_state, FilePickerState):
+                        # Create SheetState objects from loaded sheets
+                        from listpick.utils.picker_state import SheetState as PickerSheetState
+                        current_state.sheets = [PickerSheetState(name=sheet_name) for sheet_name in sheets]
+                        current_state.sub_states = current_state.sheets
+                        current_state.sub_state_index = 0
+                        
+                        # Compute initial hash (file is not modified after loading)
+                        current_state.update_hash(items, header)
+                        
+                        # Sync self.sheets with PickerState (TODO: remove this later)
+                        self.sheets = [s.name for s in current_state.sheets]
+                        self.sheet_index = current_state.sub_state_index
+                
+                # LEGACY: Update FileState with sheets
                 if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
                     current_file_state = self.loaded_file_states_new[self.loaded_file_index]
 
@@ -2990,32 +3048,16 @@ class Picker:
             new_number = max(untitled_numbers) + 1
             new_name = f"Untitled-{new_number + 1}"  # Untitled-2, Untitled-3, etc.
 
-        # Create new FileState (legacy)
-        new_file_state = FileState(
-            path=new_name,
-            is_untitled=True,
-            untitled_number=new_number
-        )
-
-        # NEW: Create FilePickerState
+        # Create new FilePickerState
         new_picker_state = FilePickerState(
             path=new_name,
             is_untitled=True,
             untitled_number=new_number
         )
 
-        # Add to lists (both old and new systems)
-        self.loaded_files.append(new_name)
-        self.loaded_file_states_new.append(new_file_state)
-        self.loaded_file_states.append({})
-        
-        if self.loaded_picker_states:
-            self.loaded_picker_states.append(new_picker_state)
-            self.picker_state_index = len(self.loaded_picker_states) - 1
-
-        # Switch to new file (legacy)
-        self.loaded_file_index = len(self.loaded_files) - 1
-        self.loaded_file = new_name
+        # Add to PickerState list
+        self.loaded_picker_states.append(new_picker_state)
+        self.picker_state_index = len(self.loaded_picker_states) - 1
 
         # Initialize empty picker state
         self.set_function_data({}, reset_absent_variables=True)
@@ -3072,82 +3114,52 @@ class Picker:
                 return True
             else:
                 # Remove PickerState from list
-                del self.loaded_picker_states[self.picker_state_index]
-                self.picker_state_index = min(self.picker_state_index, len(self.loaded_picker_states) - 1)
+                idx_to_remove = self.picker_state_index
+                self.logger.info(f"Closing PickerState at index {idx_to_remove}, total states: {len(self.loaded_picker_states)}")
+                self.logger.info(f"States before removal: {[ps.display_name for ps in self.loaded_picker_states]}")
+                
+                del self.loaded_picker_states[idx_to_remove]
+                
+                self.logger.info(f"States after removal: {[ps.display_name for ps in self.loaded_picker_states]}")
+                
+                # Also remove from legacy lists at the SAME index to keep them in sync
+                if 0 <= idx_to_remove < len(self.loaded_files):
+                    del self.loaded_files[idx_to_remove]
+                if 0 <= idx_to_remove < len(self.loaded_file_states_new):
+                    del self.loaded_file_states_new[idx_to_remove]
+                if 0 <= idx_to_remove < len(self.loaded_file_states):
+                    del self.loaded_file_states[idx_to_remove]
+                
+                # Adjust indices - if we removed the last item, go to new last item
+                # Otherwise stay at same index (which now points to next item)
+                self.picker_state_index = min(idx_to_remove, len(self.loaded_picker_states) - 1)
+                
+                self.logger.info(f"New picker_state_index: {self.picker_state_index}")
+                
+                # Bounds check
+                if self.picker_state_index < 0 or self.picker_state_index >= len(self.loaded_picker_states):
+                    self.logger.error(f"Invalid picker_state_index: {self.picker_state_index}, total states: {len(self.loaded_picker_states)}")
+                    self.picker_state_index = 0
                 
                 # Load next state
-                self.load_picker_state(
-                    self.loaded_picker_states[self.picker_state_index],
-                    use_cached_state=True
-                )
+                next_state = self.loaded_picker_states[self.picker_state_index]
+                self.logger.info(f"Loading next state: {next_state.display_name} at index {self.picker_state_index}")
+                
+                self.load_picker_state(next_state, use_cached_state=True)
                 
                 self.draw_screen()
                 return False  # Don't exit application
         
-        # LEGACY: Fallback to old FileState logic
-        if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
-            current_file_state = self.loaded_file_states_new[self.loaded_file_index]
-
-            # Check if modified using hybrid approach (dirty flag + hash verification)
-            if current_file_state.check_modified(self.items, self.header):
-                # Show confirmation dialog
-                options = [
-                    ["Save and close"],
-                    ["Close without saving"],
-                    ["Cancel (don't close)"]
-                ]
-                s, o, f = self.choose_option(
-                    self.stdscr,
-                    options=options,
-                    title=f"Save changes?",
-                    header=[]
-                )
-
-                if s:
-                    idx = list(s.keys())[0]
-                    if idx == 0:  # Save and close
-                        self.save_dialog()
-                        # Check if save succeeded (file might still be modified if save was cancelled)
-                        if current_file_state.is_modified:
-                            return False  # Save was cancelled, don't close
-                    elif idx == 1:  # Close without saving
-                        pass  # Continue to close
-                    else:  # idx == 2, Cancel
-                        return False
-                else:
-                    return False  # User cancelled
-
-        # Proceed with closing
-        if len(self.loaded_files) <= 1:
-            # Last file, signal to exit application
-            return True
-        else:
-            # Remove file from lists
-            del self.loaded_files[self.loaded_file_index]
-            del self.loaded_file_states_new[self.loaded_file_index]
-            del self.loaded_file_states[self.loaded_file_index]
-
-            # Adjust index and load new file
-            self.loaded_file_index = min(self.loaded_file_index, len(self.loaded_files) - 1)
-            self.loaded_file = self.loaded_files[self.loaded_file_index]
-
-            # Load state
-            if self.loaded_file_states_new[self.loaded_file_index].state_dict:
-                self.set_function_data(self.loaded_file_states_new[self.loaded_file_index].state_dict)
-            else:
-                self.set_function_data({}, reset_absent_variables=True)
-                if os.path.exists(self.loaded_file):
-                    self.load_file(self.loaded_file)
-
-            self.draw_screen()
-            return False  # Don't exit application
+        # If we get here, no PickerStates - shouldn't happen, but return False to be safe
+        self.logger.warning("close_file_with_warning called with no PickerStates")
+        return False
 
     def save_current_picker_state(self) -> None:
         """Save current Picker state into current PickerState's state_dict."""
         if 0 <= self.picker_state_index < len(self.loaded_picker_states):
             current_state = self.loaded_picker_states[self.picker_state_index]
             current_state.state_dict = self.get_function_data()
-            self.logger.debug(f"Saved state for PickerState: {current_state.display_name}")
+            self.logger.debug(f"Saved state for PickerState: {current_state.display_name} (id: {id(current_state)}) at index {self.picker_state_index}")
     
     def load_picker_state(self, state: PickerState, use_cached_state: bool = True) -> None:
         """
@@ -3162,56 +3174,83 @@ class Picker:
         
         if use_cached_state and state.state_dict:
             # Restore from cached state_dict (includes ALL Picker variables)
-            self.set_function_data(state.state_dict)
-            self.logger.debug(f"Restored state from cache for {state.display_name}")
-        else:
+            try:
+                self.set_function_data(state.state_dict)
+                self.logger.debug(f"Restored state from cache for {state.display_name}")
+            except Exception as e:
+                self.logger.error(f"Error restoring state from cache: {e}")
+                # Fall back to loading fresh data
+                self.logger.info(f"Falling back to fresh load for {state.display_name}")
+                use_cached_state = False
+        
+        if not use_cached_state or not state.state_dict:
             # First load - get data from PickerState
-            items, header = state.load_data()
-            self.items = items
-            self.header = header
+            self.logger.debug(f"Loading fresh data for {state.display_name}")
             
-            # Apply PickerState-specific settings
-            if isinstance(state, DynamicPickerState):
-                self.refresh_function = state.refresh_function
-                self.auto_refresh = state.auto_refresh
-                self.timer = state.refresh_timer
-                self.get_new_data = True
-                self.logger.debug(f"Applied DynamicPickerState settings")
-            elif isinstance(state, FilePickerState):
-                self.refresh_function = lambda *args: None  # No refresh for files
-                self.auto_refresh = False
-                self.get_new_data = False
+            try:
+                items, header = state.load_data()
+                self.items = items
+                self.header = header
                 
-                # Handle sheets
-                if len(state.sheets) > 1:
-                    self.sheets = [s.name for s in state.sheets]
-                    self.sheet_states = [s.state_dict for s in state.sheets]
-                    self.sheet_index = state.sub_state_index
-                    self.logger.debug(f"Loaded {len(state.sheets)} sheets")
-            elif isinstance(state, StaticPickerState):
-                self.refresh_function = lambda *args: None
-                self.auto_refresh = False
-                self.get_new_data = False
-                self.logger.debug(f"Applied StaticPickerState settings")
-            
-            self.initialise_variables()
+                # Apply PickerState-specific settings
+                if isinstance(state, DynamicPickerState):
+                    self.refresh_function = state.refresh_function
+                    self.auto_refresh = state.auto_refresh
+                    self.timer = state.refresh_timer
+                    self.get_new_data = True
+                    self.logger.debug(f"Applied DynamicPickerState settings")
+                elif isinstance(state, FilePickerState):
+                    self.refresh_function = lambda *args: None  # No refresh for files
+                    self.auto_refresh = False
+                    self.get_new_data = False
+                    
+                    # Handle sheets
+                    if len(state.sheets) > 1:
+                        self.sheets = [s.name for s in state.sheets]
+                        self.sheet_states = [s.state_dict for s in state.sheets]
+                        self.sheet_index = state.sub_state_index
+                        self.logger.debug(f"Loaded {len(state.sheets)} sheets")
+                elif isinstance(state, StaticPickerState):
+                    self.refresh_function = lambda *args: None
+                    self.auto_refresh = False
+                    self.get_new_data = False
+                    self.logger.debug(f"Applied StaticPickerState settings")
+                
+                self.initialise_variables()
+            except Exception as e:
+                self.logger.error(f"Error loading data for {state.display_name}: {e}")
+                import traceback
+                self.logger.error(traceback.format_exc())
+                raise
 
     def switch_picker_state(self, increment=1) -> None:
         """Switch to next/previous PickerState."""
         if len(self.loaded_picker_states) <= 1:
+            self.logger.debug("Only 1 PickerState, cannot switch")
             return None
+        
+        self.logger.info(f"Switching from index {self.picker_state_index} by {increment}, total states: {len(self.loaded_picker_states)}")
+        self.logger.info(f"Available states: {[(i, ps.display_name, id(ps)) for i, ps in enumerate(self.loaded_picker_states)]}")
         
         # Save current Picker state to current PickerState
         self.save_current_picker_state()
         
         # Move to next state
+        old_index = self.picker_state_index
         self.picker_state_index = (self.picker_state_index + increment) % len(self.loaded_picker_states)
         
+        self.logger.info(f"Switching from {old_index} to {self.picker_state_index}")
+        
+        # Bounds check
+        if not (0 <= self.picker_state_index < len(self.loaded_picker_states)):
+            self.logger.error(f"Invalid picker_state_index after switch: {self.picker_state_index}")
+            self.picker_state_index = 0
+        
         # Load the new state
-        self.load_picker_state(
-            self.loaded_picker_states[self.picker_state_index],
-            use_cached_state=True  # Use cached if available
-        )
+        next_state = self.loaded_picker_states[self.picker_state_index]
+        self.logger.info(f"Loading state: {next_state.display_name} (id: {id(next_state)})")
+        
+        self.load_picker_state(next_state, use_cached_state=True)
         
         self.logger.info(f"Switched to PickerState {self.picker_state_index}: {self.loaded_picker_states[self.picker_state_index].display_name}")
 
@@ -4839,6 +4878,11 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
                 # NEW: Initialize FilePickerState objects for each file
                 function_data["loaded_picker_states"] = [FilePickerState(path=f) for f in args.file]
                 function_data["picker_state_index"] = 0
+                
+                # Debug logging
+                import logging
+                logger = logging.getLogger('picker_log')
+                logger.info(f"CLI: Created {len(args.file)} FilePickerStates for files: {args.file}")
             break
 
         except Exception as e:
@@ -4874,6 +4918,11 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
                 first_picker_state.sub_states = first_picker_state.sheets
             # Compute initial hash (file is not modified after loading from disk)
             first_picker_state.update_hash(items, header)
+            
+            # Debug: Log the PickerStates
+            import logging
+            logger = logging.getLogger('picker_log')
+            logger.info(f"CLI initialized PickerStates: {[(i, ps.path, id(ps)) for i, ps in enumerate(function_data['loaded_picker_states'])]}")
 
     return args, function_data
 
@@ -5229,11 +5278,8 @@ def main() -> None:
     stdscr = start_curses()
     try:
         # Run the Picker
-
-        # app = Picker(stdscr, **function_data)
-        app = Picker(stdscr)
+        app = Picker(stdscr, **function_data)
         app.set_config("~/.config/listpick/config.toml")
-        app.set_function_data(function_data)
         app.splash_screen("Listpick is loading your data...")
         app.load_input_history("~/.config/listpick/cmdhist.json")
         app.run()

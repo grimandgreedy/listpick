@@ -153,7 +153,8 @@ class FilePickerState(PickerState):
             return [[""]], []
         
         # Load file from disk
-        from listpick.utils.table_to_list_of_lists import table_to_list, guess_file_type
+        from listpick.utils.table_to_list_of_lists import table_to_list
+        from listpick.utils.utils import guess_file_type
         
         try:
             filetype = guess_file_type(self.path)

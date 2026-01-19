@@ -70,14 +70,35 @@ class StandardFooter(Footer):
             self.footer_string_y = -1
             self.height = 2
 
-        if len(state["sheets"]) > 1:
+        # Check for sheets: Use PickerState if available, else fall back to old system
+        has_sheets = False
+        picker_states = state.get("loaded_picker_states", [])
+        picker_state_index = state.get("picker_state_index", 0)
+        
+        if picker_states and 0 <= picker_state_index < len(picker_states):
+            current_state = picker_states[picker_state_index]
+            has_sheets = len(current_state.sub_states) > 1
+        elif len(state.get("sheets", [])) > 1:
+            has_sheets = True
+        
+        if has_sheets:
             self.height += 1
             self.picker_info_y -= 1
             self.sort_info_y -= 1
             self.footer_string_y -= 1
             self.sheets_y = h-1
 
-        if len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
+        # Check for multiple PickerStates/files
+        # Priority: Use PickerStates if they exist, otherwise fall back to loaded_files
+        has_multiple_states = False
+        if picker_states:
+            # PickerStates are present - use them as source of truth
+            has_multiple_states = len(picker_states) > 1
+        elif len(state.get("loaded_files", [])) > 1 and state.get("loaded_file") in state.get("loaded_files", []):
+            # No PickerStates - fall back to old system
+            has_multiple_states = True
+        
+        if has_multiple_states:
             self.height += 1
             self.picker_info_y -= 1
             self.sort_info_y -= 1
@@ -179,7 +200,40 @@ class StandardFooter(Footer):
 
                 self.stdscr.addstr(self.files_y, w - (len(current_file_str)+3), f" {current_file_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
 
-        if len(state["sheets"]) > 1:
+        # Display sheets/sub-states
+        picker_states = state.get("loaded_picker_states", [])
+        picker_state_index = state.get("picker_state_index", 0)
+        
+        # Use PickerState sub_states if available
+        if picker_states and 0 <= picker_state_index < len(picker_states):
+            current_state = picker_states[picker_state_index]
+            
+            if len(current_state.sub_states) > 1:
+                sep = "◢ "
+                
+                # Build sheet display strings
+                sheets = [sub.display_name for sub in current_state.sub_states]
+                idx = current_state.sub_state_index
+                
+                sheets_str = sep.join(sheets)
+                sheets_str = sheets_str[:w-2]
+                
+                current_sheet_x = sum((len(x) for x in sheets[:idx])) + idx*len(sep)
+                current_sheet_str = sheets[idx] if idx < len(sheets) else "Unknown"
+                
+                current_sheet_x_end = current_sheet_x + len(current_sheet_str) + 2
+                self.stdscr.addstr(self.sheets_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
+                if current_sheet_x_end < w:
+                    self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
+                    self.stdscr.addstr(self.sheets_y, current_sheet_x, f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+                else:
+                    sheets_str = sep.join(sheets)
+                    sheets_str = sheets_str[current_sheet_x_end-w:current_sheet_x_end][:w-2]
+                    self.stdscr.addstr(self.sheets_y, 0, f" {sheets_str}", curses.color_pair(self.colours_start+4))
+                    self.stdscr.addstr(self.sheets_y, w - (len(current_sheet_str)+3), f" {current_sheet_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+        
+        # LEGACY: Fall back to old sheet display
+        elif len(state.get("sheets", [])) > 1:
 
             sep = "◢ "
 
