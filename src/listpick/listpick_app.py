@@ -51,10 +51,9 @@ from listpick.utils.picker_log import setup_logger
 from listpick.utils.user_input import get_char, open_tty, restore_terminal_settings
 from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
-from listpick.utils.file_state import FileState, SheetState
 from listpick.utils.picker_state import (
     PickerState, FilePickerState, StaticPickerState, DynamicPickerState, 
-    SubState, SheetState as PickerSheetState
+    SubState, SheetState
 )
 
 COLOURS_SET = False
@@ -526,8 +525,7 @@ class Picker:
         """Update sheets in current FilePickerState."""
         state = self.get_current_picker_state()
         if state and isinstance(state, FilePickerState):
-            from listpick.utils.picker_state import SheetState as PickerSheetState
-            state.sheets = [PickerSheetState(name=name) if isinstance(name, str) else name for name in value]
+            state.sheets = [SheetState(name=name) if isinstance(name, str) else name for name in value]
             state.sub_states = state.sheets
     
     @property
@@ -2960,8 +2958,7 @@ class Picker:
                     current_state = self.loaded_picker_states[self.picker_state_index]
                     if isinstance(current_state, FilePickerState):
                         # Create SheetState objects from loaded sheets
-                        from listpick.utils.picker_state import SheetState as PickerSheetState
-                        current_state.sheets = [PickerSheetState(name=sheet_name) for sheet_name in sheets]
+                        current_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
                         current_state.sub_states = current_state.sheets
                         current_state.sub_state_index = 0
                         
@@ -4870,8 +4867,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
         if isinstance(first_picker_state, FilePickerState):
             # Create SheetState objects from loaded sheets
             if sheets:
-                from listpick.utils.picker_state import SheetState as PickerSheetState
-                first_picker_state.sheets = [PickerSheetState(name=sheet_name) for sheet_name in sheets]
+                first_picker_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
                 first_picker_state.sub_states = first_picker_state.sheets
             # Compute initial hash (file is not modified after loading from disk)
             first_picker_state.update_hash(items, header)
