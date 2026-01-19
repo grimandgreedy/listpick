@@ -101,8 +101,40 @@ class StandardFooter(Footer):
         for i in range(self.height):
             self.stdscr.addstr(h-self.height+i, 0, ' '*(w-1), curses.color_pair(self.colours_start+20))
 
-        # Display loaded files
-        if len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
+        # Display loaded files/PickerStates
+        picker_states = state.get("loaded_picker_states", [])
+        
+        # Use PickerStates if available (new system), otherwise fall back to old system
+        if picker_states and len(picker_states) > 1:
+            sep = "◢ "
+            
+            # Build display strings using get_footer_info()
+            state_displays = []
+            for ps in picker_states:
+                info = ps.get_footer_info()
+                display = info["display_name"] + info["modified_indicator"]
+                state_displays.append(display)
+            
+            states_str = sep.join(state_displays)
+            states_str = states_str[:w-2]
+            
+            idx = state.get("picker_state_index", 0)
+            current_state_x = sum((len(x) for x in state_displays[:idx])) + idx*len(sep)
+            current_state_str = state_displays[idx] if idx < len(state_displays) else "Unknown"
+            
+            current_state_x_end = current_state_x + len(current_state_str) + 2
+            self.stdscr.addstr(self.files_y, 0, ' '*(w-1), curses.color_pair(self.colours_start+4))
+            if current_state_x_end < w:
+                self.stdscr.addstr(self.files_y, 0, f" {states_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.files_y, current_state_x, f" {current_state_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+            else:
+                states_str = sep.join(state_displays)
+                states_str = states_str[current_state_x_end-w:current_state_x_end][:w-2]
+                self.stdscr.addstr(self.files_y, 0, f" {states_str}", curses.color_pair(self.colours_start+4))
+                self.stdscr.addstr(self.files_y, w - (len(current_state_str)+3), f" {current_state_str}{sep[0]}", curses.color_pair(self.colours_start+4) | curses.A_REVERSE)
+        
+        # LEGACY: Fall back to old file display logic
+        elif len(state["loaded_files"]) > 1 and state["loaded_file"] in state["loaded_files"]:
 
             sep = "◢ "
 

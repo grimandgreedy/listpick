@@ -704,7 +704,13 @@ class Picker:
             logging.warning("Error trying to set curses.set_escdelay")
 
     def mark_current_file_modified(self) -> None:
-        """Mark the currently loaded file as modified (dirty flag)."""
+        """Mark the currently loaded file/PickerState as modified (dirty flag)."""
+        # NEW: Mark PickerState as modified
+        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+            self.loaded_picker_states[self.picker_state_index].mark_modified()
+            self.logger.debug(f"Marked PickerState {self.loaded_picker_states[self.picker_state_index].display_name} as modified")
+        
+        # LEGACY: Also mark old FileState for backward compatibility
         if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
             self.loaded_file_states_new[self.loaded_file_index].mark_modified()
             self.logger.debug(f"Marked file {self.loaded_file} as modified")
@@ -1717,6 +1723,8 @@ class Picker:
             "loaded_file_index":                        self.loaded_file_index,
             "loaded_file_states":                       self.loaded_file_states,
             "loaded_file_states_new":                   self.loaded_file_states_new,
+            "loaded_picker_states":                     self.loaded_picker_states,
+            "picker_state_index":                       self.picker_state_index,
             "sheet_index":                              self.sheet_index,
             "sheets":                                   self.sheets,
             "sheet_name":                               self.sheet_name,
@@ -1753,6 +1761,8 @@ class Picker:
             "loaded_file_states_new",
             "loaded_files",
             "loaded_file",
+            "loaded_picker_states",
+            "picker_state_index",
             "command_stack",
             "colour_theme_number",
             "reset_colours",
@@ -2951,15 +2961,28 @@ class Picker:
         """Create a new untitled file and switch to it."""
         self.logger.info("function: create_new_file()")
 
-        # Save current file state
+        # NEW: Save current PickerState
+        if self.loaded_picker_states:
+            self.save_current_picker_state()
+        
+        # LEGACY: Save current file state
         if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
             current_state = self.loaded_file_states_new[self.loaded_file_index]
             current_state.state_dict = self.get_function_data()
 
         # Generate unique "Untitled" name
-        untitled_numbers = [
-            fs.untitled_number for fs in self.loaded_file_states_new if fs.is_untitled
-        ]
+        # NEW: Check both old and new systems
+        untitled_numbers = []
+        if self.loaded_picker_states:
+            untitled_numbers = [
+                ps.untitled_number for ps in self.loaded_picker_states
+                if isinstance(ps, FilePickerState) and ps.is_untitled
+            ]
+        else:
+            untitled_numbers = [
+                fs.untitled_number for fs in self.loaded_file_states_new if fs.is_untitled
+            ]
+        
         if not untitled_numbers:
             new_name = "Untitled"
             new_number = 0
@@ -2967,19 +2990,30 @@ class Picker:
             new_number = max(untitled_numbers) + 1
             new_name = f"Untitled-{new_number + 1}"  # Untitled-2, Untitled-3, etc.
 
-        # Create new FileState
+        # Create new FileState (legacy)
         new_file_state = FileState(
             path=new_name,
             is_untitled=True,
             untitled_number=new_number
         )
 
-        # Add to lists
+        # NEW: Create FilePickerState
+        new_picker_state = FilePickerState(
+            path=new_name,
+            is_untitled=True,
+            untitled_number=new_number
+        )
+
+        # Add to lists (both old and new systems)
         self.loaded_files.append(new_name)
         self.loaded_file_states_new.append(new_file_state)
-        self.loaded_file_states.append({})  # Keep old format in sync during migration
+        self.loaded_file_states.append({})
+        
+        if self.loaded_picker_states:
+            self.loaded_picker_states.append(new_picker_state)
+            self.picker_state_index = len(self.loaded_picker_states) - 1
 
-        # Switch to new file
+        # Switch to new file (legacy)
         self.loaded_file_index = len(self.loaded_files) - 1
         self.loaded_file = new_name
 
@@ -2992,11 +3026,65 @@ class Picker:
 
     def close_file_with_warning(self) -> bool:
         """
-        Close the current file, prompting if modified.
+        Close the current file/PickerState, prompting if modified.
         Returns True if should exit application, False otherwise.
         """
         self.logger.info("function: close_file_with_warning()")
+        
+        # NEW: Check PickerState first
+        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+            current_state = self.loaded_picker_states[self.picker_state_index]
+            
+            # Check if should prompt (only FilePickerState with modifications)
+            if current_state.should_prompt_on_exit():
+                if isinstance(current_state, FilePickerState):
+                    if current_state.check_modified(self.items, self.header):
+                        # Show confirmation dialog
+                        options = [
+                            ["Save and close"],
+                            ["Close without saving"],
+                            ["Cancel (don't close)"]
+                        ]
+                        s, o, f = self.choose_option(
+                            self.stdscr,
+                            options=options,
+                            title=f"Save changes to {current_state.display_name}?",
+                            header=[]
+                        )
 
+                        if s:
+                            idx = list(s.keys())[0]
+                            if idx == 0:  # Save and close
+                                self.save_dialog()
+                                # Check if save succeeded
+                                if current_state.is_modified:
+                                    return False  # Save was cancelled, don't close
+                            elif idx == 1:  # Close without saving
+                                pass  # Continue to close
+                            else:  # idx == 2, Cancel
+                                return False
+                        else:
+                            return False  # User cancelled
+            
+            # Proceed with closing PickerState
+            if len(self.loaded_picker_states) <= 1:
+                # Last state, signal to exit application
+                return True
+            else:
+                # Remove PickerState from list
+                del self.loaded_picker_states[self.picker_state_index]
+                self.picker_state_index = min(self.picker_state_index, len(self.loaded_picker_states) - 1)
+                
+                # Load next state
+                self.load_picker_state(
+                    self.loaded_picker_states[self.picker_state_index],
+                    use_cached_state=True
+                )
+                
+                self.draw_screen()
+                return False  # Don't exit application
+        
+        # LEGACY: Fallback to old FileState logic
         if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
             current_file_state = self.loaded_file_states_new[self.loaded_file_index]
 
@@ -4746,8 +4834,11 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
             if args.file:
                 function_data["loaded_file"] = args.file[0]
                 function_data["loaded_files"] = args.file
-                # Initialize FileState objects for each file
+                # Initialize FileState objects for each file (legacy)
                 function_data["loaded_file_states_new"] = [FileState(path=f) for f in args.file]
+                # NEW: Initialize FilePickerState objects for each file
+                function_data["loaded_picker_states"] = [FilePickerState(path=f) for f in args.file]
+                function_data["picker_state_index"] = 0
             break
 
         except Exception as e:
@@ -4771,6 +4862,18 @@ def parse_arguments() -> Tuple[argparse.Namespace, dict]:
             first_file_state.sheets = [SheetState(name=sheet_name) for sheet_name in sheets]
         # Compute initial hash (file is not modified after loading from disk)
         first_file_state.update_hash(items, header)
+    
+    # NEW: Initialize sheets and hash for PickerState objects
+    if args.file and "loaded_picker_states" in function_data:
+        first_picker_state = function_data["loaded_picker_states"][0]
+        if isinstance(first_picker_state, FilePickerState):
+            # Create SheetState objects from loaded sheets
+            if sheets:
+                from listpick.utils.picker_state import SheetState as PickerSheetState
+                first_picker_state.sheets = [PickerSheetState(name=sheet_name) for sheet_name in sheets]
+                first_picker_state.sub_states = first_picker_state.sheets
+            # Compute initial hash (file is not modified after loading from disk)
+            first_picker_state.update_hash(items, header)
 
     return args, function_data
 
