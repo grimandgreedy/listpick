@@ -49,6 +49,10 @@ from listpick.utils.user_input import get_char, open_tty, restore_terminal_setti
 from listpick.pane.pane_functions import right_split_file_attributes, right_split_file_attributes_dynamic, right_split_graph, right_split_display_list
 from listpick.pane.get_data import *
 from listpick.utils.file_state import FileState, SheetState
+from listpick.utils.picker_state import (
+    PickerState, FilePickerState, StaticPickerState, DynamicPickerState, 
+    SheetState as PickerSheetState
+)
 
 COLOURS_SET = False
 help_colours, notification_colours = {}, {}
@@ -199,8 +203,10 @@ class Picker:
         loaded_file_states: list[dict] = [{}],
         loaded_file_states_new: list = None,  # Will be initialized to list[FileState]
         disable_file_close_warning: bool = False,  # For nested Pickers (dialogs)
-
-
+        
+        # New PickerState architecture
+        loaded_picker_states: list[PickerState] = None,  # Will be initialized to list[PickerState]
+        picker_state_index: int = 0,
         sheets = ["Untitled"],
         sheet_name = "Untitled",
         sheet_index = 0,
@@ -379,6 +385,17 @@ class Picker:
             self.loaded_file_states_new = loaded_file_states_new
 
         self.disable_file_close_warning = disable_file_close_warning
+        
+        # New PickerState architecture
+        if loaded_picker_states is None:
+            # Auto-detect and create appropriate PickerState
+            self.loaded_picker_states = self._create_default_picker_state(
+                items, header, refresh_function, auto_refresh, get_new_data, timer
+            )
+        else:
+            self.loaded_picker_states = loaded_picker_states
+        
+        self.picker_state_index = picker_state_index
 
         # Multiple sheet support
         self.sheet_index = sheet_index
@@ -691,6 +708,38 @@ class Picker:
         if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
             self.loaded_file_states_new[self.loaded_file_index].mark_modified()
             self.logger.debug(f"Marked file {self.loaded_file} as modified")
+    
+    def _create_default_picker_state(self, items, header, refresh_function, 
+                                     auto_refresh, get_new_data, timer) -> list[PickerState]:
+        """
+        Create appropriate default PickerState based on initialization params.
+        Returns a list with a single PickerState.
+        """
+        if get_new_data and refresh_function:
+            # Dynamic data with refresh function
+            return [DynamicPickerState(
+                path="dynamic",
+                display_name="Live Data",
+                refresh_function=refresh_function,
+                auto_refresh=auto_refresh,
+                refresh_timer=timer
+            )]
+        
+        elif items or header:
+            # Static data provided (e.g., from stdin, or programmatic usage)
+            return [StaticPickerState(
+                path="static",
+                display_name="Data",
+                items=items if items else [[]],
+                header=header if header else []
+            )]
+        
+        else:
+            # Empty picker - default to untitled file
+            return [FilePickerState(
+                path="Untitled",
+                is_untitled=True
+            )]
 
     def initialise_variables(self, get_data: bool = False) -> None:
         """
