@@ -2522,8 +2522,30 @@ class Picker:
     def save_dialog(self) -> None:
         """ Display dialogue to select how to save the picker data. Auto-saves to existing files. """
         self.logger.info(f"function: save_dialog()")
-
-        # Check if we can auto-save (file exists on disk and not "Untitled")
+        
+        # NEW: Check PickerState type first
+        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+            current_state = self.loaded_picker_states[self.picker_state_index]
+            
+            if current_state.can_save():
+                # This is a FilePickerState - can save to disk
+                if isinstance(current_state, FilePickerState):
+                    # Auto-save if file exists on disk and is not untitled
+                    if not current_state.is_untitled and os.path.exists(current_state.path):
+                        error = current_state.save(self.items, self.header, self.sheet_states)
+                        if not error:
+                            self.draw_screen()
+                            self.notification(self.stdscr, message=f"Saved to {current_state.display_name}")
+                        else:
+                            self.notification(self.stdscr, message=error, title="Error")
+                        return
+                    # else: fall through to "Save As" dialog below
+            else:
+                # StaticPickerState or DynamicPickerState - show export dialog
+                self.export_dialog()
+                return
+        
+        # LEGACY: Fallback to old FileState check for backward compatibility
         if 0 <= self.loaded_file_index < len(self.loaded_file_states_new):
             current_file_state = self.loaded_file_states_new[self.loaded_file_index]
 
@@ -2613,6 +2635,42 @@ class Picker:
                             self.loaded_file = save_path
                     else:
                         self.notification(self.stdscr, message=return_val, title="Error")
+    
+    def export_dialog(self) -> None:
+        """Show export dialog for non-file PickerStates (Static/Dynamic)."""
+        self.logger.info(f"function: export_dialog()")
+        
+        options = [
+            ["Export as CSV"],
+            ["Export as TSV"],
+            ["Export as JSON"],
+            ["Export as Excel (.xlsx)"],
+            ["Export as Feather"],
+            ["Export as Parquet"],
+        ]
+        
+        s, o, f = self.choose_option(self.stdscr, options=options, title="Export Data", header=[])
+        
+        if s:
+            format_map = ["csv", "tsv", "json", "xlsx", "feather", "parquet"]
+            selected_idx = list(s.keys())[0]
+            export_format = format_map[selected_idx]
+            
+            save_path_entered, save_path = output_file_option_selector(
+                self.stdscr,
+                refresh_screen_function=lambda: self.draw_screen()
+            )
+            
+            if save_path_entered:
+                # Get current PickerState
+                if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+                    current_state = self.loaded_picker_states[self.picker_state_index]
+                    error = current_state.export(save_path, self.items, self.header, format=export_format)
+                    
+                    if not error:
+                        self.notification(self.stdscr, message=f"Exported to {save_path}")
+                    else:
+                        self.notification(self.stdscr, message=error, title="Error")
 
     def load_dialog(self) -> None:
         """ Display dialogue to select which file to load and in what way it should be loaded. """
@@ -2670,6 +2728,9 @@ class Picker:
                     self.loaded_files.append(file_path)
                     self.loaded_file_states.append({})
                     self.loaded_file_states_new.append(FileState(path=file_path))
+                    
+                    # NEW: Also create FilePickerState for new architecture
+                    self.loaded_picker_states.append(FilePickerState(path=file_path))
 
                 self.loaded_file = file_to_load
                 self.loaded_file_index = len(self.loaded_files) - len(files_to_load)
