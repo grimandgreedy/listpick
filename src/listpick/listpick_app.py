@@ -2144,11 +2144,17 @@ class Picker:
                 elif setting == "unicode":
                     self.unicode_char_width = not self.unicode_char_width
                 elif setting == "file_next":
-                    self.command_stack.append(Command("setting", self.user_settings))
-                    self.switch_file(increment=1)
+                    # Switch to next PickerState (or file for backward compat)
+                    if self.loaded_picker_states:
+                        self.switch_picker_state(increment=1)
+                    else:
+                        self.switch_file(increment=1)
                 elif setting == "file_prev":
-                    self.command_stack.append(Command("setting", self.user_settings))
-                    self.switch_file(increment=-1)
+                    # Switch to previous PickerState (or file for backward compat)
+                    if self.loaded_picker_states:
+                        self.switch_picker_state(increment=-1)
+                    else:
+                        self.switch_file(increment=-1)
                     # self.draw_screen()
                     # self.stdscr.refresh()
 
@@ -2986,6 +2992,79 @@ class Picker:
 
             self.draw_screen()
             return False  # Don't exit application
+
+    def save_current_picker_state(self) -> None:
+        """Save current Picker state into current PickerState's state_dict."""
+        if 0 <= self.picker_state_index < len(self.loaded_picker_states):
+            current_state = self.loaded_picker_states[self.picker_state_index]
+            current_state.state_dict = self.get_function_data()
+            self.logger.debug(f"Saved state for PickerState: {current_state.display_name}")
+    
+    def load_picker_state(self, state: PickerState, use_cached_state: bool = True) -> None:
+        """
+        Load a PickerState into Picker.
+        
+        Args:
+            state: The PickerState to load
+            use_cached_state: If True and state has cached state_dict, restore from it.
+                             If False, load fresh data from state's data source.
+        """
+        self.logger.info(f"Loading PickerState: {state.display_name} (use_cached={use_cached_state})")
+        
+        if use_cached_state and state.state_dict:
+            # Restore from cached state_dict (includes ALL Picker variables)
+            self.set_function_data(state.state_dict)
+            self.logger.debug(f"Restored state from cache for {state.display_name}")
+        else:
+            # First load - get data from PickerState
+            items, header = state.load_data()
+            self.items = items
+            self.header = header
+            
+            # Apply PickerState-specific settings
+            if isinstance(state, DynamicPickerState):
+                self.refresh_function = state.refresh_function
+                self.auto_refresh = state.auto_refresh
+                self.timer = state.refresh_timer
+                self.get_new_data = True
+                self.logger.debug(f"Applied DynamicPickerState settings")
+            elif isinstance(state, FilePickerState):
+                self.refresh_function = lambda *args: None  # No refresh for files
+                self.auto_refresh = False
+                self.get_new_data = False
+                
+                # Handle sheets
+                if len(state.sheets) > 1:
+                    self.sheets = [s.name for s in state.sheets]
+                    self.sheet_states = [s.state_dict for s in state.sheets]
+                    self.sheet_index = state.sub_state_index
+                    self.logger.debug(f"Loaded {len(state.sheets)} sheets")
+            elif isinstance(state, StaticPickerState):
+                self.refresh_function = lambda *args: None
+                self.auto_refresh = False
+                self.get_new_data = False
+                self.logger.debug(f"Applied StaticPickerState settings")
+            
+            self.initialise_variables()
+
+    def switch_picker_state(self, increment=1) -> None:
+        """Switch to next/previous PickerState."""
+        if len(self.loaded_picker_states) <= 1:
+            return None
+        
+        # Save current Picker state to current PickerState
+        self.save_current_picker_state()
+        
+        # Move to next state
+        self.picker_state_index = (self.picker_state_index + increment) % len(self.loaded_picker_states)
+        
+        # Load the new state
+        self.load_picker_state(
+            self.loaded_picker_states[self.picker_state_index],
+            use_cached_state=True  # Use cached if available
+        )
+        
+        self.logger.info(f"Switched to PickerState {self.picker_state_index}: {self.loaded_picker_states[self.picker_state_index].display_name}")
 
     def switch_file(self, increment=1) -> None:
         """ Go to the next file. """
@@ -4164,10 +4243,18 @@ class Picker:
                             # Re-sort self.items after applying filter
                             sort_items(self.indexed_items, sort_method=self.columns_sort_method[self.sort_column], sort_column=self.sort_column, sort_reverse=self.sort_reverse[self.sort_column])  # Re-sort self.items based on new column
             elif self.check_key("file_next", key, self.keys_dict):
-                self.switch_file(increment=1)
+                # Switch to next PickerState (or file for backward compat)
+                if self.loaded_picker_states:
+                    self.switch_picker_state(increment=1)
+                else:
+                    self.switch_file(increment=1)
 
             elif self.check_key("file_prev", key, self.keys_dict):
-                self.switch_file(increment=-1)
+                # Switch to previous PickerState (or file for backward compat)
+                if self.loaded_picker_states:
+                    self.switch_picker_state(increment=-1)
+                else:
+                    self.switch_file(increment=-1)
 
             elif self.check_key("toggle_right_pane", key, self.keys_dict):
                 self.toggle_right_pane()
