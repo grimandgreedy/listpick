@@ -62,6 +62,7 @@
 >   [ ] ["Key", "Description (for help)", "function"]
 > - [ ] Kill ring issues. Inconsistent ordering. Needs refactoring
 > - [ ] When we open an xlsx, by default it loads all of the data into items. However when we switch sheets it loads the first row into the header
+> - [ ] If we define a macro using a key then it shouldn't also call the key in the keys_dict...
 
 
 
