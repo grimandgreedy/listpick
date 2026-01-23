@@ -4718,7 +4718,6 @@ class Picker:
                     ["  Global", "-*" * 30],
                     ["", ""],
                     ["current_file", self.loaded_file],
-                    ["loaded_files", repr(self.loaded_files)],
                     ["auto_refresh", f"{repr(self.auto_refresh)}"],
                     ["timer", f"{repr(self.timer)}"],
                     ["pin_cursor", f"{repr(self.pin_cursor)}"],
@@ -4788,10 +4787,6 @@ class Picker:
                 data["option_functions"] = (
                     f"[...] length = {len(data['option_functions'])}"
                 )
-                data["loaded_file_states"] = (
-                    f"[...] length = {len(data['loaded_file_states'])}"
-                )
-                data["sheet_states"] = f"[...] length = {len(data['sheet_states'])}"
                 data["highlights"] = f"[...] length = {len(data['highlights'])}"
                 data["colours"] = f"[...] length = {len(data['colours'])}"
                 data["keys_dict"] = f"[...] length = {len(data['keys_dict'])}"
@@ -4848,8 +4843,6 @@ class Picker:
                     "split_right": False,
                     "crosshair_cursor": False,
                     "disable_file_close_warning": True,  # This is a dialog, not a file manager
-                    "loaded_files": [],  # No files to prevent footer file bar display
-                    "loaded_file_states_new": [],  # Empty file states for dialogs
                 }
                 OptionPicker = Picker(self.stdscr, **info_data)
                 s, o, f = OptionPicker.run()
