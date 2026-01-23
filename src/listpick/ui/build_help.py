@@ -71,7 +71,7 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
         "refresh":                          "Refresh data.",
         "help":                             "Open help.",
         "exit":                             "Exit.",
-        "minimise":                         "Minimise. Retain state & return.",
+        "minimise":                         "Save state and exit.",
         "full_exit":                        "Immediate exit to terminal.",
         "move_column_left":                 "Move column left.",
         "move_column_right":                "Move column right.",
