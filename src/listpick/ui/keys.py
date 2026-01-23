@@ -14,6 +14,7 @@ from listpick.utils import keycodes
 picker_keys = {
     "refresh":                          [curses.KEY_F5],
     "help":                             [ord('?')],
+    "minimise":                         [keycodes.META_M],
     "exit":                             [ord('q')],
     "full_exit":                        [3], # Ctrl+c
     # "move_column_left":                 [ord('{')],
