@@ -1,6 +1,13 @@
 # CHANGELOG.md
 Note that the changes between 0.1.11.0 and 1.1.12.0 are listed under 0.1.11
 
+## [0.1.18.0] 2026-01-26
+ - Major internal state management revamp: PickerStates
+    - totally replaces "files" and "states"
+    - FilePickerStates and DynamicPickerState allow regular file loading but also arbitrary loading of data from applications which wish to do so.
+ - Added startup_function which can be specified and will run whenever a PicerState is brought to the fore
+
+
 ## [0.1.17.2-3] 2026-01-16
  - Fix cell population issue with the multithreaded data generator. It was caused by list replacement while padding the sublists; so the background workers weren't able to populate the cells as their reference lists had actually been replaced.
 

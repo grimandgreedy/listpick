@@ -70,7 +70,8 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
     help_descriptions = {
         "refresh":                          "Refresh data.",
         "help":                             "Open help.",
-        "exit":                             "Exit picker instance.",
+        "exit":                             "Exit.",
+        "minimise":                         "Save state and exit.",
         "full_exit":                        "Immediate exit to terminal.",
         "move_column_left":                 "Move column left.",
         "move_column_right":                "Move column right.",
@@ -160,7 +161,7 @@ def build_help_rows(keys_dict: dict, macros: list, debug: bool = False) -> list[
         "Options and modes:": [ "opts_input", "opts_select", "mode_next", "mode_prev", "pipe_input", "reset_opts" ],
         "Save, load, copy and paste:": [ "save", "load", "open", "copy", "paste" ],
         "Data manipulation:": [ "delete", "delete_column", "edit", "edit_nvim", "edit_picker", "add_column_before", "add_column_after", "add_row_before", "add_row_after"],
-        "Misc:": [ "redo", "undo", "refresh", "help", "exit", "full_exit", "move_column_left", "move_column_right", "edit_ipython"],
+        "Misc:": [ "redo", "undo", "refresh", "help", "exit", "minimise", "full_exit", "move_column_left", "move_column_right", "edit_ipython"],
     }
 
     ## Add any keys not in section keys to misc.
